@@ -1,0 +1,242 @@
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+
+import React, { useState } from "react";
+import { AddEditPositionModal } from "./AddEditPositionModal";
+import { type Position } from "../../common/types";
+import { useOrganization } from "../../GlobalContexts/Organization-Context";
+import { useMutation } from "@tanstack/react-query";
+import { getMutationMethod } from "../../common/api-methods";
+import { useAuth } from "../../GlobalContexts/AuthContext";
+import { useToast } from "../../GlobalContexts/ToastContext";
+
+const PositionPage: React.FC = () => {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const { departments, positions, fetchPositions, positionFilter } =
+    useOrganization();
+
+  // State for search and filter
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredPositions, setFilteredPositions] = useState(positions);
+
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // State for add/edit position modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [currentPosition, setCurrentPosition] = useState<Position>({
+    departmentId: 0,
+    title: "",
+    departmentName: "",
+    description: "",
+  });
+
+  // Get current positions for pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const { mutateAsync: createPosition } = useMutation({
+    mutationFn: (body: Position) =>
+      getMutationMethod("POST", `api/positions`, body, true),
+    onSuccess: (data) => {
+      fetchPositions(positionFilter);
+      showToast("Position successfully created", "success");
+    },
+    onError: async (error) => {
+      console.log(error?.message);
+      showToast("Position creation unsuccessful", "error");
+    },
+  });
+
+  // Handle position form submission
+  const handlePositionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (modalMode === "add") {
+      // Add new position
+      const newPosition = {
+        ...currentPosition,
+        organizationId: Number(user?.organization?.id),
+      };
+      createPosition(newPosition);
+    } else {
+    }
+
+    setIsModalOpen(false);
+    setCurrentPosition({
+      departmentId: 0,
+      title: "",
+      departmentName: "",
+      description: "",
+      organizationId: undefined,
+    });
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    if (name === "departmentId") {
+      const selectedDepartment = departments.rows.find(
+        (dept) => dept.id === Number(value)
+      );
+      if (selectedDepartment)
+        setCurrentPosition({
+          ...currentPosition,
+          departmentId: Number(value),
+          departmentName: selectedDepartment?.name,
+        });
+    } else {
+      setCurrentPosition({
+        ...currentPosition,
+        [name]: value,
+      });
+    }
+  };
+
+  const openAddModal = () => {
+    setModalMode("add");
+    setCurrentPosition({
+      departmentId: 0,
+      title: "",
+      departmentName: "",
+      description: "",
+    });
+    setIsModalOpen(true);
+  };
+
+  // Open modal for editing position
+  const openEditModal = (position: typeof currentPosition) => {
+    setModalMode("edit");
+    setCurrentPosition(position);
+    setIsModalOpen(true);
+  };
+
+  return (
+    <>
+      <div className="m-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
+          <div className="sm:mt-0">
+            <button
+              onClick={openAddModal}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              Add Position
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <div className="bg-white shadow rounded-lg mb-6 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+          <div className="flex-1 max-w-lg">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i className="fas fa-search text-gray-400 text-sm"></i>
+              </div>
+              <input
+                type="text"
+                className="bg-gray-100 focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border-none rounded-md text-sm"
+                placeholder="Search positions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Positions Table */}
+      <div className="bg-white shadow rounded-lg mb-6 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                >
+                  <div className="flex items-center">Position Title</div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                >
+                  <div className="flex items-center">Department</div>
+                </th>
+
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {positions?.rows?.map((position) => (
+                <tr key={position.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="text-sm font-medium text-gray-900">
+                        {position.title}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {position.department?.name}
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        className="text-blue-600 hover:text-blue-900 cursor-pointer"
+                        title="Edit"
+                        onClick={() => openEditModal(position)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+
+                      <button
+                        className="text-red-600 hover:text-red-900 cursor-pointer"
+                        title="Delete"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add/Edit Position Modal */}
+      {isModalOpen && (
+        <AddEditPositionModal
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          modalMode={modalMode}
+          currentPosition={currentPosition}
+          setCurrentPosition={setCurrentPosition}
+          handleInputChange={handleInputChange}
+          handlePositionSubmit={handlePositionSubmit}
+        />
+      )}
+    </>
+  );
+};
+
+export default PositionPage;

@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@layer base {
+    input {
+      /* Apply Tailwind utility classes using @apply */
+      @apply border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500;
+
+      /* Or, apply standard CSS properties */
+      /* background-color: #f9f9f9; */
+      /* color: #333; */
+    }
+
+    select {
+        /* Apply Tailwind utility classes using @apply */
+        @apply border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  
+        /* Or, apply standard CSS properties */
+        /* background-color: #f9f9f9; */
+    }
+
+    textarea {
+        /* Apply Tailwind utility classes using @apply */
+        @apply border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  
+        /* Or, apply standard CSS properties */
+        /* background-color: #f9f9f9; */
+    }
+    
+  }
