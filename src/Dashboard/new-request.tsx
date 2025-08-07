@@ -87,21 +87,31 @@ const NewRequest: React.FC = () => {
     }
   };
 
-  console.log("-----selectedWorkFlow-------", selectedWorkFlow);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const formResponses: { [key: string]: any } = {};
 
     const fieldsAndResponse = selectedWorkFlowStage?.fields.map((field) => ({
       ...field,
       value: formStageData[field?.id],
     }));
 
+    console.log("-----fieldsAndResponse-------", fieldsAndResponse);
+
+    selectedWorkFlowStage?.fields.forEach((field) => {
+      const fieldName = field?.formFields[0];
+      if (fieldName) {
+        formResponses[fieldName] = formStageData[field?.id];
+      }
+    });
+
     createNewWorkflowRequest({
       workflowId: selectedWorkFlow?.id,
       nextStageEmployeeId: formStageData?.employeeId, // This could be undefined so at the backend we will derive it from nextStage or stage Elements
       fieldResponses: fieldsAndResponse?.length ? fieldsAndResponse : [],
       requestorId: selectedEmployeeId ?? user?.id,
+      formResponses,
     });
   };
 

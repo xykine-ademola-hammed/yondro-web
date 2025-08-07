@@ -209,7 +209,7 @@ export default function FormView({
                         required: true,
                         selectOption: departmenttMembers?.map((member) => ({
                           id: Number(member.id),
-                          label: `${member.lastName} ${member.lastName}`,
+                          label: `${member.firstName} ${member.lastName}`,
                           value: member.id,
                         })),
                       }}

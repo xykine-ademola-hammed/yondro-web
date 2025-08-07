@@ -3,21 +3,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import FormViewModal from "./FormPreviewModal";
+import PaymentVoucher from "./widgets/PaymentVoucher-1";
+import useForm from "../common/useForms";
 
 export default function FormList() {
   const [previewForm, setPreviewForm] = useState<any>(null);
 
-  const forms = [
-    {
-      id: 1,
-      name: "Payment Voucher",
-      description: "Employee leave request form with date selection and reason",
-      status: "Active",
-      createdBy: "Bursary",
-      lastUpdated: "2024-01-10",
-      workflows: ["Financial Request"],
-    },
-  ];
+  const { forms } = useForm();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,7 +92,7 @@ export default function FormList() {
         <FormViewModal
           modalMode="preview"
           isOpen={previewForm !== null}
-          formId={previewForm.id}
+          form={previewForm}
           onClose={() => setPreviewForm(null)}
         />
       )}

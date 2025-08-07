@@ -9,13 +9,15 @@ import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { genericPositions } from "../../common/constant";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
-import FieldRender from "../../components/FieldRender";
+import useForm from "../../common/useForms";
+import type { FormProps } from "../../common/useForms";
 
 interface AddEditStageEditorProps {
   selectedStage: StageData;
   setIsOpenStageModal: (isOpen: boolean) => void;
   onSubmit: (stageIndex: number, stageData: StageData) => void;
   selectedStageIndex: number;
+  formId: string;
 }
 
 export const emptyStageData: StageData = {
@@ -32,11 +34,15 @@ export default function AddEditStageEditor({
   setIsOpenStageModal,
   onSubmit,
   selectedStageIndex,
+  formId,
 }: AddEditStageEditorProps) {
   const { departments } = useOrganization();
   const [positions, setPositions] = useState<Position[]>();
   const [formData, setStageData] = useState<StageData>(selectedStage);
   const [draggedField, setDraggedField] = useState<number | null>(null);
+  const [selectedForm, setSelectedForm] = useState<FormProps>({} as FormProps);
+
+  const { getFormById } = useForm();
 
   const fieldTypes = [
     { type: "text", label: "Text Input", icon: "ri-text" },
@@ -60,6 +66,7 @@ export default function AddEditStageEditor({
       ...(type === "select" || type === "radio"
         ? { options: ["Option 1", "Option 2"] }
         : {}),
+      ...(type === "stage" ? { formFields: [] } : {}),
     };
     setStageData((prev) => ({ ...prev, fields: [...prev?.fields, newField] }));
   };
@@ -165,6 +172,12 @@ export default function AddEditStageEditor({
     }
   }, [formData.assignee?.departmentId]);
 
+  useEffect(() => {
+    if (formId) {
+      setSelectedForm(getFormById(Number(formId)));
+    }
+  }, [formId]);
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -214,6 +227,13 @@ export default function AddEditStageEditor({
         [name]: value,
       });
     }
+  };
+
+  const handleStageFormFieldsChange = (
+    fieldId: number | string,
+    selectedOptions: string[]
+  ) => {
+    updateField(fieldId, { formFields: selectedOptions });
   };
 
   const handleSaveStage = () => {
@@ -414,6 +434,27 @@ export default function AddEditStageEditor({
                     </div>
                   </div>
                 )}
+
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id="assignToRequestor"
+                    checked={formData.showProcessingForm}
+                    onChange={(e) =>
+                      setStageData((prev) => ({
+                        ...prev,
+                        showProcessingForm: e.target.checked,
+                      }))
+                    }
+                    className="mr-2"
+                  />
+                  <label
+                    htmlFor="assignToRequestor"
+                    className="text-sm text-gray-700"
+                  >
+                    Show processing form
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -500,26 +541,98 @@ export default function AddEditStageEditor({
                                 }
                                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                               />
-                            </div>
 
-                            {field.type !== "checkbox" &&
-                              field.type !== "file" && (
+                              {field.type === "stage" && (
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Placeholder
+                                    Instruction
                                   </label>
-                                  <input
-                                    type="text"
+                                  <textarea
                                     value={field.placeholder || ""}
                                     onChange={(e) =>
                                       updateField(field.id, {
-                                        placeholder: e.target.value,
+                                        subStageInstruction: e.target.value,
                                       })
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                   />
                                 </div>
                               )}
+
+                              <div className="mt-4">
+                                <label className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={field.required}
+                                    onChange={(e) =>
+                                      updateField(field.id, {
+                                        required: e.target.checked,
+                                      })
+                                    }
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm text-gray-700">
+                                    Required field
+                                  </span>
+                                </label>
+                              </div>
+                            </div>
+
+                            <div className="w-full">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Select form fields
+                              </label>
+                              <div className="w-full">
+                                <select
+                                  id={field.id.toString()}
+                                  name={field.id.toString()}
+                                  multiple
+                                  value={field.formFields || []}
+                                  onChange={(e) => {
+                                    const selected = Array.from(
+                                      e.target.selectedOptions
+                                    ).map((option) => option.value);
+                                    handleStageFormFieldsChange(
+                                      field.id,
+                                      selected
+                                    );
+                                  }}
+                                  required={field.required}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm pr-8"
+                                  style={{ minHeight: "100px" }}
+                                >
+                                  {selectedForm?.inputLabels &&
+                                    Object.entries(
+                                      selectedForm.inputLabels
+                                    ).map(([key, value]) => (
+                                      <option key={key} value={key}>
+                                        {value}
+                                      </option>
+                                    ))}
+                                </select>
+                                <div className="mt-2 text-xs text-gray-500">
+                                  Hold Ctrl (Windows) or Cmd (Mac) to select
+                                  multiple fields.
+                                </div>
+                              </div>
+                              {field.formFields &&
+                                field.formFields.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {field.formFields.map(
+                                      (labelKey: string) => (
+                                        <span
+                                          key={labelKey}
+                                          className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                                        >
+                                          {selectedForm?.inputLabels?.[
+                                            labelKey
+                                          ] || labelKey}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
                           </div>
 
                           {(field.type === "select" ||
@@ -570,73 +683,6 @@ export default function AddEditStageEditor({
                                 </div>
                               </div>
                             )}
-
-                          <div className="mt-4">
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={field.required}
-                                onChange={(e) =>
-                                  updateField(field.id, {
-                                    required: e.target.checked,
-                                  })
-                                }
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="text-sm text-gray-700">
-                                Required field
-                              </span>
-                            </label>
-                          </div>
-
-                          {field.type === "stage" && (
-                            <div className="flex mt-4 justify-between items-center">
-                              <div className="w-full">
-                                <label className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={field.isInternalStage}
-                                    onChange={(e) =>
-                                      updateField(field.id, {
-                                        isInternalStage: e.target.checked,
-                                      })
-                                    }
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-sm text-gray-700">
-                                    Internal stage
-                                  </span>
-                                </label>
-                              </div>
-                              <div className="w-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Select form
-                                </label>
-                                <div className="w-full">
-                                  <select
-                                    id={field.id.toString()}
-                                    name={field.id.toString()}
-                                    value={field.value}
-                                    onChange={(e) =>
-                                      updateField(field.id, {
-                                        formName: e.target.value,
-                                      })
-                                    }
-                                    required={field.required}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm pr-8"
-                                  >
-                                    <option value="">Select an option</option>
-                                    {/* TODO */}
-                                    {field.selectOption?.map((option, idx) => (
-                                      <option key={idx} value={option.value}>
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

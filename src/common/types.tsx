@@ -54,6 +54,7 @@ export interface WorkFlow {
   status: string;
   stages: StageData[];
   createdAt: string;
+  formId: string;
 }
 
 export interface MiniUser {
@@ -102,10 +103,11 @@ export interface StageData {
   description?: string;
   step?: number;
   fields: FormField[] | [];
-  fieldResponses: FormField[] | [];
+  fieldResponses?: FormField[] | [];
   departmentId?: number;
   parentStageId?: number;
   organizationId?: number;
+  formFields?: string[];
   status?:
     | "Approved"
     | "Rejected"
@@ -121,7 +123,8 @@ export interface StageData {
   createdBy?: string;
   comment?: string;
   requiresInternalLoop?: boolean;
-  assignedTo: Employee;
+  showProcessingForm?: boolean;
+  assignedTo?: Employee;
   stageId?: number;
 }
 
@@ -158,13 +161,15 @@ export interface FormField {
     | "stage"
     | "file";
   label: string;
+  subStageInstruction?: string;
   placeholder?: string;
   required: boolean;
   options?: string[];
   selectOption?: SelectOption[];
   value?: string;
   isInternalStage?: boolean;
-  formName: string;
+  formName?: string;
+  formFields?: any;
 }
 
 export interface FormData {
@@ -198,6 +203,7 @@ export interface WorkflowRequest {
   stageResponses: StageData[];
   stages: StageData[];
   updatedAt: string;
+  formResponses?: any;
 }
 
 export interface Filter {

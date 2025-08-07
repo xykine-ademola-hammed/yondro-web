@@ -94,7 +94,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 10,
+    limit: 50,
     offset: 0,
   });
 
@@ -123,7 +123,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 10,
+    limit: 50,
     offset: 0,
   });
 
@@ -135,7 +135,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 10,
+    limit: 50,
     offset: 0,
   });
 
@@ -174,7 +174,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
           ],
         },
       ],
-      limit: 10,
+      limit: 50,
       offset: 0,
     }
   );
@@ -187,7 +187,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 10,
+    limit: 50,
     offset: 0,
   });
 

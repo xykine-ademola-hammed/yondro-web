@@ -4,34 +4,25 @@ import FormView from "../common/FormView";
 import PaymentVoucher from "./widgets/PaymentVoucher-1";
 
 export interface FormViewModalProps {
-  formId: number;
+  form: JSX.Element;
   onClose: () => void;
   modalMode: "view" | "preview";
   isOpen: boolean;
 }
 
 function FormPreviewViewModal({
-  formId,
+  form,
   onClose,
   modalMode,
   isOpen,
 }: FormViewModalProps) {
-  const defaultForms = [<>No Form </>, <PaymentVoucher />];
-
   return (
     <ModalWrapper
       isOpen={isOpen}
       onClose={onClose}
       title={modalMode === "preview" ? "Preview Form" : ""}
     >
-      {/* <FormView
-        showFormTitle={true}
-        form={form}
-        modalMode="preview"
-        showSubmitButton={false}
-      /> */}
-
-      {formId && defaultForms[formId]}
+      {form.component()}
     </ModalWrapper>
   );
 }

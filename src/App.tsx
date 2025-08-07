@@ -1,4 +1,3 @@
-import Layout from "./Layout";
 import {
   Route,
   BrowserRouter as Router,
@@ -24,7 +23,7 @@ import { ToastProvider } from "./GlobalContexts/ToastContext";
 import RequestDetailView from "./components/RequestDetailView";
 import { LoadingPage } from "./components/ui/LoadingSpinner";
 import { LayoutNew } from "./components/layout/Layout";
-import PaymentVoucherForm from "./Forms/widgets/PaymentVoucher";
+import WorkflowDetail2 from "./components/RequestDetailView2";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,7 +93,7 @@ function App() {
 
                     <Route
                       path="/request-response/:requestId"
-                      element={<RequestDetailView />}
+                      element={<WorkflowDetail2 />}
                     />
                     <Route
                       path="/requests/request-response/:requestId"
