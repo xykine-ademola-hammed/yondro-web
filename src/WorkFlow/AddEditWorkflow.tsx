@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import ModalWrapper from "../components/modal-wrapper";
 import AddEditStageEditor, {
   emptyStageData,
+  type WorkFlowStage,
 } from "./widgets/AddEditStageEditor";
 import StageViewCard from "./widgets/StageViewCard";
 import type { StageData, WorkFlow } from "../common/types";
@@ -24,7 +25,7 @@ export default function AddEditWorkflow() {
   const workflowId = location.pathname.split("/").pop() || "0";
 
   const [isOpenStageModal, setIsOpenStageModal] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<StageData>({
+  const [selectedStage, setSelectedStage] = useState<WorkFlowStage>({
     ...emptyStageData,
   });
 
@@ -39,21 +40,26 @@ export default function AddEditWorkflow() {
     formId: "",
   });
 
-  const handleSubmitStage = (stageIndex: number, stageData: StageData) => {
-    const fieldTypedStage = stageData.fields.filter(
-      (field) => field.type === "stage"
-    );
-
-    console.log("-------------StageData--------", stageData);
-
+  const handleSubmitStage = (stageIndex: number, stageData: WorkFlowStage) => {
     let newStages = [...formData.stages];
     newStages[stageIndex] = {
       ...stageData,
       organizationId: user?.organization?.id,
       departmentId: Number(user?.department?.id),
       step: stageIndex,
-      // requiresInternalLoop: fieldTypedStage.length > 0,
     };
+
+    if (stageData?.isSubStage) {
+      let parentStageStep = 0;
+      formData.stages.forEach((stage) => {
+        if (stage?.step && stage?.step < stageIndex && !stage?.isSubStage) {
+          parentStageStep = stage.step;
+        }
+      });
+      if (parentStageStep) {
+        newStages[stageIndex]["parentStageId"] = parentStageStep;
+      }
+    }
 
     setFormData({
       ...formData,

@@ -18,16 +18,27 @@ const LoginForm: React.FC = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log("--------------");
     e.preventDefault();
     const newErrors: { email?: string; password?: string } = {};
+    console.log("--------------", newErrors);
 
     if (!formData.email.trim()) newErrors.email = "Email is required";
     if (!formData.password.trim()) newErrors.password = "Password is required";
+
+    console.log("--------4------", newErrors);
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
+
+    console.log(
+      "-----7---------",
+      formData.email.trim(),
+      formData.password.trim()
+    );
+
     // Replace with your login logic
     login(formData.email.trim(), formData.password.trim());
   };

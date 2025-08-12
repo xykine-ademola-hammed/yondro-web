@@ -1,8 +1,8 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AddEditPositionModal } from "./AddEditPositionModal";
-import { type Position } from "../../common/types";
+import { type ApiFilter, type Position } from "../../common/types";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
@@ -12,12 +12,16 @@ import { useToast } from "../../GlobalContexts/ToastContext";
 const PositionPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { departments, positions, fetchPositions, positionFilter } =
-    useOrganization();
+  const {
+    departments,
+    positions,
+    fetchPositions,
+    positionFilter,
+    setPositionFilter,
+  } = useOrganization();
 
   // State for search and filter
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredPositions, setFilteredPositions] = useState(positions);
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,13 +36,6 @@ const PositionPage: React.FC = () => {
     departmentName: "",
     description: "",
   });
-
-  // Get current positions for pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const { mutateAsync: createPosition } = useMutation({
     mutationFn: (body: Position) =>
@@ -119,38 +116,74 @@ const PositionPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+
+  useEffect(() => {
+    if (selectedDepartment) {
+      const updatedFilter: ApiFilter = {
+        ...positionFilter,
+        filters: [
+          ...positionFilter.filters,
+          {
+            key: "departmentId",
+            value: selectedDepartment,
+            condition: "equal",
+          },
+        ],
+      };
+      setPositionFilter(updatedFilter);
+    } else {
+      setPositionFilter({
+        ...positionFilter,
+        filters: positionFilter.filters.filter(
+          (filter) => filter.key !== "departmentId"
+        ),
+      });
+    }
+  }, [selectedDepartment]);
+
   return (
     <>
-      <div className="m-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
-          <div className="sm:mt-0">
+      {/* Search and Filter Bar */}
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 flex-1">
+            <div className="relative flex-1">
+              <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+              <input
+                type="text"
+                placeholder="Search position..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            <div className="flex space-x-3">
+              <div className="relative">
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm appearance-none cursor-pointer pr-8"
+                >
+                  <option value="">All Departments</option>
+                  {departments.rows.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+                <i className="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+              </div>
+            </div>
             <button
-              onClick={openAddModal}
+              onClick={() => setIsModalOpen(true)}
+              type="button"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
             >
               <i className="fas fa-plus mr-2"></i>
               Add Position
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="bg-white shadow rounded-lg mb-6 p-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
-          <div className="flex-1 max-w-lg">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i className="fas fa-search text-gray-400 text-sm"></i>
-              </div>
-              <input
-                type="text"
-                className="bg-gray-100 focus:bg-white focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border-none rounded-md text-sm"
-                placeholder="Search positions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+            {/* Search and Filter Section */}
           </div>
         </div>
       </div>

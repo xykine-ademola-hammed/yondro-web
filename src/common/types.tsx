@@ -1,3 +1,5 @@
+import type { WorkFlowStage } from "../WorkFlow/widgets/AddEditStageEditor";
+
 export interface Organization {
   id?: number;
   name: string;
@@ -51,8 +53,8 @@ export interface WorkFlow {
   name: string;
   description: string;
   organizationId?: number;
-  status: string;
-  stages: StageData[];
+  isActive: boolean;
+  stages: WorkFlowStage[];
   createdAt: string;
   formId: string;
 }

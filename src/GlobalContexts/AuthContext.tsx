@@ -74,8 +74,10 @@ export function AuthContextProvider({
   };
 
   const { mutateAsync: loginMutation } = useMutation({
-    mutationFn: (body: { email: string; password: string }) =>
-      getMutationMethod("POST", `api/auth/login`, body, false),
+    mutationFn: (body: { email: string; password: string }) => {
+      console.log("----------BODY----", body);
+      return getMutationMethod("POST", `api/auth/login`, body, false);
+    },
     onSuccess: (data) => {
       setUser(data.data.user);
       setToken(data?.data.token);
@@ -95,6 +97,7 @@ export function AuthContextProvider({
 
   const login = async (email: string, password: string) => {
     try {
+      console.log(email, password);
       await loginMutation({ email, password });
     } catch (error) {
       console.error("Login failed:", error);

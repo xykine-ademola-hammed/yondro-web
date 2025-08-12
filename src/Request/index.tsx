@@ -1,21 +1,71 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
-import React, { useState } from "react";
-import type { WorkflowRequest } from "../common/types";
+import React, { useEffect, useState } from "react";
+import type {
+  ApiFilter,
+  WorkflowRequest,
+  WorkflowRequestData,
+} from "../common/types";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../GlobalContexts/AuthContext";
+import { getMutationMethod } from "../common/api-methods";
+import { useMutation } from "@tanstack/react-query";
 
 const RequestList: React.FC = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [workflowRequests, setWorkflowRequests] = useState<WorkflowRequestData>(
+    {
+      rows: [],
+      count: 0,
+      hasMore: false,
+    }
+  );
+  const [workflowReqiestFilter, setWorkflowReqiestFilter] = useState<ApiFilter>(
+    {
+      filters: [
+        {
+          key: "organizationId",
+          value: user?.organization?.id || "",
+          condition: "equal",
+        },
+        {
+          key: "stages.assignedToId",
+          value: user?.id,
+          condition: "equal",
+        },
+      ],
+      limit: 50,
+      offset: 0,
+    }
+  );
 
-  const { workflowRequests } = useOrganization();
   const navigate = useNavigate();
 
-  console.log("======workflowRequests========", workflowRequests);
+  const { mutateAsync: fetchWorkflowRequest } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod(
+        "POST",
+        `api/workflowrequest/get-request-history`,
+        body,
+        true
+      ),
+    onSuccess: (data) => {
+      setWorkflowRequests(data);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch workflow requests:", error);
+    },
+  });
+
+  useEffect(() => {
+    fetchWorkflowRequest(workflowReqiestFilter);
+  }, []);
 
   const departments = [
     "Engineering",
@@ -175,8 +225,11 @@ const RequestList: React.FC = () => {
                         Workflow Progress
                       </span>
                       <span className="text-xs text-gray-500">
-                        {request?.stageResponses?.length /
-                          request?.workflow?.stages?.length}
+                        {(
+                          (request?.stages?.length * 100) /
+                          request?.workflow?.stages?.length
+                        ).toFixed(2)}
+                        %
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -184,7 +237,7 @@ const RequestList: React.FC = () => {
                         className="bg-blue-600 h-2 rounded-full"
                         style={{
                           width: `${
-                            (request?.stageResponses?.length /
+                            (request?.stages?.length /
                               request?.workflow?.stages?.length) *
                             100
                           }%`,
@@ -271,7 +324,7 @@ const RequestList: React.FC = () => {
                               className="bg-blue-600 h-2 rounded-full"
                               style={{
                                 width: `${
-                                  (request?.stageResponses?.length /
+                                  (request?.stages?.length /
                                     request?.workflow?.stages?.length) *
                                   100
                                 }%`,
@@ -280,7 +333,7 @@ const RequestList: React.FC = () => {
                           )}
                         </div>
                         <span className="text-xs text-gray-500">
-                          {request?.stageResponses?.length}/
+                          {request?.stages?.length}/
                           {request?.workflow?.stages?.length}
                         </span>
                       </div>

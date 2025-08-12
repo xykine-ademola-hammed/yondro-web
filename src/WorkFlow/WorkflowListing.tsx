@@ -38,10 +38,10 @@ export default function WorkflowListing() {
                   </h3>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      workflow.status
+                      workflow.isActive ? "active" : "inactive"
                     )}`}
                   >
-                    {workflow.status}
+                    {workflow.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
                 <p className="text-gray-600 mb-4">{workflow.description}</p>
@@ -50,24 +50,14 @@ export default function WorkflowListing() {
                   <span className="text-sm font-medium text-gray-500">
                     Stages:
                   </span>
-                  {workflow?.stages?.map((stage, index) =>
-                    !stage.assignToRequestor ? (
-                      <span
-                        key={index}
-                        className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
-                      >
-                        {stage.assignee?.departmentName}{" "}
-                        {stage.assignee?.positionName}
-                      </span>
-                    ) : (
-                      <span
-                        key={index}
-                        className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
-                      >
-                        Requestor
-                      </span>
-                    )
-                  )}
+                  {workflow?.stages?.map((stage, index) => (
+                    <span
+                      key={index}
+                      className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
+                    >
+                      {stage.name}
+                    </span>
+                  ))}
                 </div>
 
                 <p className="text-sm text-gray-500">

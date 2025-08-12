@@ -35,6 +35,10 @@ interface OrganizationContextType {
   userDepartmenttMembers: EmployeeData;
   fetchDepartmentEmployees: (apiFilter: ApiFilter) => Promise<void>;
   departmentEmployeeFilter: ApiFilter;
+
+  schoolDeans: EmployeeData;
+  fetchDeans: (apiFilter: ApiFilter) => Promise<void>;
+  deansFilter: ApiFilter;
 }
 
 // Create the context
@@ -72,6 +76,12 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
       hasMore: false,
     });
 
+  const [schoolDeans, setSchoolDeans] = useState<EmployeeData>({
+    rows: [],
+    count: 0,
+    hasMore: false,
+  });
+
   const [workflows, setWorkflows] = useState<WorkFlowData>({
     rows: [],
     count: 0,
@@ -94,7 +104,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 50,
+    limit: 250,
     offset: 0,
   });
 
@@ -109,6 +119,23 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         key: "departmentId",
         value: user?.department?.id || "",
         condition: "equal",
+      },
+    ],
+    limit: 10000,
+    offset: 0,
+  };
+
+  const deansFilter: ApiFilter = {
+    filters: [
+      {
+        key: "organizationId",
+        value: user?.organization?.id || "",
+        condition: "equal",
+      },
+      {
+        key: "position.title",
+        value: "Dean",
+        condition: "contains",
       },
     ],
     limit: 10000,
@@ -143,35 +170,9 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     {
       filters: [
         {
-          condition: "or",
-          value: [
-            {
-              condition: "and",
-              value: [
-                {
-                  key: "organizationId",
-                  value: user?.organization?.id || "",
-                  condition: "equal",
-                },
-                {
-                  key: "currentDepartmentId",
-                  value: user?.department?.id || "",
-                  condition: "equal",
-                },
-                {
-                  key: "currentPositionId",
-                  value: user?.position?.id || "",
-                  condition: "equal",
-                },
-              ],
-            },
-
-            {
-              key: "stageCompletedBy",
-              value: user?.id,
-              condition: "json-contains",
-            },
-          ],
+          key: "organizationId",
+          value: user?.organization?.id,
+          condition: "equal",
         },
       ],
       limit: 50,
@@ -241,7 +242,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     mutationFn: (body: ApiFilter) =>
       getMutationMethod(
         "POST",
-        `api/workflowrequest/get-workflow-requests`,
+        `api/workflowrequest/get-workflow-request-tasks`,
         body,
         true
       ),
@@ -264,14 +265,37 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     },
   });
 
+  const { mutateAsync: fetchDeans } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod("POST", `api/employees/get-employees`, body, true),
+    onSuccess: (data) => {
+      setSchoolDeans(data);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch positions:", error);
+    },
+  });
+
+  useEffect(() => {
+    fetchWorkflowRequest(workflowReqiestFilter);
+  }, [fetchWorkflowRequest, user?.id]);
+
   useEffect(() => {
     fetchDepartments(departmentFilter);
     fetchPositions(positionFilter);
     fetchEmployees(employeeFilter);
     fetchWorkFlows(workflowFilter);
-    fetchWorkflowRequest(workflowReqiestFilter);
     fetchDepartmentEmployees(departmentEmployeeFilter);
+    fetchDeans(deansFilter);
   }, [user]);
+
+  useEffect(() => {
+    fetchEmployees(employeeFilter);
+  }, [employeeFilter]);
+
+  useEffect(() => {
+    fetchPositions(positionFilter);
+  }, [positionFilter]);
 
   return (
     <OrganizationContext.Provider
@@ -299,6 +323,9 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         userDepartmenttMembers,
         fetchDepartmentEmployees,
         departmentEmployeeFilter,
+        schoolDeans,
+        fetchDeans,
+        deansFilter,
       }}
     >
       {children}

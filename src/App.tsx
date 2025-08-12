@@ -97,7 +97,7 @@ function App() {
                     />
                     <Route
                       path="/requests/request-response/:requestId"
-                      element={<RequestDetailView />}
+                      element={<WorkflowDetail2 />}
                     />
 
                     <Route path="/requests" element={<RequestList />} />

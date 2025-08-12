@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PaymentVoucher from "../Forms/widgets/PaymentVoucher-1";
+import { head } from "lodash";
 
 export interface FormProps {
   id: string | number;
@@ -11,6 +12,8 @@ export interface FormProps {
   workflows: string[];
   component: (props: any) => JSX.Element;
   inputLabels: { [key: string]: string }; // Added inputLabels property
+  assigneeHolders: { [key: string]: string };
+  formSections: { [key: string]: string };
 }
 
 const useForm = () => {
@@ -28,21 +31,21 @@ const useForm = () => {
         applicantName: "Name",
         applicantAddress: "Address",
         applicantDescription: "Request detail",
-        ammountInWord: "Amount in words",
+        amountInWord: "Amount in words",
         accountTitle: "Account Title",
         accountCodeNo: "Account Code No.",
-        debitAmmount: "Debit Amount",
+        debitAmount: "Debit Amount",
         debitDescription: "Debit Description",
-        creditAmmount: "Credit Amount",
+        creditAmount: "Credit Amount",
         creditDescription: "Credit Description",
         unitVoucherHeadById: "Head of Unit [Voucher]",
         preparedById: "Voucher Prepared By",
         reviewedById: "Voucher Reviewed By",
         approvedById: "Voucher Approved By",
-        checkedById: "Checked by",
-        checkedByDate: "Checked by Date",
-        auditRemarkPass: "Pass",
-        auditRemarkQuery: "Query",
+        auditCheckedById: "Audit Checked by",
+        auditCheckedByDate: "Audig Checked Date",
+        auditRemarkPass: "Audit Pass",
+        auditRemarkQuery: "Audit Query",
         auditPreparedById: "Audit Prepared By",
         auditPreparedByDate: "Audit Prepared By Date",
         auditReviewedById: "Audit Reviewed By",
@@ -52,7 +55,33 @@ const useForm = () => {
         additionalNotes: "Additional Notes",
         paymentDate: "Payment Date",
         paymentParticles: "Particlars (Including References)",
-        paymentAmmount: "Payment Ammount",
+        paymentAmount: "Payment Amount",
+        schoolDeanById: "School Dean",
+        departmentHeadById: "Department Head",
+      },
+      assigneeHolders: {
+        schoolDeanId: "School Dean",
+        departmentHeadById: "Head of Department",
+        unitVoucherHeadById: "Head of Unit [Voucher]",
+        preparedById: "Voucher Prepared By",
+        reviewedById: "Voucher Reviewed By",
+        approvedById: "Voucher Approved By",
+        auditCheckedById: "Audit Checked by",
+        auditPreparedById: "Audit Prepared By",
+        auditReviewedById: "Audit Reviewed By",
+        auditApprovedById: "Audit Approved By",
+        schoolDeanById: "School Dean",
+      },
+      formSections: {
+        paymentInformation: "Payment Information",
+        voucherPersonnel: "Voucher Personnel",
+        auditPersonnel: "Audit Personnel",
+        paymentDetails: "Payment Details",
+        additionalInformation: "Additional Information",
+        entryDistribution: "Entry Distribution",
+        voucherApproval: "Voucher Approval",
+        audit: "Audit and Central Pay Officer Details",
+        approvals: "Approvals",
       },
     },
   ]);
