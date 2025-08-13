@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import FormViewModal from "./FormPreviewModal";
-import PaymentVoucher from "./widgets/PaymentVoucher-1";
+import FormPreviewViewModal from "./FormPreviewModal";
 import useForm from "../common/useForms";
 
 export default function FormList() {
   const [previewForm, setPreviewForm] = useState<any>(null);
 
-  const { forms } = useForm();
+  const { forms, getFormById } = useForm();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,7 +77,7 @@ export default function FormList() {
                 Edit Form
               </Link>
               <button
-                onClick={() => setPreviewForm(form)}
+                onClick={() => setPreviewForm(getFormById(form.id))}
                 className="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 font-medium text-sm whitespace-nowrap cursor-pointer"
               >
                 Preview
@@ -89,7 +88,7 @@ export default function FormList() {
       </div>
 
       {previewForm && (
-        <FormViewModal
+        <FormPreviewViewModal
           modalMode="preview"
           isOpen={previewForm !== null}
           form={previewForm}

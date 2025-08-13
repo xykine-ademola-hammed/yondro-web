@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ModalWrapper from "../components/modal-wrapper";
 import AddEditStageEditor, {
   emptyStageData,
@@ -8,21 +8,20 @@ import AddEditStageEditor, {
 import StageViewCard from "./widgets/StageViewCard";
 import type { StageData, WorkFlow } from "../common/types";
 import { useMutation } from "@tanstack/react-query";
-import { getMutationMethod } from "../common/api-methods";
+import { getMutationMethod, getQueryMethod } from "../common/api-methods";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 import { useToast } from "../GlobalContexts/ToastContext";
 import useForm from "../common/useForms";
 
 export default function AddEditWorkflow() {
-  const location = useLocation();
+  const { workflowId } = useParams();
+  console.log("Workflow ID:", workflowId);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { forms } = useForm();
   const { fetchWorkFlows, workflowFilter } = useOrganization();
-
-  const workflowId = location.pathname.split("/").pop() || "0";
 
   const [isOpenStageModal, setIsOpenStageModal] = useState(false);
   const [selectedStage, setSelectedStage] = useState<WorkFlowStage>({
@@ -103,6 +102,27 @@ export default function AddEditWorkflow() {
   const handleCancel = () => {
     navigate(-1);
   };
+
+  useEffect(() => {
+    if (workflowId && workflowId !== "new") {
+      // Fetch existing workflow data
+      const fetchWorkflowById = async () => {
+        const response = await getQueryMethod(`api/workflows/${workflowId}`);
+        setFormData(response.data);
+      };
+      fetchWorkflowById();
+    } else {
+      // Initialize form data for new workflow
+      setFormData({
+        name: "",
+        description: "",
+        stages: [],
+        status: "Draft",
+        createdAt: new Date().toISOString(),
+        formId: "",
+      });
+    }
+  }, [workflowId]);
 
   return (
     <div>

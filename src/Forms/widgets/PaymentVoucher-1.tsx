@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
+import useDownloadPdf from "../../common/useDownloadPdf";
 
 export interface PaymentDetail {
   paymentDate: Date;
@@ -76,7 +77,11 @@ const PaymentVoucher = ({
   onSubmit,
   onCancel,
   showActionButtons = false,
+  mode = "edit",
 }) => {
+  const componentRef = useRef<HTMLDivElement>(null);
+  const downloadPdf = useDownloadPdf();
+
   const { user } = useAuth();
   const { userDepartmenttMembers, schoolDeans } = useOrganization();
   const employeeOptions = userDepartmenttMembers.rows.map((employee) => ({
@@ -132,8 +137,32 @@ const PaymentVoucher = ({
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start">
-      <div className="bg-white rounded-lg sm:p-2 w-full max-w-4xl">
-        {showFormTitle && (
+      <button
+        className="px-3 py-2 bg-blue-600 text-white rounded"
+        onClick={() =>
+          downloadPdf(componentRef, {
+            fileName: "payment-voucher.pdf",
+            orientation: "portrait",
+            format: "a4",
+            margin: 24,
+            scale: 2,
+            hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+            onBeforeCapture: () => {
+              // e.g., switch your form to preview/read-only mode
+            },
+            onAfterCapture: () => {
+              // e.g., restore edit mode if you changed it
+            },
+          })
+        }
+      >
+        Download PDF
+      </button>
+      <div
+        ref={componentRef}
+        className="bg-white rounded-lg sm:p-2 w-full max-w-4xl"
+      >
+        {(showFormTitle || mode === "preview") && (
           <>
             <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-600">
               {user?.organization?.name}
@@ -174,14 +203,15 @@ const PaymentVoucher = ({
           </>
         )}
 
-        {instruction && (
+        {(instruction || mode === "preview") && (
           <div className="bg-yellow-50 p-4 rounded-lg mb-2">
             <p className="text-yellow-800 text-sm">{instruction}</p>
           </div>
         )}
 
         {/* Payee and Payment Details */}
-        {vissibleSections?.includes("paymentInformation") && (
+        {(vissibleSections?.includes("paymentInformation") ||
+          mode === "preview") && (
           <div className="border-gray-300 pt-4 mt-2">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Applicant Information
@@ -251,7 +281,8 @@ const PaymentVoucher = ({
         )}
 
         {/* Payment Detail */}
-        {vissibleSections?.includes("paymentDetails") && (
+        {(vissibleSections?.includes("paymentDetails") ||
+          mode === "preview") && (
           <div className="mt-4">
             <div className="flex w-full justify-between items-center">
               <h3 className="text-l font-semibold text-gray-700  mb-1">
@@ -344,7 +375,8 @@ const PaymentVoucher = ({
         )}
 
         {/* Entry Distribution */}
-        {vissibleSections?.includes("entryDistribution") && (
+        {(vissibleSections?.includes("entryDistribution") ||
+          mode === "preview") && (
           <div className="mt-4">
             <div className="flex w-full justify-between items-center">
               <h3 className="text-l font-semibold text-gray-700  mb-1">
@@ -480,7 +512,8 @@ const PaymentVoucher = ({
         )}
 
         {/* Voucher Approval */}
-        {vissibleSections?.includes("voucherApproval") && (
+        {(vissibleSections?.includes("voucherApproval") ||
+          mode === "preview") && (
           <div className="mt-4 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Voucher Approval
@@ -597,11 +630,12 @@ const PaymentVoucher = ({
           </div>
         )}
 
-        {/* Audit and Central Pay Officer Details */}
-        {vissibleSections?.includes("auditPersonnel") && (
+        {/* Audit Unit */}
+        {(vissibleSections?.includes("auditPersonnel") ||
+          mode === "preview") && (
           <div className="mt-4 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
-              Audit and Central Pay Officer Details
+              Audit Unit
             </h3>
             <div className="flex flex-col sm:flex-row p-2 border rounded-lg border-gray-200 gap-2">
               <div className="flex-1">
@@ -827,7 +861,239 @@ const PaymentVoucher = ({
           </div>
         )}
 
-        {vissibleSections?.includes("additionalInformation") && (
+        {/* Fund and Management Unit */}
+        {(vissibleSections?.includes("auditPersonnel") ||
+          mode === "preview") && (
+          <div className="mt-4 ">
+            <h3 className="text-l font-semibold text-gray-700 mb-1">
+              Fund and Management Unit
+            </h3>
+            <div className="flex flex-col sm:flex-row p-2 border rounded-lg border-gray-200 gap-2">
+              <div className="flex-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Checked by:
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      name="cpoCheckedById"
+                      id="cpoCheckedById"
+                      value={formData?.cpoCheckedById}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("cpoCheckedById")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoCheckedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      name="cpoCheckedByDate"
+                      id="cpoCheckedByDate"
+                      value={formatDate(formData?.cpoCheckedByDate)}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoCheckedByDate")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoCheckedByDate")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      type="date"
+                      placeholder=""
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Pass
+                  </label>
+                  <div>
+                    <textarea
+                      name="cpoRemarkPass"
+                      id="cpoRemarkPass"
+                      value={formData?.cpoRemarkPass}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoRemarkPass")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoRemarkPass")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      rows={2}
+                      placeholder="Enter Additional Notes or Comments"
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Query
+                  </label>
+                  <div>
+                    <textarea
+                      name="cpoRemarkQuery"
+                      id="cpoRemarkQuery"
+                      value={formData?.cpoRemarkQuery}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoRemarkQuery")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoRemarkQuery")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      rows={2}
+                      placeholder="Enter Additional Notes or Comments"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Prepared By
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      name="cpoPreparedById"
+                      id="cpoPreparedById"
+                      value={formData?.cpoPreparedById}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("cpoPreparedById")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoPreparedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      name="cpoPreparedByDate"
+                      id="cpoPreparedByDate"
+                      value={formatDate(formData?.cpoPreparedByDate)}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoPreparedByDate")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoPreparedByDate")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      type="date"
+                      placeholder=""
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Reviewed By
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      name="cpoReviewedById"
+                      id="cpoReviewedById"
+                      value={formData?.cpoReviewedById}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("cpoReviewedById")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoReviewedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      name="cpoReviewedByDate"
+                      id="cpoReviewedByDate"
+                      value={formatDate(formData?.cpoReviewedByDate)}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoReviewedByDate")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoReviewedByDate")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      type="date"
+                      placeholder=""
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Approved By
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      name="cpoApprovedById"
+                      id="cpoApprovedById"
+                      value={formData?.cpoApprovedById}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("cpoApprovedById")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoApprovedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      name="cpoApprovedByDate"
+                      id="cpoApprovedByDate"
+                      value={formatDate(formData?.cpoApprovedByDate)}
+                      onChange={handleInput}
+                      disabled={!isEnabled("cpoApprovedByDate")}
+                      className={`mt-1 w-full p-1 border ${
+                        isEnabled("cpoApprovedByDate")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      type="date"
+                      placeholder=""
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(vissibleSections?.includes("additionalInformation") ||
+          mode === "preview") && (
           <div className="mt-4">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Additional Notes
@@ -851,7 +1117,7 @@ const PaymentVoucher = ({
           </div>
         )}
 
-        {vissibleSections.includes("approvals") && (
+        {(vissibleSections.includes("approvals") || mode === "preview") && (
           <div className="mt-4 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
@@ -910,31 +1176,88 @@ const PaymentVoucher = ({
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
                     Chief Executive
                   </label>
 
-                  <select
-                    name="chiefExecutivedById"
+                  <div
                     id="chiefExecutivedById"
-                    value={formData?.chiefExecutivedById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("chiefExecutivedById")}
                     className={`mt-1 w-full p-1 border ${
                       isEnabled("chiefExecutivedById")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   >
-                    <option value="">Select an option</option>
-                    {employeeOptions?.map((employee, idx) => (
-                      <option key={employee.id} value={employee.value}>
-                        {employee.label}
-                      </option>
-                    ))}
-                  </select>
+                    {formData?.chiefExecutivedById ?? "Not Set"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Bursar
+                  </label>
+
+                  <div
+                    id="chiefExecutivedById"
+                    className={`mt-1 w-full p-1 border ${
+                      isEnabled("chiefExecutivedById")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    {formData?.chiefExecutivedById ?? "Not Set"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Director of Audit
+                  </label>
+
+                  <div
+                    id="chiefExecutivedById"
+                    className={`mt-1 w-full p-1 border ${
+                      isEnabled("chiefExecutivedById")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    {formData?.chiefExecutivedById ?? "Not Set"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Director of Fund & Management
+                  </label>
+
+                  <div
+                    id="chiefExecutivedById"
+                    className={`mt-1 w-full p-1 border ${
+                      isEnabled("chiefExecutivedById")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    {formData?.chiefExecutivedById ?? "Not Set"}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Director of Final Account
+                  </label>
+
+                  <div
+                    id="chiefExecutivedById"
+                    className={`mt-1 w-full p-1 border ${
+                      isEnabled("chiefExecutivedById")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    {formData?.chiefExecutivedById ?? "Not Set"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -942,7 +1265,7 @@ const PaymentVoucher = ({
         )}
 
         {/* Action Buttons */}
-        {showActionButtons && (
+        {(showActionButtons || mode === "preview") && (
           <div className="flex justify-end space-x-4 mt-6">
             <button
               onClick={handleCancel}

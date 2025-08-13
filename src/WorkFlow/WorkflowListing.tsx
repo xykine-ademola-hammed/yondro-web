@@ -87,16 +87,6 @@ export default function WorkflowListing() {
           </div>
         ))}
       </div>
-
-      {/* {editingWorkflow && (
-        <AddEditWorkflowModal
-          isOpen={editingWorkflow.id !== null}
-          modalMode="edit"
-          workflowId={editingWorkflow?.id}
-          onClose={() => setEditingWorkflow(null)}
-          onSubmit={() => {}}
-        />
-      )} */}
     </div>
   );
 }

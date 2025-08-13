@@ -22,7 +22,7 @@ function FormPreviewViewModal({
       onClose={onClose}
       title={modalMode === "preview" ? "Preview Form" : ""}
     >
-      {form.component()}
+      {form.component({ mode: "preview" })}
     </ModalWrapper>
   );
 }
