@@ -2,11 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMutationMethod } from "../common/api-methods";
-import type { Organization } from "../common/types";
+import type { Organization, Unit } from "../common/types";
 
 export interface Department {
   id: string;
   name: string;
+  units?: Unit[];
 }
 
 export interface Position {
@@ -26,6 +27,7 @@ export interface User {
   organization?: Organization;
   department?: Department;
   position?: Position;
+  organizationId: number;
   institution?: Institution;
 }
 

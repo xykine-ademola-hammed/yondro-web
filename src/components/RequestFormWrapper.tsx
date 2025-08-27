@@ -18,6 +18,8 @@ export default function RequestFormWrapper({
 
   const { getFormById } = useForm();
 
+  console.log("---------completedStages---------", completedStages);
+
   const getStageStatus = (stage: WorkFlowStage) => {
     const stageResponse = completedStages?.find(
       (stg: any) => Number(stg.stageId) === Number(stage.id)
@@ -29,8 +31,6 @@ export default function RequestFormWrapper({
     return stageResponse?.status;
   };
 
-  console.log("------selectedWorkFlow------", selectedWorkFlow);
-
   const getComponentProps = (selectedWorkFlow: WorkflowRequest) => {
     return {
       formResponses,
@@ -41,6 +41,7 @@ export default function RequestFormWrapper({
       onCancel: onCancel,
       instruction: currentWorkflowStage?.instruction,
       showActionButtons,
+      completedStages,
     };
   };
 

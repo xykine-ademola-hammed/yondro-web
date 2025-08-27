@@ -43,7 +43,7 @@ export default function AddEditWorkflow() {
     let newStages = [...formData.stages];
     newStages[stageIndex] = {
       ...stageData,
-      organizationId: user?.organization?.id,
+      organizationId: user?.organizationId,
       departmentId: Number(user?.department?.id),
       step: stageIndex,
     };
@@ -93,10 +93,10 @@ export default function AddEditWorkflow() {
 
     console.log("--------HER-----", {
       ...formData,
-      organizationId: user?.organization?.id,
+      organizationId: user?.organizationId,
     });
 
-    createWorkflow({ ...formData, organizationId: user?.organization?.id });
+    createWorkflow({ ...formData, organizationId: user?.organizationId });
   };
 
   const handleCancel = () => {

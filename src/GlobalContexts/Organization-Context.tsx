@@ -4,6 +4,8 @@ import type {
   DepartmentData,
   EmployeeData,
   PositionData,
+  SchoolOffice,
+  SchoolOfficeData,
   WorkFlowData,
   WorkflowRequestData,
 } from "../common/types";
@@ -35,10 +37,13 @@ interface OrganizationContextType {
   userDepartmenttMembers: EmployeeData;
   fetchDepartmentEmployees: (apiFilter: ApiFilter) => Promise<void>;
   departmentEmployeeFilter: ApiFilter;
-
   schoolDeans: EmployeeData;
   fetchDeans: (apiFilter: ApiFilter) => Promise<void>;
   deansFilter: ApiFilter;
+  schoolOffices: SchoolOfficeData;
+  fetchSchoolOffices: (apiFilter: ApiFilter) => Promise<void>;
+  schoolOfficeFilter: ApiFilter;
+  setSchoolOfficeFilter: React.Dispatch<React.SetStateAction<ApiFilter>>;
 }
 
 // Create the context
@@ -82,6 +87,12 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     hasMore: false,
   });
 
+  const [schoolOffices, setSchoolOffices] = useState<SchoolOfficeData>({
+    rows: [],
+    count: 0,
+    hasMore: false,
+  });
+
   const [workflows, setWorkflows] = useState<WorkFlowData>({
     rows: [],
     count: 0,
@@ -100,7 +111,19 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     filters: [
       {
         key: "organizationId",
-        value: user?.organization?.id || "",
+        value: user?.organizationId || "",
+        condition: "equal",
+      },
+    ],
+    limit: 250,
+    offset: 0,
+  });
+
+  const [schoolOfficeFilter, setSchoolOfficeFilter] = useState<ApiFilter>({
+    filters: [
+      {
+        key: "organizationId",
+        value: user?.organizationId || "",
         condition: "equal",
       },
     ],
@@ -112,14 +135,19 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     filters: [
       {
         key: "organizationId",
-        value: user?.organization?.id || "",
+        value: user?.organizationId || "",
         condition: "equal",
       },
       {
-        key: "departmentId",
-        value: user?.department?.id || "",
+        key: "schoolOrOfficeId",
+        value: user?.schoolOrOfficeId || "",
         condition: "equal",
       },
+      // {
+      //   key: "departmentId",
+      //   value: user?.departmentId || "",
+      //   condition: "equal",
+      // },
     ],
     limit: 10000,
     offset: 0,
@@ -129,7 +157,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     filters: [
       {
         key: "organizationId",
-        value: user?.organization?.id || "",
+        value: user?.organizationId || "",
         condition: "equal",
       },
       {
@@ -145,8 +173,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
   const [positionFilter, setPositionFilter] = useState<ApiFilter>({
     filters: [
       {
-        key: "department.organization.id",
-        value: user?.organization?.id || "",
+        key: "organizationId",
+        value: user?.organizationId || "",
         condition: "equal",
       },
     ],
@@ -157,8 +185,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
   const [employeeFilter, setEmployeeFilter] = useState<ApiFilter>({
     filters: [
       {
-        key: "department.organization.id",
-        value: user?.organization?.id || "",
+        key: "organizationId",
+        value: user?.organizationId || "",
         condition: "equal",
       },
     ],
@@ -171,7 +199,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
       filters: [
         {
           key: "organizationId",
-          value: user?.organization?.id,
+          value: user?.organizationId,
           condition: "equal",
         },
       ],
@@ -184,7 +212,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     filters: [
       {
         key: "organizationId",
-        value: user?.organization?.id || "",
+        value: user?.organizationId || "",
         condition: "equal",
       },
     ],
@@ -201,6 +229,22 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     onError: (error) => {
       console.error("Failed to fetch departments:", error);
+    },
+  });
+
+  const { mutateAsync: fetchSchoolOffices } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod(
+        "POST",
+        `api/school-office/get-schoolOffices`,
+        body,
+        true
+      ),
+    onSuccess: (data) => {
+      setSchoolOffices(data);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch Schools|Offices:", error);
     },
   });
 
@@ -287,6 +331,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchWorkFlows(workflowFilter);
     fetchDepartmentEmployees(departmentEmployeeFilter);
     fetchDeans(deansFilter);
+    fetchSchoolOffices(schoolOfficeFilter);
   }, [user]);
 
   useEffect(() => {
@@ -326,6 +371,10 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         schoolDeans,
         fetchDeans,
         deansFilter,
+        schoolOffices,
+        fetchSchoolOffices,
+        schoolOfficeFilter,
+        setSchoolOfficeFilter,
       }}
     >
       {children}

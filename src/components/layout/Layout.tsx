@@ -15,7 +15,7 @@ import { OrganizationProvider } from "../../GlobalContexts/Organization-Context"
 import { useAuth } from "../../GlobalContexts/AuthContext";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Home", href: "/", icon: Home },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "Requests", href: "/requests", icon: FileText },
   { name: "Forms", href: "/forms", icon: FileText },

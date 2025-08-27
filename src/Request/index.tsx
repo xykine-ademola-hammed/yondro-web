@@ -31,7 +31,7 @@ const RequestList: React.FC = () => {
       filters: [
         {
           key: "organizationId",
-          value: user?.organization?.id || "",
+          value: user?.organizationId || "",
           condition: "equal",
         },
         {
@@ -249,7 +249,9 @@ const RequestList: React.FC = () => {
 
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => navigate(`request-response/${request.id}`)}
+                    onClick={() =>
+                      navigate(`request-response/${request.id}/view`)
+                    }
                     className="flex-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-100 transition-colors cursor-pointer !rounded-button whitespace-nowrap text-sm"
                   >
                     <i className="fas fa-eye mr-2"></i>View
@@ -342,7 +344,7 @@ const RequestList: React.FC = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() =>
-                            navigate(`request-response/${request.id}`)
+                            navigate(`request-response/${request.id}/view`)
                           }
                           className="bg-blue-300 py-2 px-2 rounded text-blue-600 hover:text-blue-900 cursor-pointer"
                         >

@@ -85,7 +85,7 @@ export default function FormView({
         filters: [
           {
             key: "organizationId",
-            value: user?.organization?.id,
+            value: user?.organizationId,
             condition: "equal",
           },
           {

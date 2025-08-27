@@ -10,10 +10,11 @@ import { useNavigate } from "react-router-dom";
 import WorkflowDetail2 from "../components/RequestDetailView2";
 import RequestFormWrapper from "../components/RequestFormWrapper";
 
-interface FormErrors {
+export interface FormErrors {
   requestType?: string;
   employee?: string;
   description?: string;
+  position?: string;
 }
 
 const NewRequest: React.FC = () => {
@@ -181,35 +182,6 @@ const NewRequest: React.FC = () => {
                   showActionButtons={true}
                 />
               )}
-
-              {/* <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <button
-                  onClick={() => navigate("/")}
-                  data-readdy="true"
-                  className="px-3 py-1 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer !rounded-button whitespace-nowrap"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  type="submit"
-                  disabled={!isFormValid || isSubmitting}
-                  className={`px-3 py-1 rounded-lg transition-colors cursor-pointer !rounded-button whitespace-nowrap ${
-                    isFormValid && !isSubmitting
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit"
-                  )}
-                </button>
-              </div> */}
             </div>
           </div>
         </div>

@@ -3,6 +3,9 @@ import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/useDownloadPdf";
+import { generateVoucherCode, getFinanceCode } from "../../common/methods";
+import spedLogo from "../../assets/spedLogo.png";
+import Signer from "../../components/Signer";
 
 export interface PaymentDetail {
   paymentDate: Date;
@@ -68,42 +71,60 @@ export interface paymentVoucherDataType {
 
 const formatDate = (date: Date) => moment(date).format("DD-MM-YYYY");
 
+const requiredFields = [
+  "applicantName",
+  "applicantAddress",
+  "applicantDescription",
+  "paymentDate",
+  "paymentParticles",
+  "paymentDetailAmount",
+  "amountInWord",
+  "accountTitle",
+  "accountCodeNo",
+  "debitAmount",
+  "debitDescription",
+  "creditAmount",
+  "creditDescription",
+  "unitVoucherHeadById",
+  "preparedById",
+  "reviewedById",
+  "approvedById",
+];
 const PaymentVoucher = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
   showFormTitle = false,
+  showApplicationFormTitle = false,
   instruction = "",
   onSubmit,
   onCancel,
   showActionButtons = false,
   mode = "edit",
+  completedStages = [],
 }) => {
+  console.log("--------enableInputList---------", enableInputList);
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
-
   const { user } = useAuth();
-  const { userDepartmenttMembers, schoolDeans } = useOrganization();
-  const employeeOptions = userDepartmenttMembers.rows.map((employee) => ({
+  const { userDepartmenttMembers } = useOrganization();
+  const employeeOptions = userDepartmenttMembers?.rows?.map((employee) => ({
     id: employee.id,
     value: employee.id,
     label: `${employee.firstName} - ${employee.lastName} `,
   }));
-
-  const deanOptions = schoolDeans.rows.map((dean) => ({
-    id: dean.id,
-    value: dean.id,
-    label: `${dean.firstName} - ${dean.lastName} `,
-  }));
-
-  const [formData, setFormData] =
-    useState<paymentVoucherDataType>(formResponses);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [hasErrors, setHasErrors] = useState(false);
+  const [formData, setFormData] = useState<paymentVoucherDataType>({
+    financeCode: getFinanceCode(user),
+    voucherNo: generateVoucherCode(),
+    ...formResponses,
+  });
 
   const handleInput = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    console.log("----------NAME--VALUE----", name, value);
     setFormData((prevData) => {
       const keys = name.split("_");
       if (keys.length > 1) {
@@ -120,14 +141,31 @@ const PaymentVoucher = ({
   };
 
   useEffect(() => {
-    setFormData(formResponses);
+    setFormData((prev) => ({ ...prev, ...formResponses }));
   }, [formResponses]);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
+  const checkIsValid = () => {
+    const required = [];
+    // Check top-level required fields
+    for (let enableField of enableInputList) {
+      if (requiredFields.includes(enableField) && !formData?.[enableField]) {
+        required.push(enableField);
+      }
+    }
+
+    return !!required.length;
+  };
+
   const handleSubmit = () => {
-    onSubmit(formData);
-    setFormData({} as paymentVoucherDataType);
+    if (!checkIsValid()) {
+      onSubmit(formData);
+      setFormData({} as paymentVoucherDataType);
+      setHasErrors(false);
+    } else {
+      setHasErrors(true);
+    }
   };
 
   const handleCancel = () => {
@@ -135,88 +173,125 @@ const PaymentVoucher = ({
     onCancel();
   };
 
+  const approvers = [
+    { bottomComment: "Approved By", stepNumber: 1 },
+    { bottomComment: "Approved By", stepNumber: 2 },
+    { bottomComment: "Approved By", stepNumber: 3 },
+    { bottomComment: "Approved By", stepNumber: 4 },
+    { bottomComment: "Approved By", stepNumber: 17 },
+  ];
+
+  const getSignerProps = (approver) => {
+    const completedStage = completedStages.find(
+      (comStage) => Number(comStage.step) === approver.stepNumber
+    );
+    if (!completedStage) return;
+
+    const assignee = completedStage.assignedTo;
+
+    return {
+      firstName: assignee?.firstName,
+      lastName: assignee?.lastName,
+      date: moment(completedStage?.updatedAt).format("dd/mm/yyyy"),
+      department: assignee.department?.name,
+      position: assignee?.position.title,
+      label: approver.bottomComment,
+    };
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start">
-      <button
-        className="px-3 py-2 bg-blue-600 text-white rounded"
-        onClick={() =>
-          downloadPdf(componentRef, {
-            fileName: "payment-voucher.pdf",
-            orientation: "portrait",
-            format: "a4",
-            margin: 24,
-            scale: 2,
-            hideSelectors: ["[data-export-hide]"], // hide buttons during capture
-            onBeforeCapture: () => {
-              // e.g., switch your form to preview/read-only mode
-            },
-            onAfterCapture: () => {
-              // e.g., restore edit mode if you changed it
-            },
-          })
-        }
-      >
-        Download PDF
-      </button>
+    <div className="">
+      <div className="flex justify-end items-end ">
+        <button
+          className="px-2 py-1 bg-blue-900 text-white rounded"
+          disabled={isDownloading}
+          onClick={() =>
+            downloadPdf(componentRef, {
+              fileName: "payment-voucher.pdf",
+              orientation: "portrait",
+              format: "a4",
+              margin: 24,
+              scale: 2,
+              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+              onBeforeCapture: () => {
+                setIsDownloading(true);
+              },
+              onAfterCapture: () => {
+                setIsDownloading(false);
+              },
+            })
+          }
+        >
+          {isDownloading ? "Downloading..." : "Download"}
+        </button>
+      </div>
+
       <div
         ref={componentRef}
-        className="bg-white rounded-lg sm:p-2 w-full max-w-4xl"
+        className="bg-white rounded-lg sm:p-1 w-full max-w-4xl"
       >
-        {(showFormTitle || mode === "preview") && (
-          <>
+        <div className="flex flex-col sm:flex-row items-start mt-2">
+          <div className="mb-4 sm:mb-0">
+            <img src={spedLogo} alt="Company Logo" className="h-24" />
+          </div>
+          <div>
             <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-600">
               {user?.organization?.name}
             </h2>
             <h1 className="text-xl sm:text-2xl font-semibold text-center text-gray-500">
-              PAYMENT VOUCHER
+              {/* {vissibleSections?.includes("showApplicationFormTitle1") &&
+              "Financial Request"} */}
+              {vissibleSections?.includes("showFormTitle") || mode === "preview"
+                ? "PAYMENT VOUCHER"
+                : "FINANCIAL REQUEST"}
             </h1>
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start mt-4">
-              <div className="mb-4 sm:mb-0">
-                <img
-                  src="https://via.placeholder.com/150x50?text=Company+Logo"
-                  alt="Company Logo"
-                  className="h-12"
-                />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold">
-                  Voucher No:{" "}
-                  <span className="font-normal">{formData?.voucherNo}</span>
-                </p>
+          </div>
+        </div>
 
-                <p className="text-sm font-semibold">
-                  Department Code:{" "}
-                  <span className="font-normal">
-                    {formData?.departmentCode}
-                  </span>
-                </p>
-
-                <p className="text-sm font-semibold">
-                  Date:{" "}
-                  <span className="font-normal">
-                    {formatDate(formData?.applicationDate)}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </>
+        {hasErrors && (
+          <div className="bg-red-50 p-4 rounded-lg mb-2">
+            <p className="text-red-800 text-sm">
+              There are some errors or missing required fields
+            </p>
+          </div>
         )}
 
-        {(instruction || mode === "preview") && (
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-end items-start mt-2">
+          <div className="text-left">
+            <p className="text-sm font-semibold">
+              Voucher No:{" "}
+              <span className="font-normal">{formData?.voucherNo}</span>
+            </p>
+
+            <p className="text-sm font-semibold">
+              Department Code:{" "}
+              <span className="font-normal">{formData?.financeCode}</span>
+            </p>
+
+            <p className="text-sm font-semibold">
+              Date:{" "}
+              <span className="font-normal">
+                {formatDate(formData?.applicationDate)}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {instruction && (
           <div className="bg-yellow-50 p-4 rounded-lg mb-2">
             <p className="text-yellow-800 text-sm">{instruction}</p>
           </div>
         )}
 
-        {/* Payee and Payment Details */}
-        {(vissibleSections?.includes("paymentInformation") ||
+        {/* Applicant Information */}
+        {(vissibleSections?.includes("applicantInformation") ||
           mode === "preview") && (
-          <div className="border-gray-300 pt-4 mt-2">
+          <div className="border-gray-300 pt-4 mt-1">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Applicant Information
             </h3>
-            <div className="p-2 border rounded-lg border-gray-200">
+            <div className="p-1 border rounded-lg border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-600">
                   Name
@@ -228,7 +303,7 @@ const PaymentVoucher = ({
                   onChange={handleInput}
                   type="text"
                   disabled={!isEnabled("applicantName")}
-                  className={`mt-1 w-full p-1 border ${
+                  className={`mt-0 w-full p-1 border ${
                     isEnabled("applicantName")
                       ? "border-red-500"
                       : "border-gray-300"
@@ -247,7 +322,7 @@ const PaymentVoucher = ({
                   onChange={handleInput}
                   type="text"
                   disabled={!isEnabled("applicantAddress")}
-                  className={`mt-1 w-full p-1 border ${
+                  className={`mt-0 w-full p-1 border ${
                     isEnabled("applicantAddress")
                       ? "border-red-500"
                       : "border-gray-300"
@@ -267,7 +342,7 @@ const PaymentVoucher = ({
                   value={formData?.applicantDescription}
                   onChange={handleInput}
                   disabled={!isEnabled("applicantDescription")}
-                  className={`mt-1 w-full p-1 border ${
+                  className={`mt-0 w-full p-1 border ${
                     isEnabled("applicantDescription")
                       ? "border-red-500"
                       : "border-gray-300"
@@ -283,14 +358,14 @@ const PaymentVoucher = ({
         {/* Payment Detail */}
         {(vissibleSections?.includes("paymentDetails") ||
           mode === "preview") && (
-          <div className="mt-4">
+          <div className="mt-2">
             <div className="flex w-full justify-between items-center">
               <h3 className="text-l font-semibold text-gray-700  mb-1">
                 Payment Details
               </h3>
             </div>
 
-            <div className="p-2 border rounded-lg border-gray-200">
+            <div className="p-1 border rounded-lg border-gray-200">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-1 mb-4 ">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
@@ -299,11 +374,11 @@ const PaymentVoucher = ({
                   <input
                     name={`paymentDate`}
                     id={`paymentDate`}
-                    value={moment(formData?.paymentDate).format("DD-MM-YYYY")}
+                    value={formData?.paymentDate}
                     onChange={handleInput}
                     type="date"
                     disabled={!isEnabled(`paymentDate`)}
-                    className={`mt-1 w-full p-1 border ${
+                    className={`mt-0 w-full p-1 border ${
                       isEnabled(`paymentDate`)
                         ? "border-red-500"
                         : "border-gray-300"
@@ -322,7 +397,7 @@ const PaymentVoucher = ({
                     value={formData?.paymentParticles}
                     onChange={handleInput}
                     disabled={!isEnabled(`paymentParticles`)}
-                    className={`mt-1 w-full p-1 border ${
+                    className={`mt-0 w-full p-1 border ${
                       isEnabled(`paymentParticles`)
                         ? "border-red-500"
                         : "border-gray-300"
@@ -341,10 +416,12 @@ const PaymentVoucher = ({
                     id={`paymentDetailAmount`}
                     value={formData?.paymentDetailAmount}
                     onChange={handleInput}
-                    type="number"
-                    disabled={!isEnabled(`Amount`)}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled(`Amount`) ? "border-red-500" : "border-gray-300"
+                    type="text"
+                    disabled={!isEnabled(`paymentDetailAmount`)}
+                    className={`mt-0 w-full p-1 border ${
+                      isEnabled(`paymentDetailAmount`)
+                        ? "border-red-500"
+                        : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     placeholder="Enter Amount"
                   />
@@ -361,7 +438,7 @@ const PaymentVoucher = ({
                   value={formData?.amountInWord}
                   onChange={handleInput}
                   disabled={!isEnabled("amountInWord")}
-                  className={`mt-1 w-full p-1 border ${
+                  className={`mt-0 w-full p-1 border ${
                     isEnabled("amountInWord")
                       ? "border-red-500"
                       : "border-gray-300"
@@ -377,16 +454,16 @@ const PaymentVoucher = ({
         {/* Entry Distribution */}
         {(vissibleSections?.includes("entryDistribution") ||
           mode === "preview") && (
-          <div className="mt-4">
+          <div className="mt-2">
             <div className="flex w-full justify-between items-center">
               <h3 className="text-l font-semibold text-gray-700  mb-1">
                 Entry Distribution
               </h3>
             </div>
 
-            <div className="p-2 border rounded-lg border-gray-200">
+            <div className="p-1 border rounded-lg border-gray-200">
               <div className="">
-                <div className="flex flex-col sm:flex-row w-full gap-2">
+                <div className="flex flex-col sm:flex-row w-full gap-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-600">
                       Account Title
@@ -397,7 +474,7 @@ const PaymentVoucher = ({
                       value={formData?.accountTitle}
                       onChange={handleInput}
                       disabled={!isEnabled("accountTitle")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("accountTitle")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -417,7 +494,7 @@ const PaymentVoucher = ({
                       value={formData?.accountCodeNo}
                       onChange={handleInput}
                       disabled={!isEnabled("accountCodeNo")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("accountCodeNo")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -428,29 +505,29 @@ const PaymentVoucher = ({
                   </div>
                 </div>
 
-                <div className="col-span-2 mt-1">
+                <div className="col-span-2 mt-0">
                   <label className="block text-sm font-medium text-gray-600">
                     Amount
                   </label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-2 border border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-1 p-1 border border-gray-200">
                     <div className="col-span-1 sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-600">
                         Debit
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <input
                           name="debitAmount"
                           id="debitAmount"
                           value={formData?.debitAmount}
                           onChange={handleInput}
                           disabled={!isEnabled("debitAmount")}
-                          className={`mt-1 w-full p-1 border ${
+                          className={`mt-0 w-full p-1 border ${
                             isEnabled("debitAmount")
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="number"
+                          type="text"
                           placeholder=""
                         />
                         <input
@@ -459,12 +536,12 @@ const PaymentVoucher = ({
                           value={formData?.debitDescription}
                           onChange={handleInput}
                           disabled={!isEnabled("debitDescription")}
-                          className={`mt-1 w-full p-1 border ${
+                          className={`mt-0 w-full p-1 border ${
                             isEnabled("debitDescription")
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="number"
+                          type="text"
                           placeholder=""
                         />
                       </div>
@@ -473,19 +550,19 @@ const PaymentVoucher = ({
                       <label className="block text-sm font-medium text-gray-600">
                         Credit
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <input
                           name="creditAmount"
                           id="creditAmount"
                           value={formData?.creditAmount}
                           onChange={handleInput}
                           disabled={!isEnabled("creditAmount")}
-                          className={`mt-1 w-full p-1 border ${
+                          className={`mt-0 w-full p-1 border ${
                             isEnabled("creditAmount")
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="number"
+                          type="text"
                           placeholder=""
                         />
                         <input
@@ -494,12 +571,12 @@ const PaymentVoucher = ({
                           value={formData?.creditDescription}
                           onChange={handleInput}
                           disabled={!isEnabled("creditDescription")}
-                          className={`mt-1 w-full p-1 border ${
+                          className={`mt-0 w-full p-1 border ${
                             isEnabled("creditDescription")
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="number"
+                          type="text"
                           placeholder=""
                         />
                       </div>
@@ -514,16 +591,15 @@ const PaymentVoucher = ({
         {/* Voucher Approval */}
         {(vissibleSections?.includes("voucherApproval") ||
           mode === "preview") && (
-          <div className="mt-4 ">
+          <div className="mt-2">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Voucher Approval
             </h3>
-            <div className="p-2 border rounded-lg border-gray-200">
+            <div className="p-1 border rounded-lg border-gray-200">
               <div className="">
                 <label className=" text-sm font-medium text-gray-600">
                   Head of Unit [Voucher]
                 </label>
-
                 <select
                   name="unitVoucherHeadById"
                   id="unitVoucherHeadById"
@@ -531,7 +607,7 @@ const PaymentVoucher = ({
                   onChange={handleInput}
                   required
                   disabled={!isEnabled("unitVoucherHeadById")}
-                  className={`mt-1 w-full p-1 border ${
+                  className={`mt-0 w-full p-1 border ${
                     isEnabled("unitVoucherHeadById")
                       ? "border-red-500"
                       : "border-gray-300"
@@ -546,113 +622,28 @@ const PaymentVoucher = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
                     Prepared By
                   </label>
-
-                  <select
-                    name="preparedById"
-                    id="preparedById"
-                    value={formData?.preparedById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("preparedById")}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("preparedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    <option value="">Select an option</option>
-                    {employeeOptions?.map((employee, idx) => (
-                      <option key={employee.id} value={employee.value}>
-                        {employee.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Reviewed By
-                  </label>
-
-                  <select
-                    name="reviewedById"
-                    id="reviewedById"
-                    value={formData?.reviewedById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("reviewedById")}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("reviewedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    <option value="">Select an option</option>
-                    {employeeOptions?.map((employee, idx) => (
-                      <option key={employee.id} value={employee.value}>
-                        {employee.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Approved By
-                  </label>
-
-                  <select
-                    name="approvedById"
-                    id="approvedById"
-                    value={formData?.approvedById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("approvedById")}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("approvedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    <option value="">Select an option</option>
-                    {employeeOptions?.map((employee, idx) => (
-                      <option key={employee.id} value={employee.value}>
-                        {employee.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Audit Unit */}
-        {(vissibleSections?.includes("auditPersonnel") ||
-          mode === "preview") && (
-          <div className="mt-4 ">
-            <h3 className="text-l font-semibold text-gray-700 mb-1">
-              Audit Unit
-            </h3>
-            <div className="flex flex-col sm:flex-row p-2 border rounded-lg border-gray-200 gap-2">
-              <div className="flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Checked by:
-                  </label>
-                  <div className="flex gap-2">
+                  {getSignerProps({ stepNumber: 6 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 6 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 6 })?.lastName}
+                    </div>
+                  ) : (
                     <select
-                      name="auditCheckedById"
-                      id="auditCheckedById"
-                      value={formData?.auditCheckedById}
+                      name="preparedById"
+                      id="preparedById"
+                      value={formData?.preparedById}
                       onChange={handleInput}
                       required
-                      disabled={!isEnabled("auditCheckedById")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditCheckedById")
+                      disabled={!isEnabled("preparedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("preparedById")
                           ? "border-red-500"
                           : "border-gray-300"
                       } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -664,25 +655,95 @@ const PaymentVoucher = ({
                         </option>
                       ))}
                     </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Reviewed By
+                  </label>
 
-                    <input
-                      name="auditCheckedByDate"
-                      id="auditCheckedByDate"
-                      value={formatDate(formData?.auditCheckedByDate)}
+                  {getSignerProps({ stepNumber: 7 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 7 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 7 })?.lastName}
+                    </div>
+                  ) : (
+                    <select
+                      name="reviewedById"
+                      id="reviewedById"
+                      value={formData?.reviewedById}
                       onChange={handleInput}
-                      disabled={!isEnabled("auditCheckedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditCheckedByDate")
+                      required
+                      disabled={!isEnabled("reviewedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("reviewedById")
                           ? "border-red-500"
                           : "border-gray-300"
                       } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="date"
-                      placeholder=""
-                    />
-                  </div>
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Approved By
+                  </label>
 
-                <div className="mt-2">
+                  {getSignerProps({ stepNumber: 8 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 8 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 8 })?.lastName}
+                    </div>
+                  ) : (
+                    <select
+                      name="approvedById"
+                      id="approvedById"
+                      value={formData?.approvedById}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("approvedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("approvedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee, idx) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isDownloading && <div className="mb-45"></div>}
+
+        {/* Audit Unit */}
+        {(vissibleSections?.includes("auditApproval") ||
+          mode === "preview") && (
+          <div className="mt-2 ">
+            <h3 className="text-l font-semibold text-gray-700 mb-1">
+              Audit Unit
+            </h3>
+            <div className="flex flex-col sm:flex-row p-1 border rounded-lg border-gray-200 gap-1">
+              <div className="flex-1">
+                <div className="mt-1">
                   <label className="block text-sm font-medium text-gray-600">
                     Pass
                   </label>
@@ -693,7 +754,7 @@ const PaymentVoucher = ({
                       value={formData?.auditRemarkPass}
                       onChange={handleInput}
                       disabled={!isEnabled("auditRemarkPass")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("auditRemarkPass")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -704,7 +765,7 @@ const PaymentVoucher = ({
                   </div>
                 </div>
 
-                <div className="mt-2">
+                <div className="mt-1">
                   <label className="block text-sm font-medium text-gray-600">
                     Query
                   </label>
@@ -715,7 +776,7 @@ const PaymentVoucher = ({
                       value={formData?.auditRemarkQuery}
                       onChange={handleInput}
                       disabled={!isEnabled("auditRemarkQuery")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("auditRemarkQuery")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -727,41 +788,51 @@ const PaymentVoucher = ({
                 </div>
               </div>
 
-              <div className="flex-1 mb-6">
+              <div className="flex-1 ">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
-                    Prepared By
+                    Audit Checker:
                   </label>
-                  <div className="flex gap-2">
-                    <select
-                      name="auditPreparedById"
-                      id="auditPreparedById"
-                      value={formData?.auditPreparedById}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("auditPreparedById")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditPreparedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee, idx) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
+
+                  <div className="flex gap-1">
+                    {getSignerProps({ stepNumber: 10 }) ? (
+                      <div
+                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                      >
+                        {getSignerProps({ stepNumber: 10 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 10 })?.lastName}
+                      </div>
+                    ) : (
+                      <select
+                        name="auditCheckedById"
+                        id="auditCheckedById"
+                        value={formData?.auditCheckedById}
+                        onChange={handleInput}
+                        required
+                        disabled={!isEnabled("auditCheckedById")}
+                        className={`mt-0 w-full p-1 border ${
+                          isEnabled("auditCheckedById")
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      >
+                        <option value="">Select an option</option>
+                        {employeeOptions?.map((employee, idx) => (
+                          <option key={employee.id} value={employee.value}>
+                            {employee.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                     <input
-                      name="auditPreparedByDate"
-                      id="auditPreparedByDate"
-                      value={formatDate(formData?.auditPreparedByDate)}
+                      name="auditCheckedByDate"
+                      id="auditCheckedByDate"
+                      value={formData?.auditCheckedByDate}
                       onChange={handleInput}
-                      disabled={!isEnabled("auditPreparedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditPreparedByDate")
+                      disabled={!isEnabled("auditCheckedByDate")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("auditCheckedByDate")
                           ? "border-red-500"
                           : "border-gray-300"
                       } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -773,37 +844,46 @@ const PaymentVoucher = ({
 
                 <div className="mt-3">
                   <label className="block text-sm font-medium text-gray-600">
-                    Reviewed By
+                    Audit Reviewer
                   </label>
-                  <div className="flex gap-2">
-                    <select
-                      name="auditReviewedById"
-                      id="auditReviewedById"
-                      value={formData?.auditReviewedById}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("auditReviewedById")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditReviewedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee, idx) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex gap-1">
+                    {getSignerProps({ stepNumber: 11 }) ? (
+                      <div
+                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                      >
+                        {getSignerProps({ stepNumber: 11 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 11 })?.lastName}
+                      </div>
+                    ) : (
+                      <select
+                        name="auditReviewedById"
+                        id="auditReviewedById"
+                        value={formData?.auditReviewedById}
+                        onChange={handleInput}
+                        required
+                        disabled={!isEnabled("auditReviewedById")}
+                        className={`mt-0 w-full p-1 border ${
+                          isEnabled("auditReviewedById")
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      >
+                        <option value="">Select an option</option>
+                        {employeeOptions?.map((employee, idx) => (
+                          <option key={employee.id} value={employee.value}>
+                            {employee.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                     <input
                       name="auditReviewedByDate"
                       id="auditReviewedByDate"
-                      value={formatDate(formData?.auditReviewedByDate)}
+                      value={formData?.auditReviewedByDate}
                       onChange={handleInput}
                       disabled={!isEnabled("auditReviewedByDate")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("auditReviewedByDate")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -816,37 +896,46 @@ const PaymentVoucher = ({
 
                 <div className="mt-3">
                   <label className="block text-sm font-medium text-gray-600">
-                    Approved By
+                    Audit Remarker
                   </label>
-                  <div className="flex gap-2">
-                    <select
-                      name="auditApprovedById"
-                      id="auditApprovedById"
-                      value={formData?.auditApprovedById}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("auditApprovedById")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("auditApprovedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee, idx) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex gap-1">
+                    {getSignerProps({ stepNumber: 12 }) ? (
+                      <div
+                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                      >
+                        {getSignerProps({ stepNumber: 12 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 12 })?.lastName}
+                      </div>
+                    ) : (
+                      <select
+                        name="auditRemarkedById"
+                        id="auditRemarkedById"
+                        value={formData?.auditRemarkedById}
+                        onChange={handleInput}
+                        required
+                        disabled={!isEnabled("auditRemarkedById")}
+                        className={`mt-0 w-full p-1 border ${
+                          isEnabled("auditRemarkedById")
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      >
+                        <option value="">Select an option</option>
+                        {employeeOptions?.map((employee, idx) => (
+                          <option key={employee.id} value={employee.value}>
+                            {employee.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                     <input
                       name="auditApprovedByDate"
                       id="auditApprovedByDate"
-                      value={formatDate(formData?.auditApprovedByDate)}
+                      value={formData?.auditApprovedByDate}
                       onChange={handleInput}
                       disabled={!isEnabled("auditApprovedByDate")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("auditApprovedByDate")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -861,109 +950,63 @@ const PaymentVoucher = ({
           </div>
         )}
 
-        {/* Fund and Management Unit */}
-        {(vissibleSections?.includes("auditPersonnel") ||
-          mode === "preview") && (
-          <div className="mt-4 ">
+        {/* Central Payment Office Approval */}
+        {(vissibleSections?.includes("cpoApproval") || mode === "preview") && (
+          <div className="mt-2 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
-              Fund and Management Unit
+              Central Payment Office Approval
             </h3>
-            <div className="flex flex-col sm:flex-row p-2 border rounded-lg border-gray-200 gap-2">
-              <div className="flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Checked by:
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      name="cpoCheckedById"
-                      id="cpoCheckedById"
-                      value={formData?.cpoCheckedById}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("cpoCheckedById")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoCheckedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee, idx) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
+            <div className="p-1 border rounded-lg border-gray-200">
+              <div className="">
+                <label className=" text-sm font-medium text-gray-600">
+                  Head of Unit [CPO]
+                </label>
 
-                    <input
-                      name="cpoCheckedByDate"
-                      id="cpoCheckedByDate"
-                      value={formatDate(formData?.cpoCheckedByDate)}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoCheckedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoCheckedByDate")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="date"
-                      placeholder=""
-                    />
+                {getSignerProps({ stepNumber: 13 }) ? (
+                  <div
+                    className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                  >
+                    {getSignerProps({ stepNumber: 13 })?.firstName}{" "}
+                    {getSignerProps({ stepNumber: 13 })?.lastName}
                   </div>
-                </div>
-
-                <div className="mt-2">
-                  <label className="block text-sm font-medium text-gray-600">
-                    Pass
-                  </label>
-                  <div>
-                    <textarea
-                      name="cpoRemarkPass"
-                      id="cpoRemarkPass"
-                      value={formData?.cpoRemarkPass}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoRemarkPass")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoRemarkPass")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      rows={2}
-                      placeholder="Enter Additional Notes or Comments"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <div className="mt-2">
-                  <label className="block text-sm font-medium text-gray-600">
-                    Query
-                  </label>
-                  <div>
-                    <textarea
-                      name="cpoRemarkQuery"
-                      id="cpoRemarkQuery"
-                      value={formData?.cpoRemarkQuery}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoRemarkQuery")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoRemarkQuery")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      rows={2}
-                      placeholder="Enter Additional Notes or Comments"
-                    ></textarea>
-                  </div>
-                </div>
+                ) : (
+                  <select
+                    name="cpoHeadById"
+                    id="cpoHeadById"
+                    value={formData?.cpoHeadById}
+                    onChange={handleInput}
+                    required
+                    disabled={!isEnabled("cpoHeadById")}
+                    className={`mt-0 w-full p-1 border ${
+                      isEnabled("cpoHeadById")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  >
+                    <option value="">Select an option</option>
+                    {employeeOptions?.map((employee, idx) => (
+                      <option key={employee.id} value={employee.value}>
+                        {employee.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              <div className="flex-1 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1  mt-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
-                    Prepared By
+                    Payment Initiator
                   </label>
-                  <div className="flex gap-2">
+
+                  {getSignerProps({ stepNumber: 14 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 14 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 14 })?.lastName}
+                    </div>
+                  ) : (
                     <select
                       name="cpoPreparedById"
                       id="cpoPreparedById"
@@ -971,7 +1014,7 @@ const PaymentVoucher = ({
                       onChange={handleInput}
                       required
                       disabled={!isEnabled("cpoPreparedById")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("cpoPreparedById")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -984,29 +1027,21 @@ const PaymentVoucher = ({
                         </option>
                       ))}
                     </select>
-
-                    <input
-                      name="cpoPreparedByDate"
-                      id="cpoPreparedByDate"
-                      value={formatDate(formData?.cpoPreparedByDate)}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoPreparedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoPreparedByDate")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="date"
-                      placeholder=""
-                    />
-                  </div>
+                  )}
                 </div>
-
-                <div className="mt-3">
+                <div>
                   <label className="block text-sm font-medium text-gray-600">
-                    Reviewed By
+                    Payment Reviewer
                   </label>
-                  <div className="flex gap-2">
+
+                  {getSignerProps({ stepNumber: 15 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 15 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 15 })?.lastName}
+                    </div>
+                  ) : (
                     <select
                       name="cpoReviewedById"
                       id="cpoReviewedById"
@@ -1014,7 +1049,7 @@ const PaymentVoucher = ({
                       onChange={handleInput}
                       required
                       disabled={!isEnabled("cpoReviewedById")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("cpoReviewedById")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -1027,29 +1062,21 @@ const PaymentVoucher = ({
                         </option>
                       ))}
                     </select>
-
-                    <input
-                      name="cpoReviewedByDate"
-                      id="cpoReviewedByDate"
-                      value={formatDate(formData?.cpoReviewedByDate)}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoReviewedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoReviewedByDate")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="date"
-                      placeholder=""
-                    />
-                  </div>
+                  )}
                 </div>
-
-                <div className="mt-3">
+                <div>
                   <label className="block text-sm font-medium text-gray-600">
-                    Approved By
+                    Payment Approver
                   </label>
-                  <div className="flex gap-2">
+
+                  {getSignerProps({ stepNumber: 16 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 16 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 16 })?.lastName}
+                    </div>
+                  ) : (
                     <select
                       name="cpoApprovedById"
                       id="cpoApprovedById"
@@ -1057,7 +1084,7 @@ const PaymentVoucher = ({
                       onChange={handleInput}
                       required
                       disabled={!isEnabled("cpoApprovedById")}
-                      className={`mt-1 w-full p-1 border ${
+                      className={`mt-0 w-full p-1 border ${
                         isEnabled("cpoApprovedById")
                           ? "border-red-500"
                           : "border-gray-300"
@@ -1070,22 +1097,7 @@ const PaymentVoucher = ({
                         </option>
                       ))}
                     </select>
-
-                    <input
-                      name="cpoApprovedByDate"
-                      id="cpoApprovedByDate"
-                      value={formatDate(formData?.cpoApprovedByDate)}
-                      onChange={handleInput}
-                      disabled={!isEnabled("cpoApprovedByDate")}
-                      className={`mt-1 w-full p-1 border ${
-                        isEnabled("cpoApprovedByDate")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="date"
-                      placeholder=""
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1094,7 +1106,7 @@ const PaymentVoucher = ({
 
         {(vissibleSections?.includes("additionalInformation") ||
           mode === "preview") && (
-          <div className="mt-4">
+          <div className="mt-2">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Additional Notes
             </h3>
@@ -1102,14 +1114,14 @@ const PaymentVoucher = ({
               <textarea
                 name="additionalNotes"
                 id="additionalNotes"
-                value={formData?.additionalNotes?.join(", ")}
+                value={formData?.additionalNotes}
                 onChange={handleInput}
                 disabled={!isEnabled("additionalNotes")}
-                className={`mt-1 w-full p-2 border ${
+                className={`mt-0 w-full p-1 border ${
                   isEnabled("additionalNotes")
                     ? "border-red-500"
                     : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 rows={4}
                 placeholder="Enter Additional Notes or Comments"
               ></textarea>
@@ -1118,154 +1130,20 @@ const PaymentVoucher = ({
         )}
 
         {(vissibleSections.includes("approvals") || mode === "preview") && (
-          <div className="mt-4 ">
+          <div className="mt-2 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
-            <div className="p-2 border rounded-lg border-gray-200">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
-                <div className="">
-                  <label className="block text-sm font-medium text-gray-600">
-                    Head of Department
-                  </label>
-
-                  <select
-                    name="departmentHeadById"
-                    id="departmentHeadById"
-                    value={formData?.departmentHeadById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("departmentHeadById")}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("departmentHeadById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    <option value="">Select an option</option>
-                    {employeeOptions?.map((employee, idx) => (
-                      <option key={employee.id} value={employee.value}>
-                        {employee.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    School Dean
-                  </label>
-
-                  <select
-                    name="schoolDeanById"
-                    id="schoolDeanById"
-                    value={formData?.schoolDeanById}
-                    onChange={handleInput}
-                    required
-                    disabled={!isEnabled("schoolDeanById")}
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("schoolDeanById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    <option value="">Select an option</option>
-                    {deanOptions?.map((dean, idx) => (
-                      <option key={dean.id} value={dean.value}>
-                        {dean.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Chief Executive
-                  </label>
-
-                  <div
-                    id="chiefExecutivedById"
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("chiefExecutivedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    {formData?.chiefExecutivedById ?? "Not Set"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Bursar
-                  </label>
-
-                  <div
-                    id="chiefExecutivedById"
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("chiefExecutivedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    {formData?.chiefExecutivedById ?? "Not Set"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Director of Audit
-                  </label>
-
-                  <div
-                    id="chiefExecutivedById"
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("chiefExecutivedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    {formData?.chiefExecutivedById ?? "Not Set"}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Director of Fund & Management
-                  </label>
-
-                  <div
-                    id="chiefExecutivedById"
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("chiefExecutivedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    {formData?.chiefExecutivedById ?? "Not Set"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Director of Final Account
-                  </label>
-
-                  <div
-                    id="chiefExecutivedById"
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("chiefExecutivedById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  >
-                    {formData?.chiefExecutivedById ?? "Not Set"}
-                  </div>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {approvers.map((approver) => (
+                <Signer {...getSignerProps(approver)} />
+              ))}
             </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        {(showActionButtons || mode === "preview") && (
+        {showActionButtons && (
           <div className="flex justify-end space-x-4 mt-6">
             <button
               onClick={handleCancel}

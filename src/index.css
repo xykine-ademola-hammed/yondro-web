@@ -25,5 +25,17 @@
         /* Or, apply standard CSS properties */
         /* background-color: #f9f9f9; */
     }
+
+      /* For WebKit browsers (Chrome, Safari, Edge) */
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* For Firefox */
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
     
   }

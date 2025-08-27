@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import { useToast } from "../../GlobalContexts/ToastContext";
+import { cleanEmptyFields } from "../../common/methods";
 
 const statuses = ["Pending", "Approved", "Rejected", "Under Review"];
 
@@ -43,7 +44,7 @@ export default function AllEmployee() {
   const totalPages = 10;
 
   const { mutateAsync: createEmployee } = useMutation({
-    mutationFn: (body: Employee) =>
+    mutationFn: (body: any) =>
       getMutationMethod("POST", `api/employees`, body, true),
     onSuccess: (data) => {
       fetchEmployees(employeeFilter);
@@ -58,11 +59,12 @@ export default function AllEmployee() {
   const onSave = (data: Employee) => {
     if (!data?.id) {
       // Add new department
-      const newEmployee = {
+      const newEmployee = cleanEmptyFields({
         ...data,
-        organizationId: Number(user?.organization?.id),
+        organizationId: Number(user?.organizationId),
         password: data.email.split("@")[0],
-      };
+      });
+      console.log("====================", newEmployee);
       createEmployee(newEmployee);
     } else {
       // // Update existing department

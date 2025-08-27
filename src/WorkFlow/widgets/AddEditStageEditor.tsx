@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import type { ApiFilter, Position } from "../../common/types";
+import type { ApiFilter, Position, PositionData } from "../../common/types";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { genericPositions } from "../../common/constant";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import useForm from "../../common/useForms";
 import type { FormProps } from "../../common/useForms";
+import type { FormErrors } from "../../Dashboard/new-request";
+import { useAuth } from "../../GlobalContexts/AuthContext";
 
 interface AddEditStageEditorProps {
   selectedStage: WorkFlowStage;
@@ -56,10 +58,16 @@ export default function AddEditStageEditor({
   selectedStageIndex,
   formId,
 }: AddEditStageEditorProps) {
+  const { user } = useAuth();
   const { departments } = useOrganization();
   const [positions, setPositions] = useState<Position[]>();
+  const [positionData, setPositionData] = useState<PositionData>();
   const [formData, setStageData] = useState<WorkFlowStage>(selectedStage);
   const [selectedForm, setSelectedForm] = useState<FormProps>({} as FormProps);
+  const [positionSearch, setPositionSearch] = useState("");
+  const [selectedPositionId, setSelectedPositionId] = useState<number>();
+  const [showPositionDropdown, setShowPositionDropdown] = useState<boolean>();
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const { getFormById } = useForm();
 
@@ -68,6 +76,17 @@ export default function AddEditStageEditor({
       getMutationMethod("POST", `api/positions/get-positions`, body, true),
     onSuccess: (data) => {
       setPositions(data.rows);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch positions:", error);
+    },
+  });
+
+  const { mutateAsync: fetchPositions } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod("POST", `api/positions/get-positions`, body, true),
+    onSuccess: (data) => {
+      setPositionData(data);
     },
     onError: (error) => {
       console.error("Failed to fetch positions:", error);
@@ -89,6 +108,39 @@ export default function AddEditStageEditor({
       });
     }
   }, [formData.assigneeDepartmentId]);
+
+  useEffect(() => {
+    if (positionSearch) {
+      fetchPositions({
+        filters: [
+          {
+            key: "organizationId",
+            value: user?.organizationId,
+            condition: "equal",
+          },
+          {
+            key: "title",
+            value: positionSearch,
+            condition: "like",
+          },
+        ],
+        limit: 50,
+        offset: 0,
+      });
+    } else {
+      fetchPositions({
+        filters: [
+          {
+            key: "organizationId",
+            value: user?.organizationId || "",
+            condition: "equal",
+          },
+        ],
+        limit: 50,
+        offset: 0,
+      });
+    }
+  }, [positionSearch]);
 
   useEffect(() => {
     if (formId) {
@@ -124,6 +176,18 @@ export default function AddEditStageEditor({
     onSubmit(selectedStageIndex, formData);
     setIsOpenStageModal(false);
     setStageData({ ...emptyStageData });
+  };
+
+  const handleParentPositionSelect = (position: Position) => {
+    setSelectedPositionId(position.id);
+    handleInputChange({
+      target: { name: "assigneePositionId", value: position.id?.toString() },
+    });
+    setPositionSearch(`${position.title}`);
+    setShowPositionDropdown(false);
+    if (errors.position) {
+      setErrors((prev) => ({ ...prev, position: undefined }));
+    }
   };
 
   return (
@@ -214,89 +278,56 @@ export default function AddEditStageEditor({
                   <div className="border border-gray-300 p-4 rounded-lg bg-white">
                     {/* Assignee Selection Row */}
                     <div className="flex flex-col sm:flex-row gap-6">
-                      {/* Department Selection */}
                       <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <input
-                            type="checkbox"
-                            id="isRequestorDepartment"
-                            checked={formData.isRequestorDepartment}
-                            onChange={(e) => {
-                              setStageData((prev) => ({
-                                ...prev,
-                                isRequestorDepartment: e.target.checked,
-                                assigneeDepartmentId: undefined,
-                                assigneePositionId: undefined,
-                                assigineeLookupField: undefined,
-                              }));
-                            }}
-                            className="mr-2"
-                          />
-                          <label
-                            htmlFor="isRequestorDepartment"
-                            className="text-sm text-gray-700"
-                          >
-                            Requestor Department
-                          </label>
-                        </div>
-                        {formData.isRequestorDepartment ? (
-                          <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm">
-                            Requestor Department
-                          </div>
-                        ) : (
-                          <select
-                            id="assigneeDepartmentId"
-                            name="assigneeDepartmentId"
-                            value={formData.assigneeDepartmentId}
-                            onChange={handleInputChange}
-                            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                          >
-                            <option value="">Select Department</option>
-                            {departments.rows.map((department) => (
-                              <option key={department.id} value={department.id}>
-                                {department.name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-
-                      {/* Position Selection */}
-                      <div className="flex-1">
-                        <label className="block text-gray-700 text-sm mb-2">
-                          Search position
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Assignee Position
                         </label>
-                        {formData.isRequestorDepartment ? (
-                          <select
-                            id="assigneePositionId"
-                            name="assigneePositionId"
-                            value={formData.assigneePositionId}
-                            onChange={handleInputChange}
-                            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                          >
-                            <option value="">Select Position</option>
-                            {genericPositions.map((position) => (
-                              <option key={position.id} value={position.id}>
-                                {position.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <select
-                            id="assigneePositionId"
-                            name="assigneePositionId"
-                            value={formData.assigneePositionId}
-                            onChange={handleInputChange}
-                            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                          >
-                            <option value="">Select Position</option>
-                            {positions?.map((position) => (
-                              <option key={position.id} value={position.id}>
-                                {position.title}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={positionSearch}
+                            onChange={(e) => {
+                              setPositionSearch(e.target.value);
+                              setShowPositionDropdown(true);
+                            }}
+                            onFocus={() => setShowPositionDropdown(true)}
+                            placeholder="Search and select employee"
+                            className={`w-full px-4 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer ${
+                              errors.position
+                                ? "border-red-300"
+                                : "border-gray-300"
+                            }`}
+                          />
+                          <i className="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+
+                          {showPositionDropdown && positionSearch && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                              {positionData?.rows?.length &&
+                              positionData?.rows?.length > 0 ? (
+                                positionData?.rows?.map((position) => (
+                                  <div
+                                    key={position.id}
+                                    onClick={() =>
+                                      handleParentPositionSelect(position)
+                                    }
+                                    className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div className="font-medium text-gray-900">
+                                      {position.title}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      {position.department?.name}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-4 py-3 text-gray-500">
+                                  No position found
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Assignee Holder Selection */}
@@ -315,7 +346,7 @@ export default function AddEditStageEditor({
                             }))
                           }
                           required
-                          className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                          className=" w-full py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                         >
                           <option value="">Select an option</option>
                           {selectedForm?.assigneeHolders &&

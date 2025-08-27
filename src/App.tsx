@@ -96,7 +96,7 @@ function App() {
                       element={<WorkflowDetail2 />}
                     />
                     <Route
-                      path="/requests/request-response/:requestId"
+                      path="/requests/request-response/:requestId/:urlMode"
                       element={<WorkflowDetail2 />}
                     />
 

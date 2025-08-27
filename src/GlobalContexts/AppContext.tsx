@@ -15,8 +15,8 @@ export default function AppContextProvider({
 }) {
   const navigationItems = [
     {
-      id: "dashboard",
-      label: "Dashboard",
+      id: "home",
+      label: "Home",
       icon: "fas fa-tachometer-alt",
       headerMessage: "Welcome back",
     },

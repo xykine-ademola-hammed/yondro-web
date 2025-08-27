@@ -10,20 +10,45 @@ export interface Organization {
   logoUrl: string;
 }
 
+export interface Unit {
+  id?: number;
+  name: string;
+  description?: string;
+  organizationId?: string;
+  financeCode?: string;
+  subUnits?: Unit[];
+}
+
+export interface SchoolOffice {
+  id?: number;
+  name: string;
+  description?: string;
+  location?: string;
+  organizationId?: string;
+  financeCode?: string;
+  departments?: Department[];
+  positions?: Position[];
+}
+
 export interface Department {
   id?: number;
   name: string;
   description?: string;
   location?: string;
   organizationId?: string;
+  financeCode?: string;
+  units?: Unit[];
 }
 
 export interface Position {
   id?: number;
   title: string;
-  departmentName: string;
-  departmentId: number;
+  departmentName?: string;
+  departmentId?: number;
+  schoolOrOfficeId?: number;
   organizationId?: number;
+  unitId?: number;
+  parentPositionId?: number;
   description?: string;
   department?: Department;
 }
@@ -34,7 +59,9 @@ export interface Employee {
   lastName: string;
   middleName: string;
   department?: Department;
+  schoolOrOfficeId?: number;
   organizationId?: number;
+  unitId?: number;
   position?: Position;
   departmentName?: string;
   positionName?: string;
@@ -162,10 +189,10 @@ export interface FormField {
     | "date"
     | "stage"
     | "file";
-  label: string;
+  label?: string;
   subStageInstruction?: string;
   placeholder?: string;
-  required: boolean;
+  required?: boolean;
   options?: string[];
   selectOption?: SelectOption[];
   value?: string;
@@ -254,6 +281,12 @@ export interface PositionData {
 
 export interface EmployeeData {
   rows: Employee[];
+  count: number;
+  hasMore: boolean;
+}
+
+export interface SchoolOfficeData {
+  rows: SchoolOffice[];
   count: number;
   hasMore: boolean;
 }

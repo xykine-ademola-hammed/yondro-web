@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import { useToast } from "../../GlobalContexts/ToastContext";
+import { cleanEmptyFields } from "../../common/methods";
 
 const PositionPage: React.FC = () => {
   const { user } = useAuth();
@@ -31,14 +32,14 @@ const PositionPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [currentPosition, setCurrentPosition] = useState<Position>({
-    departmentId: 0,
+    departmentId: undefined,
     title: "",
     departmentName: "",
     description: "",
   });
 
   const { mutateAsync: createPosition } = useMutation({
-    mutationFn: (body: Position) =>
+    mutationFn: (body: any) =>
       getMutationMethod("POST", `api/positions`, body, true),
     onSuccess: (data) => {
       fetchPositions(positionFilter);
@@ -56,10 +57,12 @@ const PositionPage: React.FC = () => {
 
     if (modalMode === "add") {
       // Add new position
-      const newPosition = {
+      const newPosition = cleanEmptyFields({
         ...currentPosition,
-        organizationId: Number(user?.organization?.id),
-      };
+        organizationId: Number(user?.organizationId),
+      });
+      console.log("=========", newPosition);
+
       createPosition(newPosition);
     } else {
     }
@@ -80,22 +83,11 @@ const PositionPage: React.FC = () => {
     >
   ) => {
     const { name, value } = e.target;
-    if (name === "departmentId") {
-      const selectedDepartment = departments.rows.find(
-        (dept) => dept.id === Number(value)
-      );
-      if (selectedDepartment)
-        setCurrentPosition({
-          ...currentPosition,
-          departmentId: Number(value),
-          departmentName: selectedDepartment?.name,
-        });
-    } else {
-      setCurrentPosition({
-        ...currentPosition,
-        [name]: value,
-      });
-    }
+    console.log("-----handleInputChange------", name, value);
+    setCurrentPosition({
+      ...currentPosition,
+      [name]: value,
+    });
   };
 
   const openAddModal = () => {
@@ -204,6 +196,12 @@ const PositionPage: React.FC = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                 >
+                  <div className="flex items-center">School | Office</div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                >
                   <div className="flex items-center">Department</div>
                 </th>
 
@@ -223,6 +221,11 @@ const PositionPage: React.FC = () => {
                       <div className="text-sm font-medium text-gray-900">
                         {position.title}
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {position?.schoolOrOffice?.name}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

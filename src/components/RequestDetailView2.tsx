@@ -15,7 +15,7 @@ import RequestFormWrapper from "./RequestFormWrapper";
 
 export default function WorkflowDetail2() {
   const params = useParams();
-  const { requestId } = params;
+  const { requestId, urlMode } = params;
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -52,6 +52,8 @@ export default function WorkflowDetail2() {
       queryFn: () =>
         getQueryMethod(`api/workflowrequest/next-stage/${requestId}`),
     });
+
+  console.log("-----selectedRequest------------>>>>>>>>---", selectedRequest);
 
   useEffect(() => {
     refetchCurrentStageData();
@@ -148,7 +150,7 @@ export default function WorkflowDetail2() {
               onSubmit={handleSubmit}
               onCancel={() => navigate("/")}
               selectedWorkFlow={selectedRequest?.workflow}
-              mode="in_progress"
+              mode={urlMode || "in_progress"}
               currentWorkflowStage={currentStageData?.stage}
               showActionButtons={
                 currentStageData?.status === "Pending" && hasActionAbility()
