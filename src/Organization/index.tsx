@@ -3,12 +3,13 @@ import PositionPage from "./Position";
 import AllEmployee from "./Employee";
 import { useState } from "react";
 import { useAuth } from "../GlobalContexts/AuthContext";
+import SchoolOfficePage from "./Schools-Offices";
 
 export default function Organization() {
   const [activeTab, setActiveTab] = useState("Employee");
   const { user } = useAuth();
 
-  const tabNames = ["Employee", "Position", "Department"];
+  const tabNames = ["Employee", "Position", "Department", "School | Office"];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -38,6 +39,7 @@ export default function Organization() {
       </div>
 
       <div className="p-6">
+        {activeTab === "School | Office" && <SchoolOfficePage />}
         {activeTab === "Department" && <DepartmentPage />}
         {activeTab === "Position" && <PositionPage />}
         {activeTab === "Employee" && <AllEmployee />}

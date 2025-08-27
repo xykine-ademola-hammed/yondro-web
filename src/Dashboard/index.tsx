@@ -1,12 +1,12 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useOrganization } from "../GlobalContexts/Organization-Context";
 import moment from "moment";
+import { useOrganization } from "../GlobalContexts/Organization-Context";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { workflowRequests: pendingRequests } = useOrganization();
+  const { workflowRequests } = useOrganization();
 
   return (
     <div className="">
@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="p-1 md:p-4">
             <div className="space-y-4">
-              {pendingRequests.rows.map((request) => (
+              {workflowRequests.rows.map((request) => (
                 <div
                   key={request.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-white"

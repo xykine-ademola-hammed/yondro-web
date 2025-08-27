@@ -1,7 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ModalWrapper from "../../components/modal-wrapper";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { Position } from "../../common/types";
+import {
+  type PositionData,
+  type Position,
+  type Unit,
+  type ApiFilter,
+} from "../../common/types";
+import type { FormErrors } from "../../Dashboard/new-request";
+import { useMutation } from "@tanstack/react-query";
+import { getMutationMethod } from "../../common/api-methods";
+import { useAuth, type Department } from "../../GlobalContexts/AuthContext";
 
 interface AddEditPositionModalProps {
   isModalOpen: boolean;
@@ -27,7 +36,117 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
   handleInputChange,
   handlePositionSubmit,
 }) => {
-  const { departments } = useOrganization();
+  const { schoolOffices } = useOrganization();
+  const { user } = useAuth();
+
+  const [departments, setDepartments] = useState<Department[]>();
+  const [positions, setPositions] = useState<PositionData>();
+  const [positionSearch, setPositionSearch] = useState("");
+  const [selectedPositionId, setSelectedPositionId] = useState<number>();
+  const [showPositionDropdown, setShowPositionDropdown] = useState<boolean>();
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [units, setUnits] = useState<Unit[]>([]);
+
+  const { mutateAsync: fetchPositions } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod("POST", `api/positions/get-positions`, body, true),
+    onSuccess: (data) => {
+      setPositions(data);
+    },
+    onError: (error) => {
+      console.error("Failed to fetch positions:", error);
+    },
+  });
+
+  useEffect(() => {
+    console.log("----2---");
+    if (currentPosition.departmentId) {
+      handleInputChange({
+        target: { name: "unitId", value: "" },
+      });
+      console.log("----2---", currentPosition.departmentId);
+      const selectedDepartment = departments?.find(
+        (dept) => Number(dept.id) === Number(currentPosition.departmentId)
+      );
+      console.log("----3---", selectedDepartment);
+
+      if (selectedDepartment?.units) setUnits(selectedDepartment.units);
+    } else {
+      setUnits([]);
+    }
+  }, [currentPosition.departmentId, departments]);
+
+  useEffect(() => {
+    if (currentPosition.schoolOrOfficeId) {
+      handleInputChange({
+        target: { name: "departmentId", value: "" },
+      });
+      handleInputChange({
+        target: { name: "unitId", value: "" },
+      });
+
+      const selectedSchoolOrOffice = schoolOffices.rows.find(
+        (dept) => Number(dept.id) === Number(currentPosition.schoolOrOfficeId)
+      );
+      if (selectedSchoolOrOffice?.departments !== undefined) {
+        console.log("----4---", selectedSchoolOrOffice?.departments);
+        setDepartments(
+          selectedSchoolOrOffice?.departments.map((dept) => ({
+            ...dept,
+            id: String(dept.id),
+          }))
+        );
+      }
+    } else {
+      console.log("----5---");
+      setUnits([]);
+    }
+  }, [currentPosition.schoolOrOfficeId]);
+
+  useEffect(() => {
+    if (positionSearch) {
+      fetchPositions({
+        filters: [
+          {
+            key: "organizationId",
+            value: user?.organizationId,
+            condition: "equal",
+          },
+          {
+            key: "title",
+            value: positionSearch,
+            condition: "like",
+          },
+        ],
+        limit: 50,
+        offset: 0,
+      });
+    } else {
+      fetchPositions({
+        filters: [
+          {
+            key: "organizationId",
+            value: user?.organizationId || "",
+            condition: "equal",
+          },
+        ],
+        limit: 50,
+        offset: 0,
+      });
+    }
+  }, [positionSearch]);
+
+  const handleParentPositionSelect = (position: Position) => {
+    setSelectedPositionId(position.id);
+    handleInputChange({
+      target: { name: "parentPositionId", value: position.id?.toString() },
+    });
+    setPositionSearch(`${position.title}`);
+    setShowPositionDropdown(false);
+    if (errors.position) {
+      setErrors((prev) => ({ ...prev, position: undefined }));
+    }
+  };
 
   return (
     isModalOpen && (
@@ -46,24 +165,48 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                       htmlFor="name"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Position Title <span className="text-red-500">*</span>
+                      Position Title
                     </label>
                     <input
+                      required
                       type="text"
                       name="title"
                       id="title"
                       value={currentPosition.title}
                       onChange={handleInputChange}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      required
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="department"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Department <span className="text-red-500">*</span>
+                      School | Office
+                    </label>
+                    <select
+                      name="schoolOrOfficeId"
+                      id="schoolOrOfficeId"
+                      value={currentPosition.schoolOrOfficeId}
+                      onChange={handleInputChange}
+                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    >
+                      <option value="">Select School or Office</option>
+                      {schoolOffices.rows.map((schoolOrOffice) => (
+                        <option value={schoolOrOffice.id}>
+                          {schoolOrOffice.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="department"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Department
                     </label>
                     <select
                       name="departmentId"
@@ -71,13 +214,84 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                       value={currentPosition.departmentId}
                       onChange={handleInputChange}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      required
                     >
                       <option value="">Select Department</option>
-                      {departments.rows.map((dept) => (
+                      {departments?.map((dept) => (
                         <option value={dept.id}>{dept.name}</option>
                       ))}
                     </select>
+                  </div>
+                  {units.length > 0 && (
+                    <div>
+                      <label
+                        htmlFor="department"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Unit
+                      </label>
+                      <select
+                        name="unitId"
+                        id="unitId"
+                        value={currentPosition?.unitId}
+                        onChange={handleInputChange}
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      >
+                        <option value="">Select Unit</option>
+                        {units.map((unit) => (
+                          <option value={unit.id}>{unit.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Parent Position
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={positionSearch}
+                        onChange={(e) => {
+                          setPositionSearch(e.target.value);
+                          setShowPositionDropdown(true);
+                        }}
+                        onFocus={() => setShowPositionDropdown(true)}
+                        placeholder="Search and select employee"
+                        className={`w-full px-4 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer ${
+                          errors.position ? "border-red-300" : "border-gray-300"
+                        }`}
+                      />
+                      <i className="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+
+                      {showPositionDropdown && positionSearch && (
+                        <div className="absolute z-1050 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {positions?.rows?.length &&
+                          positions?.rows?.length > 0 ? (
+                            positions?.rows?.map((position) => (
+                              <div
+                                key={position.id}
+                                onClick={() =>
+                                  handleParentPositionSelect(position)
+                                }
+                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">
+                                  {position.title}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {position.department?.name}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-gray-500">
+                              No position found
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -99,6 +313,10 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
             </button>
           </div>
         </form>
+        {/* Work around to ensure position search shows */}
+        {showPositionDropdown && positionSearch && (
+          <div className="mb-50"></div>
+        )}
       </ModalWrapper>
     )
   );

@@ -1,28 +1,30 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ModalWrapper from "../components/modal-wrapper";
 import AddEditStageEditor, {
   emptyStageData,
+  type WorkFlowStage,
 } from "./widgets/AddEditStageEditor";
 import StageViewCard from "./widgets/StageViewCard";
 import type { StageData, WorkFlow } from "../common/types";
 import { useMutation } from "@tanstack/react-query";
-import { getMutationMethod } from "../common/api-methods";
+import { getMutationMethod, getQueryMethod } from "../common/api-methods";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 import { useToast } from "../GlobalContexts/ToastContext";
+import useForm from "../common/useForms";
 
 export default function AddEditWorkflow() {
-  const location = useLocation();
+  const { workflowId } = useParams();
+  console.log("Workflow ID:", workflowId);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { forms } = useForm();
   const { fetchWorkFlows, workflowFilter } = useOrganization();
 
-  const workflowId = location.pathname.split("/").pop() || "0";
-
   const [isOpenStageModal, setIsOpenStageModal] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<StageData>({
+  const [selectedStage, setSelectedStage] = useState<WorkFlowStage>({
     ...emptyStageData,
   });
 
@@ -34,21 +36,29 @@ export default function AddEditWorkflow() {
     stages: [],
     status: "",
     createdAt: "",
+    formId: "",
   });
 
-  const handleSubmitStage = (stageIndex: number, stageData: StageData) => {
-    const fieldTypedStage = stageData.fields.filter(
-      (field) => field.type === "stage"
-    );
-
+  const handleSubmitStage = (stageIndex: number, stageData: WorkFlowStage) => {
     let newStages = [...formData.stages];
     newStages[stageIndex] = {
       ...stageData,
-      organizationId: user?.organization?.id,
+      organizationId: user?.organizationId,
       departmentId: Number(user?.department?.id),
       step: stageIndex,
-      // requiresInternalLoop: fieldTypedStage.length > 0,
     };
+
+    if (stageData?.isSubStage) {
+      let parentStageStep = 0;
+      formData.stages.forEach((stage) => {
+        if (stage?.step && stage?.step < stageIndex && !stage?.isSubStage) {
+          parentStageStep = stage.step;
+        }
+      });
+      if (parentStageStep) {
+        newStages[stageIndex]["parentStageId"] = parentStageStep;
+      }
+    }
 
     setFormData({
       ...formData,
@@ -81,16 +91,38 @@ export default function AddEditWorkflow() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    createWorkflow({ ...formData, organizationId: user?.organization?.id });
     console.log("--------HER-----", {
       ...formData,
-      organizationId: user?.organization?.id,
+      organizationId: user?.organizationId,
     });
+
+    createWorkflow({ ...formData, organizationId: user?.organizationId });
   };
 
   const handleCancel = () => {
     navigate(-1);
   };
+
+  useEffect(() => {
+    if (workflowId && workflowId !== "new") {
+      // Fetch existing workflow data
+      const fetchWorkflowById = async () => {
+        const response = await getQueryMethod(`api/workflows/${workflowId}`);
+        setFormData(response.data);
+      };
+      fetchWorkflowById();
+    } else {
+      // Initialize form data for new workflow
+      setFormData({
+        name: "",
+        description: "",
+        stages: [],
+        status: "Draft",
+        createdAt: new Date().toISOString(),
+        formId: "",
+      });
+    }
+  }, [workflowId]);
 
   return (
     <div>
@@ -109,18 +141,48 @@ export default function AddEditWorkflow() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Workflow Name *
-          </label>
-          <input
-            type="text"
-            required
-            value={formData?.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter workflow name"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Workflow Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData?.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter workflow name"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="department"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Form <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="formId"
+              id="formId"
+              value={formData?.formId}
+              onChange={(e) =>
+                setFormData({ ...formData, formId: e.target.value })
+              }
+              className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              required
+            >
+              <option value="">Select form</option>
+              {forms.map((form) => (
+                <option key={form.id} value={form.id}>
+                  {form.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
@@ -227,6 +289,7 @@ export default function AddEditWorkflow() {
         title={""}
       >
         <AddEditStageEditor
+          formId={formData?.formId}
           setIsOpenStageModal={setIsOpenStageModal}
           selectedStageIndex={selectedStageIndex}
           selectedStage={selectedStage}

@@ -2,11 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMutationMethod } from "../common/api-methods";
-import type { Organization } from "../common/types";
+import type { Organization, Unit } from "../common/types";
 
 export interface Department {
   id: string;
   name: string;
+  units?: Unit[];
 }
 
 export interface Position {
@@ -26,6 +27,7 @@ export interface User {
   organization?: Organization;
   department?: Department;
   position?: Position;
+  organizationId: number;
   institution?: Institution;
 }
 
@@ -74,8 +76,10 @@ export function AuthContextProvider({
   };
 
   const { mutateAsync: loginMutation } = useMutation({
-    mutationFn: (body: { email: string; password: string }) =>
-      getMutationMethod("POST", `api/auth/login`, body, false),
+    mutationFn: (body: { email: string; password: string }) => {
+      console.log("----------BODY----", body);
+      return getMutationMethod("POST", `api/auth/login`, body, false);
+    },
     onSuccess: (data) => {
       setUser(data.data.user);
       setToken(data?.data.token);
@@ -95,6 +99,7 @@ export function AuthContextProvider({
 
   const login = async (email: string, password: string) => {
     try {
+      console.log(email, password);
       await loginMutation({ email, password });
     } catch (error) {
       console.error("Login failed:", error);

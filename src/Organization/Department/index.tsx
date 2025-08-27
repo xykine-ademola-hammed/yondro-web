@@ -67,7 +67,7 @@ const DepartmentPage: React.FC = () => {
       // Add new department
       const newDepartment = {
         ...currentDepartment,
-        organizationId: String(user?.organization?.id),
+        organizationId: String(user?.organizationId),
       };
       createDepartment(newDepartment);
     } else {
@@ -162,7 +162,6 @@ const DepartmentPage: React.FC = () => {
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort("name")}
                 >
                   <div className="flex items-center">
                     Department
@@ -174,6 +173,20 @@ const DepartmentPage: React.FC = () => {
                       ></i>
                     )}
                   </div>
+                </th>
+
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                >
+                  <div className="flex items-center">Finance Code</div>
+                </th>
+
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                >
+                  <div className="flex items-center">Unit #</div>
                 </th>
 
                 <th
@@ -193,13 +206,11 @@ const DepartmentPage: React.FC = () => {
                         <div className="text-sm font-medium text-gray-900">
                           {department.name}
                         </div>
-                        <div className="text-sm font-medium text-gray-500">
-                          {department.location}
-                        </div>
                       </div>
                     </div>
                   </td>
-
+                  <td>{department?.financeCode}</td>
+                  <td>{department?.units?.length}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
@@ -241,6 +252,7 @@ const DepartmentPage: React.FC = () => {
           currentDepartment={currentDepartment}
           handleInputChange={handleInputChange}
           handleDepartmentSubmit={handleDepartmentSubmit}
+          setCurrentDepartment={setCurrentDepartment}
         />
       )}
     </>

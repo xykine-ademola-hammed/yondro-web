@@ -1,22 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddEditEmployeeModal, { emptyEmployee } from "./AddEditEmployeeModal";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { Employee } from "../../common/types";
+import type { ApiFilter, Employee } from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import { useToast } from "../../GlobalContexts/ToastContext";
+import { cleanEmptyFields } from "../../common/methods";
+
+const statuses = ["Pending", "Approved", "Rejected", "Under Review"];
 
 export default function AllEmployee() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { employees, fetchEmployees, employeeFilter } = useOrganization();
+  const {
+    employees,
+    fetchEmployees,
+    employeeFilter,
+    departments,
+    setEmployeeFilter,
+  } = useOrganization();
 
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
-
-  // Employee data state
+  const [selectedDepartment, setSelectedDepartment] = useState("");
 
   // UI state
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,7 +44,7 @@ export default function AllEmployee() {
   const totalPages = 10;
 
   const { mutateAsync: createEmployee } = useMutation({
-    mutationFn: (body: Employee) =>
+    mutationFn: (body: any) =>
       getMutationMethod("POST", `api/employees`, body, true),
     onSuccess: (data) => {
       fetchEmployees(employeeFilter);
@@ -51,11 +59,12 @@ export default function AllEmployee() {
   const onSave = (data: Employee) => {
     if (!data?.id) {
       // Add new department
-      const newEmployee = {
+      const newEmployee = cleanEmptyFields({
         ...data,
-        organizationId: Number(user?.organization?.id),
+        organizationId: Number(user?.organizationId),
         password: data.email.split("@")[0],
-      };
+      });
+      console.log("====================", newEmployee);
       createEmployee(newEmployee);
     } else {
       // // Update existing department
@@ -69,36 +78,73 @@ export default function AllEmployee() {
     setSelectedEmployee({ ...emptyEmployee });
   };
 
+  useEffect(() => {
+    if (selectedDepartment) {
+      const updatedFilter: ApiFilter = {
+        ...employeeFilter,
+        filters: [
+          ...employeeFilter.filters,
+          {
+            key: "departmentId",
+            value: selectedDepartment,
+            condition: "equal",
+          },
+        ],
+      };
+      setEmployeeFilter(updatedFilter);
+    } else {
+      setEmployeeFilter({
+        ...employeeFilter,
+        filters: employeeFilter.filters.filter(
+          (filter) => filter.key !== "departmentId"
+        ),
+      });
+    }
+  }, [selectedDepartment]);
+
   return (
     <main>
       <div>
-        <div className="flex justify-end m-2">
-          <button
-            onClick={() => setIsAddEditModalOpen(true)}
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
-          >
-            <i className="fas fa-plus mr-2"></i>
-            Add Employee
-          </button>
-          {/* Search and Filter Section */}
-        </div>
-
-        <div className="bg-white shadow rounded-lg mb-6 mx-4">
-          <div className="p-1">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative flex-grow max-w-3xl">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fas fa-search text-gray-400 text-sm"></i>
-                </div>
+        {/* Search and Filter Bar */}
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 flex-1">
+              <div className="relative flex-1">
+                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                 <input
                   type="text"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 border-gray-300 rounded-md text-sm"
-                  placeholder="Search employees by name, email, or ID..."
+                  placeholder="Search employee by email, name, or position..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
+              <div className="flex space-x-3">
+                <div className="relative">
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm appearance-none cursor-pointer pr-8"
+                  >
+                    <option value="">All Departments</option>
+                    {departments.rows.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  <i className="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddEditModalOpen(true)}
+                type="button"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                Add Employee
+              </button>
+              {/* Search and Filter Section */}
             </div>
           </div>
         </div>

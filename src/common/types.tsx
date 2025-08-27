@@ -1,3 +1,5 @@
+import type { WorkFlowStage } from "../WorkFlow/widgets/AddEditStageEditor";
+
 export interface Organization {
   id?: number;
   name: string;
@@ -8,20 +10,45 @@ export interface Organization {
   logoUrl: string;
 }
 
+export interface Unit {
+  id?: number;
+  name: string;
+  description?: string;
+  organizationId?: string;
+  financeCode?: string;
+  subUnits?: Unit[];
+}
+
+export interface SchoolOffice {
+  id?: number;
+  name: string;
+  description?: string;
+  location?: string;
+  organizationId?: string;
+  financeCode?: string;
+  departments?: Department[];
+  positions?: Position[];
+}
+
 export interface Department {
   id?: number;
   name: string;
   description?: string;
   location?: string;
   organizationId?: string;
+  financeCode?: string;
+  units?: Unit[];
 }
 
 export interface Position {
   id?: number;
   title: string;
-  departmentName: string;
-  departmentId: number;
+  departmentName?: string;
+  departmentId?: number;
+  schoolOrOfficeId?: number;
   organizationId?: number;
+  unitId?: number;
+  parentPositionId?: number;
   description?: string;
   department?: Department;
 }
@@ -32,7 +59,9 @@ export interface Employee {
   lastName: string;
   middleName: string;
   department?: Department;
+  schoolOrOfficeId?: number;
   organizationId?: number;
+  unitId?: number;
   position?: Position;
   departmentName?: string;
   positionName?: string;
@@ -51,9 +80,10 @@ export interface WorkFlow {
   name: string;
   description: string;
   organizationId?: number;
-  status: string;
-  stages: StageData[];
+  isActive: boolean;
+  stages: WorkFlowStage[];
   createdAt: string;
+  formId: string;
 }
 
 export interface MiniUser {
@@ -102,10 +132,11 @@ export interface StageData {
   description?: string;
   step?: number;
   fields: FormField[] | [];
-  fieldResponses: FormField[] | [];
+  fieldResponses?: FormField[] | [];
   departmentId?: number;
   parentStageId?: number;
   organizationId?: number;
+  formFields?: string[];
   status?:
     | "Approved"
     | "Rejected"
@@ -121,7 +152,8 @@ export interface StageData {
   createdBy?: string;
   comment?: string;
   requiresInternalLoop?: boolean;
-  assignedTo: Employee;
+  showProcessingForm?: boolean;
+  assignedTo?: Employee;
   stageId?: number;
 }
 
@@ -157,14 +189,16 @@ export interface FormField {
     | "date"
     | "stage"
     | "file";
-  label: string;
+  label?: string;
+  subStageInstruction?: string;
   placeholder?: string;
-  required: boolean;
+  required?: boolean;
   options?: string[];
   selectOption?: SelectOption[];
   value?: string;
   isInternalStage?: boolean;
-  formName: string;
+  formName?: string;
+  formFields?: any;
 }
 
 export interface FormData {
@@ -198,6 +232,7 @@ export interface WorkflowRequest {
   stageResponses: StageData[];
   stages: StageData[];
   updatedAt: string;
+  formResponses?: any;
 }
 
 export interface Filter {
@@ -246,6 +281,12 @@ export interface PositionData {
 
 export interface EmployeeData {
   rows: Employee[];
+  count: number;
+  hasMore: boolean;
+}
+
+export interface SchoolOfficeData {
+  rows: SchoolOffice[];
   count: number;
   hasMore: boolean;
 }

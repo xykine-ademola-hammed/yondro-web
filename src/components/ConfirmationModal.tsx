@@ -4,9 +4,9 @@ import type { WorkflowRequest } from "../common/types";
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (status: string) => void;
   request?: WorkflowRequest;
-  onChangeComment: (fieldId: number | string, value: any) => void;
+  onChangeComment: (value: any) => void;
 }
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
@@ -33,7 +33,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <textarea
               id="comment"
               name="comment"
-              onChange={(e) => onChangeComment("comment", e.target.value)}
+              onChange={(e) => onChangeComment(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Enter your comments here..."
@@ -52,7 +52,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => onConfirm("Reject")}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm w-full sm:w-auto"
+          >
+            Confirm Rejection
+          </button>
+          <button
+            onClick={() => onConfirm("Approve")}
             className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer !rounded-button whitespace-nowrap"
           >
             Confirm Approval

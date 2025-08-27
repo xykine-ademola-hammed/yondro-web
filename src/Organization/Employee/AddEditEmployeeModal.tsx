@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import ModalWrapper from "../../components/modal-wrapper";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { ApiFilter, Employee, Position } from "../../common/types";
+import type {
+  ApiFilter,
+  Department,
+  Employee,
+  Position,
+  Unit,
+} from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 
@@ -36,14 +42,17 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
   modalMode,
   employee,
 }) => {
-  const { departments } = useOrganization();
+  const { schoolOffices } = useOrganization();
+  const [departments, setDepartments] = useState<Department[]>();
   const [positions, setPositions] = useState<Position[]>();
   const [formData, setFormData] = useState<Employee>({ ...emptyEmployee });
+  const [units, setUnits] = useState<Unit[]>([]);
 
   const { mutateAsync: fetchDepartmentPositions } = useMutation({
     mutationFn: (body: ApiFilter) =>
       getMutationMethod("POST", `api/positions/get-positions`, body, true),
     onSuccess: (data) => {
+      console.log("-----------ROW---------", data);
       setPositions(data.rows);
     },
     onError: (error) => {
@@ -73,6 +82,46 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     }
   }, [formData.departmentId]);
 
+  useEffect(() => {
+    if (formData.departmentId) {
+      handleInputChange({
+        target: { name: "unitId", value: "" },
+      });
+      const selectedDepartment = departments?.find(
+        (dept) => Number(dept.id) === Number(formData.departmentId)
+      );
+      setPositions(selectedDepartment?.positions);
+      if (selectedDepartment?.units) setUnits(selectedDepartment.units);
+    } else {
+      setUnits([]);
+    }
+  }, [formData.departmentId, departments]);
+
+  useEffect(() => {
+    if (formData.schoolOrOfficeId) {
+      handleInputChange({
+        target: { name: "departmentId", value: "" },
+      });
+      handleInputChange({
+        target: { name: "unitId", value: "" },
+      });
+
+      const selectedSchoolOrOffice = schoolOffices.rows.find(
+        (office) => Number(office.id) === Number(formData.schoolOrOfficeId)
+      );
+
+      console.log("====selectedSchoolOrOffice========", selectedSchoolOrOffice);
+
+      if (selectedSchoolOrOffice?.departments !== undefined) {
+        setDepartments(selectedSchoolOrOffice?.departments);
+
+        setPositions(selectedSchoolOrOffice?.positions);
+      }
+    } else {
+      setUnits([]);
+    }
+  }, [formData.schoolOrOfficeId]);
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -80,32 +129,10 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
   ) => {
     const { name, value } = e.target;
 
-    if (name === "departmentId") {
-      const selectedDepartment = departments.rows.find(
-        (dept) => dept.id === Number(value)
-      );
-      if (selectedDepartment)
-        setFormData({
-          ...formData,
-          departmentId: Number(value),
-          departmentName: selectedDepartment.name,
-        });
-    } else if (name === "positionId") {
-      const selectedPosition = positions?.find(
-        (position) => position.id === Number(value)
-      );
-      if (selectedPosition)
-        setFormData({
-          ...formData,
-          positionId: Number(value),
-          positionName: selectedPosition.title,
-        });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
 
     if (errors[name] && value.trim() !== "") {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -126,10 +153,8 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
       newErrors.email = "Email is invalid";
     }
     if (!formData?.phone.trim()) newErrors.phone = "Phone number is required";
-    if (!formData?.positionName?.trim())
+    if (!formData?.positionId?.trim())
       newErrors.position = "Position is required";
-    if (!formData?.departmentName?.trim())
-      newErrors.department = "Department is required";
 
     setErrors(newErrors);
 
@@ -181,7 +206,6 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Middle Name
-                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -275,30 +299,74 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label
                   htmlFor="department"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Department <span className="text-red-500">*</span>
+                  School | Office <span className="text-red-500">*</span>
                 </label>
                 <select
-                  name="departmentId"
-                  id="departmentId"
-                  value={employee?.departmentId}
+                  name="schoolOrOfficeId"
+                  id="schoolOrOfficeId"
+                  value={formData.schoolOrOfficeId}
                   onChange={handleInputChange}
                   className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  required
                 >
-                  <option value="">Select Department</option>
-                  {departments.rows.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
+                  <option value="">Select School or Office</option>
+                  {schoolOffices.rows.map((schoolOrOffice) => (
+                    <option value={schoolOrOffice.id}>
+                      {schoolOrOffice.name}
                     </option>
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label
+                  htmlFor="department"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Department
+                </label>
+                <select
+                  name="departmentId"
+                  id="departmentId"
+                  value={formData.departmentId}
+                  onChange={handleInputChange}
+                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                >
+                  <option value="">Select Department</option>
+                  {departments?.map((dept) => (
+                    <option value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              {units.length > 0 ? (
+                <div>
+                  <label
+                    htmlFor="department"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Unit
+                  </label>
+                  <select
+                    name="unitId"
+                    id="unitId"
+                    value={formData?.unitId}
+                    onChange={handleInputChange}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  >
+                    <option value="">Select Unit</option>
+                    {units.map((unit) => (
+                      <option value={unit.id}>{unit.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div></div>
+              )}
 
               <div>
                 <label
@@ -328,7 +396,9 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <p className="mt-1 text-sm text-red-600">{errors.position}</p>
                 )}
               </div>
+            </div>
 
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label
                   htmlFor="position"
@@ -352,14 +422,14 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <option value="Employee">Employee</option>
                 </select>
 
-                {errors.position && (
+                {errors?.roles && (
                   <p className="mt-1 text-sm text-red-600">{errors.position}</p>
                 )}
               </div>
             </div>
           </div>
           {/* Action Buttons */}
-          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 rounded-lg shadow">
+          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 rounded-lg">
             <button
               onClick={() => {
                 setErrors({});
