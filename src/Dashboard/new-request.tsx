@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
-import type { Employee, StageData, WorkFlow } from "../common/types";
-import FormView from "../common/FormView";
+import type { Employee, WorkFlow } from "../common/types";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
 import { useToast } from "../GlobalContexts/ToastContext";
 import { useNavigate } from "react-router-dom";
-import WorkflowDetail2 from "../components/RequestDetailView2";
 import RequestFormWrapper from "../components/RequestFormWrapper";
 
 export interface FormErrors {
@@ -33,7 +31,7 @@ const NewRequest: React.FC = () => {
   const { mutateAsync: createNewWorkflowRequest } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/workflow-request`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       fetchWorkflowRequest(workflowReqiestFilter);
       navigate("/");
       showToast("Workflow request successfully created", "success");
@@ -53,7 +51,7 @@ const NewRequest: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (formResponses) => {
+  const handleSubmit = async (formResponses: any) => {
     createNewWorkflowRequest({
       workflowId: selectedWorkFlow?.id,
       requestorId: selectedEmployeeId ?? user?.id,

@@ -83,7 +83,7 @@ export default function WorkflowDetail2() {
         body,
         true
       ),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       refetchWorkflowRequest(refetchFilter);
       showToast("Response successfully submitted", "success");
     },
@@ -117,12 +117,12 @@ export default function WorkflowDetail2() {
     return currentStageData?.assignedToUserId === user?.id;
   };
 
-  const handleSubmit = async (formResponses) => {
+  const handleSubmit = async (formResponses: any) => {
     setFormResponses(formResponses);
     setIsConfirmationModalOpen(true);
   };
 
-  function combineFormSections(stages): string[] {
+  function combineFormSections(stages: any): string[] {
     if (!Array.isArray(stages)) return [];
     const allSections = stages.map((stage) => stage.formSections || []).flat();
     // Remove duplicates

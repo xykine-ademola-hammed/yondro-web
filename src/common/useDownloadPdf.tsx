@@ -62,7 +62,7 @@ async function renderWithHtmlToImage(el: HTMLElement) {
 }
 
 const useDownloadPdf: UseDownloadPdf = () => {
-  const downloadPdf = useCallback(async (elementRef, options = {}) => {
+  const downloadPdf = useCallback(async (elementRef: any, options = {}) => {
     const {
       fileName = "document.pdf",
       format = "a4",

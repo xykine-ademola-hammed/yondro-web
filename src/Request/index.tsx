@@ -1,12 +1,7 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
 import React, { useEffect, useState } from "react";
-import type {
-  ApiFilter,
-  WorkflowRequest,
-  WorkflowRequestData,
-} from "../common/types";
-import { useOrganization } from "../GlobalContexts/Organization-Context";
+import type { ApiFilter, WorkflowRequestData } from "../common/types";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../GlobalContexts/AuthContext";
@@ -26,24 +21,22 @@ const RequestList: React.FC = () => {
       hasMore: false,
     }
   );
-  const [workflowReqiestFilter, setWorkflowReqiestFilter] = useState<ApiFilter>(
-    {
-      filters: [
-        {
-          key: "organizationId",
-          value: user?.organizationId || "",
-          condition: "equal",
-        },
-        {
-          key: "stages.assignedToId",
-          value: user?.id,
-          condition: "equal",
-        },
-      ],
-      limit: 50,
-      offset: 0,
-    }
-  );
+  const [workflowReqiestFilter] = useState<ApiFilter>({
+    filters: [
+      {
+        key: "organizationId",
+        value: user?.organizationId || "",
+        condition: "equal",
+      },
+      {
+        key: "stages.assignedToId",
+        value: user?.id,
+        condition: "equal",
+      },
+    ],
+    limit: 50,
+    offset: 0,
+  });
 
   const navigate = useNavigate();
 
@@ -96,13 +89,6 @@ const RequestList: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
-  };
-
-  const workflowStagesLength = (
-    request: WorkflowRequest
-  ): number | undefined => {
-    if (request?.workflow?.stages?.length)
-      return request?.workflow?.stages?.length;
   };
 
   return (

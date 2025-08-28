@@ -1,7 +1,23 @@
 import React, { useEffect, useState } from "react";
 import useForm from "../common/useForms";
-import type { WorkflowRequest } from "../common/types";
+import type { StageData, WorkflowRequest } from "../common/types";
 import type { WorkFlowStage } from "../WorkFlow/widgets/AddEditStageEditor";
+
+// For generic form response, use 'any' unless a stricter type is available.
+interface RequestFormWrapperProps {
+  formResponses?: any; // replace with actual type if known
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  selectedWorkFlow?: any;
+  mode?: "new" | "edit" | string;
+  currentWorkflowStage?: WorkFlowStage;
+  showActionButtons?: boolean;
+  completedStages?: Array<{
+    stageId: number;
+    status: string;
+    [key: string]: any;
+  }>;
+}
 
 export default function RequestFormWrapper({
   formResponses,
@@ -12,62 +28,75 @@ export default function RequestFormWrapper({
   currentWorkflowStage,
   showActionButtons = false,
   completedStages = [],
-}) {
-  const [activeTab, setActiveTab] = useState("Form");
-  const [activeComponent, setActiveComponent] = useState<JSX.Element>();
+}: RequestFormWrapperProps) {
+  const [activeTab, setActiveTab] = useState<string>("Form");
+  const [activeComponent, setActiveComponent] = useState<React.ReactNode>();
 
   const { getFormById } = useForm();
 
-  console.log("---------completedStages---------", completedStages);
+  // If completedStages comes from formResponses with a different shape, adjust the interface above!
 
-  const getStageStatus = (stage: WorkFlowStage) => {
+  const getStageStatus = (stage: StageData) => {
     const stageResponse = completedStages?.find(
       (stg: any) => Number(stg.stageId) === Number(stage.id)
     );
 
-    if (stage.id === currentWorkflowStage?.id ?? currentWorkflowStage?.stageId)
+    if (
+      stage.id ===
+      (currentWorkflowStage?.id ?? (currentWorkflowStage as any)?.stageId)
+    )
       return "Current";
 
     return stageResponse?.status;
   };
 
-  const getComponentProps = (selectedWorkFlow: WorkflowRequest) => {
+  const getComponentProps = (_selectedWorkFlow: WorkflowRequest) => {
     return {
       formResponses,
       enableInputList: currentWorkflowStage?.formFields,
       vissibleSections: currentWorkflowStage?.formSections,
       showFormTitle: false,
-      onSubmit: onSubmit,
-      onCancel: onCancel,
+      onSubmit,
+      onCancel,
       instruction: currentWorkflowStage?.instruction,
       showActionButtons,
       completedStages,
     };
   };
 
-  const tabMenu = [
+  // Define the menu type
+  type TabMenuItem = {
+    name: string;
+    component: (props: any) => React.ReactNode;
+  };
+
+  const tabMenu: TabMenuItem[] = [
     {
       name: "Form",
       component: (props: any) => {
         const componentProps = getComponentProps(props);
-        return getFormById(props?.formId)?.component(componentProps);
+        const form = getFormById(
+          (props as any)?.formId ?? selectedWorkFlow?.type
+        ); // fallback if formId is missing
+        if (form && typeof form.component === "function") {
+          return form.component(componentProps);
+        }
+        return null;
       },
     },
-
     {
       name: "Attachments",
-      component: (props: any) => <>Attachments</>,
+      component: () => <>Attachments</>,
     },
-
     {
       name: "Progress",
-      component: (props: any) => (
+      component: () => (
         <div className="bg-white rounded-lg p-4">
           <h4 className="font-semibold text-gray-900 mb-3">
             Workflow Progress
           </h4>
           <div className="space-y-2">
-            {selectedWorkFlow?.stages.map((stage, index) => (
+            {selectedWorkFlow?.stages?.map((stage: any, index: number) => (
               <div key={index} className={`${stage.isSubStage ? "ml-5" : ""}`}>
                 <div className="flex items-center">
                   <div
@@ -122,6 +151,7 @@ export default function RequestFormWrapper({
         setActiveComponent(tabMenu[0].component(selectedWorkFlow));
       }
     }
+    // eslint-disable-next-line
   }, [mode, currentWorkflowStage, selectedWorkFlow]);
 
   return (
@@ -130,18 +160,19 @@ export default function RequestFormWrapper({
         <nav className="flex space-x-8 px-6">
           {tabMenu.map((menu) => (
             <button
-              key={menu?.name}
+              key={menu.name}
               onClick={() => {
-                setActiveTab(menu?.name);
-                setActiveComponent(menu?.component(selectedWorkFlow));
+                setActiveTab(menu.name);
+                setActiveComponent(menu.component(selectedWorkFlow));
               }}
               className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
-                activeTab === menu?.name
+                activeTab === menu.name
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
+              type="button"
             >
-              {menu?.name}
+              {menu.name}
             </button>
           ))}
         </nav>

@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useOrganization } from "../../GlobalContexts/Organization-Context";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/useDownloadPdf";
 import Signer from "../../components/Signer";
 import spedLogo from "../../assets/spedLogo.png";
-
-const formatDate = (date: Date) => moment(date).format("DD-MM-YYYY");
 
 const requiredFields = [
   "voucherNo",
@@ -25,7 +22,67 @@ const requiredStoreItemFields = [
   "ledgerFolio",
 ];
 
-const StoreReceiptVoucher = ({
+interface StoreItem {
+  id: number | string;
+  articles: string;
+  denominationOfQty: string;
+  qtyReceived: string;
+  unitPrice: string;
+  amount: string;
+  ledgerFolio: string;
+}
+
+interface Requestor {
+  firstName?: string;
+  lastName?: string;
+  department?: string;
+  position?: string;
+  date?: string;
+}
+
+interface Approver {
+  firstName: string;
+  lastName: string;
+  department?: string;
+  position?: string;
+  date?: string;
+  label?: string;
+}
+
+interface FormResponses {
+  voucherNo?: string;
+  voucherDate?: string;
+  toTheCentralStores?: string;
+  nameOfSupplier?: string;
+  supplierAddress?: string;
+  storeItems?: StoreItem[];
+  totalAmount?: string;
+  requestor?: Requestor;
+  approvers?: Approver[];
+  [key: string]: any;
+}
+
+interface StoreReceiptVoucherProps {
+  formResponses: FormResponses;
+  enableInputList?: string[];
+  vissibleSections?: Array<"addMore" | string>;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  showActionButtons?: boolean;
+  mode?: "edit" | "preview";
+}
+
+const emptyItem: StoreItem = {
+  id: "",
+  articles: "",
+  denominationOfQty: "",
+  qtyReceived: "",
+  unitPrice: "",
+  amount: "",
+  ledgerFolio: "",
+};
+
+const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
@@ -36,77 +93,40 @@ const StoreReceiptVoucher = ({
 }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
-
-  console.log("--------enableInputList--------", enableInputList);
-
   const { user } = useAuth();
 
-  const [storeItems, setStoreItems] = useState([]);
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
   const [hasErrors, setHasErrors] = useState(false);
-  const [formData, setFormData] = useState(formResponses);
+  const [formData, setFormData] = useState<FormResponses>(formResponses);
 
-  const handleInputChange = (fieldId: number | string, value: any) => {
+  const handleInputChange = (fieldId: keyof FormResponses, value: any) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
   };
 
   const addMoreRow = () => {
-    setStoreItems((prev) => [
-      ...prev,
-      {
-        articles: "",
-        denominationOfQty: "",
-        qtyReceived: "",
-        unitPrice: "",
-        amount: "",
-        ledgerFolio: "",
-      },
-    ]);
+    setStoreItems((prev) => [...prev, { ...emptyItem, id: Date.now() }]);
   };
 
   useEffect(() => {
     setFormData(formResponses);
-    if (formResponses?.storeItems) {
+    if (formResponses?.storeItems && Array.isArray(formResponses.storeItems)) {
       setStoreItems(formResponses?.storeItems);
     } else {
-      setStoreItems([{}, {}, {}]);
+      setStoreItems([
+        { ...emptyItem, id: 1 },
+        { ...emptyItem, id: 2 },
+        { ...emptyItem, id: 3 },
+      ]);
     }
   }, [formResponses]);
 
   useEffect(() => {
     if (mode === "preview") {
       setStoreItems([
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
+        { ...emptyItem, id: 1 },
+        { ...emptyItem, id: 2 },
+        { ...emptyItem, id: 3 },
+        { ...emptyItem, id: 4 },
       ]);
     }
   }, [mode]);
@@ -114,23 +134,25 @@ const StoreReceiptVoucher = ({
   const isEnabled = (name: string) => enableInputList.includes(name);
 
   const checkIsValid = () => {
-    const required = [];
+    const required: string[] = [];
     // Check top-level required fields
     for (let enableField of enableInputList) {
       if (requiredFields.includes(enableField) && !formData?.[enableField]) {
         required.push(enableField);
       }
     }
-
     for (let item of storeItems) {
-      const allEmpty = requiredStoreItemFields.every((field) => !item[field]);
+      const allEmpty = requiredStoreItemFields.every(
+        (field) => !item[field as keyof StoreItem]
+      );
       if (allEmpty) continue;
-      const hasEmpty = requiredStoreItemFields.some((field) => !item[field]);
+      const hasEmpty = requiredStoreItemFields.some(
+        (field) => !item[field as keyof StoreItem]
+      );
       if (hasEmpty) {
         required.push("missing field");
       }
     }
-
     return !!required.length;
   };
 
@@ -151,13 +173,11 @@ const StoreReceiptVoucher = ({
     onCancel();
   };
 
-  // Add this to your StoreIssueVoucher component (either as a method or inside the functional component)
   const handleStoreItemChange = (
-    eventName: any,
-    eventValue: any,
+    eventName: keyof StoreItem,
+    eventValue: string,
     index: number
   ) => {
-    // Assuming storeItems is kept in state as an array
     setStoreItems((prevItems) => {
       const updatedItems = [...prevItems];
       updatedItems[index] = {
@@ -167,25 +187,24 @@ const StoreReceiptVoucher = ({
       return updatedItems;
     });
   };
+
+  const requestor = formData.requestor || {};
+
   return (
     <div className="">
       <div className="flex justify-end items-end ">
         <button
           className="px-2 py-1 bg-blue-900 text-white rounded"
           onClick={() =>
-            downloadPdf(componentRef, {
+            downloadPdf(componentRef as React.RefObject<HTMLElement>, {
               fileName: "payment-voucher.pdf",
               orientation: "portrait",
               format: "a4",
               margin: 24,
               scale: 2,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
-              onBeforeCapture: () => {
-                // e.g., switch your form to preview/read-only mode
-              },
-              onAfterCapture: () => {
-                // e.g., restore edit mode if you changed it
-              },
+              hideSelectors: ["[data-export-hide]"],
+              onBeforeCapture: () => {},
+              onAfterCapture: () => {},
             })
           }
         >
@@ -217,7 +236,6 @@ const StoreReceiptVoucher = ({
           </div>
         )}
 
-        {/* Header Section */}
         <div className=" my-4">
           <div className="grid grid-cols-2 gap-10">
             <div className="flex flex-rows">
@@ -233,14 +251,13 @@ const StoreReceiptVoucher = ({
                     handleInputChange("voucherNo", e.target.value)
                   }
                   className={`w-full p-1 border ${
-                    isEnabled(`voucherNo`)
+                    isEnabled("voucherNo")
                       ? "border-red-500"
                       : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 />
               </div>
             </div>
-
             <div className="flex flex-rows">
               <div className="flex-1">
                 <span className="text-sm font-semibold">Date: </span>
@@ -254,7 +271,7 @@ const StoreReceiptVoucher = ({
                   }
                   disabled={!isEnabled("voucherDate")}
                   className={`w-full p-1 border ${
-                    isEnabled(`voucherDate`)
+                    isEnabled("voucherDate")
                       ? "border-red-500"
                       : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -262,7 +279,6 @@ const StoreReceiptVoucher = ({
               </div>
             </div>
           </div>
-
           <div className="flex flex-rows mt-1">
             <div className="flex-2">
               <span className="text-sm font-semibold">
@@ -278,14 +294,13 @@ const StoreReceiptVoucher = ({
                 }
                 disabled={!isEnabled("toTheCentralStores")}
                 className={`w-full p-1 border ${
-                  isEnabled(`toTheCentralStores`)
+                  isEnabled("toTheCentralStores")
                     ? "border-red-500"
                     : "border-gray-300"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
               />
             </div>
           </div>
-
           <div className="flex flex-rows mt-1">
             <div className="flex-1">
               <span className="text-sm font-semibold">Name of Suppplier: </span>
@@ -299,14 +314,13 @@ const StoreReceiptVoucher = ({
                   handleInputChange("nameOfSupplier", e.target.value)
                 }
                 className={`w-full p-1 border ${
-                  isEnabled(`nameOfSupplier`)
+                  isEnabled("nameOfSupplier")
                     ? "border-red-500"
                     : "border-gray-300"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
               />
             </div>
           </div>
-
           <div className="flex flex-rows mt-1">
             <div className="flex-1">
               <span className="text-sm font-semibold"> Address: </span>
@@ -320,7 +334,7 @@ const StoreReceiptVoucher = ({
                   handleInputChange("supplierAddress", e.target.value)
                 }
                 className={`w-full p-1 border ${
-                  isEnabled(`supplierAddress`)
+                  isEnabled("supplierAddress")
                     ? "border-red-500"
                     : "border-gray-300"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -329,56 +343,34 @@ const StoreReceiptVoucher = ({
           </div>
         </div>
 
-        {/* Store Items */}
         <div className="bg-white shadow rounded-lg mb-6 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="pr-40 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="pr-40 py-1 text-left text-xs text-gray-500 ">
                     Articles
                   </th>
-
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 ">
                     Denomination Qty.
                   </th>
-
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 ">
                     Qty. received
                   </th>
-
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 ">
                     Unit Price
                   </th>
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 ">
                     Amount
                   </th>
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 "
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 ">
                     Ledger Folio
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {storeItems?.map((item, index) => (
-                  <tr key={item.id}>
+                  <tr key={item?.id ?? index}>
                     <td className="p-1">
                       <textarea
                         rows={1}
@@ -392,13 +384,12 @@ const StoreReceiptVoucher = ({
                           )
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`articles`)
+                          isEnabled("articles")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -412,13 +403,12 @@ const StoreReceiptVoucher = ({
                           )
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`denominationOfQty`)
+                          isEnabled("denominationOfQty")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -432,13 +422,12 @@ const StoreReceiptVoucher = ({
                           )
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`qtyReceived`)
+                          isEnabled("qtyReceived")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -452,13 +441,12 @@ const StoreReceiptVoucher = ({
                           )
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`unitPrice`)
+                          isEnabled("unitPrice")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -468,13 +456,12 @@ const StoreReceiptVoucher = ({
                           handleStoreItemChange("amount", e.target.value, index)
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`amount`)
+                          isEnabled("amount")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -488,7 +475,7 @@ const StoreReceiptVoucher = ({
                           )
                         }
                         className={`w-full p-1 border ${
-                          isEnabled(`ledgerFolio`)
+                          isEnabled("ledgerFolio")
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -519,27 +506,23 @@ const StoreReceiptVoucher = ({
 
         <div className="grid grid-cols-3 gap-20 ">
           <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName}
-            lastName={formData?.requestor?.firstName || user?.lastName}
-            date={
-              formData?.requestor?.date ||
-              moment(new Date()).format("DD/MM/YYYY")
-            }
-            department={
-              formData?.requestor?.department || user?.department?.name
-            }
-            position={formData?.requestor?.position || user?.position?.title}
+            firstName={requestor.firstName || user?.firstName || ""}
+            lastName={requestor.lastName || user?.lastName || ""}
+            date={requestor.date || moment(new Date()).format("DD/MM/YYYY")}
+            department={requestor.department || user?.department?.name || ""}
+            position={requestor.position || user?.position?.title || ""}
             label="Request by"
           />
 
-          {formData?.approvers?.map((approver) => (
+          {(formData?.approvers || []).map((approver, idx) => (
             <Signer
-              firstName={approver.lastName}
-              lastName={approver.firstName}
-              date={approver.date}
-              department={approver.department}
-              position={approver.position}
-              label={approver.label}
+              key={idx}
+              firstName={approver.firstName}
+              lastName={approver.lastName}
+              date={approver.date ?? ""}
+              department={approver.department ?? ""}
+              position={approver.position ?? ""}
+              label={approver.label ?? ""}
             />
           ))}
         </div>

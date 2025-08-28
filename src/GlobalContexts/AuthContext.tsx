@@ -5,9 +5,10 @@ import { getMutationMethod } from "../common/api-methods";
 import type { Organization, Unit } from "../common/types";
 
 export interface Department {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   units?: Unit[];
+  financeCode?: string;
 }
 
 export interface Position {
@@ -29,6 +30,9 @@ export interface User {
   position?: Position;
   organizationId: number;
   institution?: Institution;
+  schoolOrOfficeId?: number;
+  unit?: Unit;
+  schoolOrOffice?: any;
 }
 
 export interface Institution {

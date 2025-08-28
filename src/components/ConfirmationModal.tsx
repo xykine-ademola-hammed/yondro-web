@@ -6,7 +6,7 @@ interface ConfirmationModalProps {
   onClose: () => void;
   onConfirm: (status: string) => void;
   request?: WorkflowRequest;
-  onChangeComment: (value: any) => void;
+  onChangeComment: React.Dispatch<React.SetStateAction<string>>;
 }
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,

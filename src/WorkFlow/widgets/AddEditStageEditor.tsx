@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import type { ApiFilter, Position, PositionData } from "../../common/types";
-import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import { genericPositions } from "../../common/constant";
+import type {
+  ApiFilter,
+  Position,
+  PositionData,
+  StageData,
+} from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import useForm from "../../common/useForms";
@@ -34,6 +37,11 @@ export interface WorkFlowStage {
   departmentId?: number | string;
   step?: number;
   parentStageId?: number;
+  description?: string;
+  stages?: StageData[];
+  assignToRequestor?: any;
+  assignee?: any;
+  fields: any[];
 }
 
 export const emptyStageData: WorkFlowStage = {
@@ -49,6 +57,7 @@ export const emptyStageData: WorkFlowStage = {
   isRequireApproval: false,
   formFields: [],
   formSections: [],
+  fields: [],
 };
 
 export default function AddEditStageEditor({
@@ -59,28 +68,14 @@ export default function AddEditStageEditor({
   formId,
 }: AddEditStageEditorProps) {
   const { user } = useAuth();
-  const { departments } = useOrganization();
-  const [positions, setPositions] = useState<Position[]>();
   const [positionData, setPositionData] = useState<PositionData>();
   const [formData, setStageData] = useState<WorkFlowStage>(selectedStage);
   const [selectedForm, setSelectedForm] = useState<FormProps>({} as FormProps);
   const [positionSearch, setPositionSearch] = useState("");
-  const [selectedPositionId, setSelectedPositionId] = useState<number>();
   const [showPositionDropdown, setShowPositionDropdown] = useState<boolean>();
   const [errors, setErrors] = useState<FormErrors>({});
 
   const { getFormById } = useForm();
-
-  const { mutateAsync: fetchDepartmentPositions } = useMutation({
-    mutationFn: (body: ApiFilter) =>
-      getMutationMethod("POST", `api/positions/get-positions`, body, true),
-    onSuccess: (data) => {
-      setPositions(data.rows);
-    },
-    onError: (error) => {
-      console.error("Failed to fetch positions:", error);
-    },
-  });
 
   const { mutateAsync: fetchPositions } = useMutation({
     mutationFn: (body: ApiFilter) =>
@@ -92,22 +87,6 @@ export default function AddEditStageEditor({
       console.error("Failed to fetch positions:", error);
     },
   });
-
-  useEffect(() => {
-    if (formData.assigneeDepartmentId) {
-      fetchDepartmentPositions({
-        filters: [
-          {
-            key: "departmentId",
-            value: formData.assigneeDepartmentId || "",
-            condition: "equal",
-          },
-        ],
-        limit: 1000,
-        offset: 0,
-      });
-    }
-  }, [formData.assigneeDepartmentId]);
 
   useEffect(() => {
     if (positionSearch) {
@@ -154,35 +133,23 @@ export default function AddEditStageEditor({
     >
   ) => {
     const { name, value } = e.target;
-    console.log("----name, value-----", name, value);
-    if (name === "assigneeDepartmentId") {
-      setStageData((prev) => ({
-        ...prev,
-        assigneeDepartmentId: Number(value),
-        assigneePositionId: undefined,
-        assigineeLookupField: undefined,
-      }));
-    } else {
-      setStageData({
-        ...formData,
-        [name]: value,
-      });
-    }
+    setStageData({
+      ...formData,
+      [name]: value,
+    });
   };
 
   const handleSaveStage = () => {
-    console.log("----formData to submit-----", formData);
-    // return;
     onSubmit(selectedStageIndex, formData);
     setIsOpenStageModal(false);
     setStageData({ ...emptyStageData });
   };
 
   const handleParentPositionSelect = (position: Position) => {
-    setSelectedPositionId(position.id);
-    handleInputChange({
-      target: { name: "assigneePositionId", value: position.id?.toString() },
-    });
+    setStageData((prev) => ({
+      ...prev,
+      assigneePositionId: position.id?.toString() || "",
+    }));
     setPositionSearch(`${position.title}`);
     setShowPositionDropdown(false);
     if (errors.position) {

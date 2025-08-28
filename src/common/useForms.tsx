@@ -1,6 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import PaymentVoucher from "../Forms/widgets/PaymentVoucher-1";
-import { head } from "lodash";
 import StoreReceiptVoucher from "../Forms/widgets/StoreReceiptVoucher";
 import StoreIssueVoucher from "../Forms/widgets/StoreIssueVoucher";
 import ProcurementOrder from "../Forms/widgets/ProcurementOrder";
@@ -15,7 +14,7 @@ export interface FormProps {
   createdBy: string;
   lastUpdated: string;
   workflows: string[];
-  component: (props: any) => JSX.Element;
+  component: React.FC<any>;
   inputLabels: { [key: string]: string }; // Added inputLabels property
   assigneeHolders: { [key: string]: string };
   formSections: { [key: string]: string };

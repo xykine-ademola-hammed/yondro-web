@@ -24,10 +24,6 @@ const PositionPage: React.FC = () => {
   // State for search and filter
   const [searchTerm, setSearchTerm] = useState("");
 
-  // State for pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-
   // State for add/edit position modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
@@ -41,7 +37,7 @@ const PositionPage: React.FC = () => {
   const { mutateAsync: createPosition } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/positions`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       fetchPositions(positionFilter);
       showToast("Position successfully created", "success");
     },
@@ -78,27 +74,18 @@ const PositionPage: React.FC = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    event:
+      | React.ChangeEvent<
+          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >
+      | { target: { name: string; value: any } }
   ) => {
-    const { name, value } = e.target;
+    const { name, value } = event.target;
     console.log("-----handleInputChange------", name, value);
     setCurrentPosition({
       ...currentPosition,
       [name]: value,
     });
-  };
-
-  const openAddModal = () => {
-    setModalMode("add");
-    setCurrentPosition({
-      departmentId: 0,
-      title: "",
-      departmentName: "",
-      description: "",
-    });
-    setIsModalOpen(true);
   };
 
   // Open modal for editing position

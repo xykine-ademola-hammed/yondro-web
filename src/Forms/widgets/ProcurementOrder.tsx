@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useOrganization } from "../../GlobalContexts/Organization-Context";
+import React, { useEffect, useRef, useState, type RefObject } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/useDownloadPdf";
@@ -7,11 +6,61 @@ import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 
-const formatDate = (date: Date) => moment(date).format("DD-MM-YYYY");
+/** Interfaces for core objects **/
+interface StoreItem {
+  id?: string | number;
+  itemName?: string;
+  quantity?: string;
+  // These additional fields show up in initialization,
+  // but are not actually used in this UI's table.
+  articles?: string;
+  denominationOfQty?: string;
+  qtyReceived?: string;
+  unitPrice?: string;
+  amount?: string;
+  ledgerFolio?: string;
+}
 
+interface Approver {
+  firstName: string;
+  lastName: string;
+  date?: string;
+  department?: string;
+  position?: string;
+  label?: string;
+}
+
+interface Requestor {
+  firstName?: string;
+  lastName?: string;
+  date?: string;
+  department?: string;
+  position?: string;
+}
+
+interface ProcurementOrderFormResponses {
+  requestorDeligation?: string;
+  additionalNotes?: string;
+  requestor?: Requestor;
+  approvers?: Approver[];
+  storeItems?: StoreItem[];
+}
+
+interface ProcurementOrderProps {
+  formResponses: ProcurementOrderFormResponses;
+  enableInputList?: string[];
+  vissibleSections?: string[];
+  onSubmit: (data: ProcurementOrderFormResponses) => void;
+  onCancel: () => void;
+  showActionButtons?: boolean;
+  mode?: "edit" | "preview";
+}
+
+/** Required field names **/
 const requiredFields = ["requestorDeligation"];
 
-const ProcurementOrder = ({
+/** Component Implementation **/
+const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
@@ -20,98 +69,78 @@ const ProcurementOrder = ({
   showActionButtons = false,
   mode = "edit",
 }) => {
-  const componentRef = useRef<HTMLDivElement>(null);
+  // Use HTMLElement for PDF compatibility
+  const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
-
   const { user } = useAuth();
 
-  const [storeItems, setStoreItems] = useState([]);
-  const [hasErrors, setHasErrors] = useState(false);
-
-  const { userDepartmenttMembers } = useOrganization();
-  const employeeOptions = userDepartmenttMembers.rows.map((employee) => ({
-    id: employee.id,
-    value: employee.id,
-    label: `${employee.firstName} - ${employee.lastName} `,
-  }));
-
-  const [formData, setFormData] = useState({
+  // useState with proper typing
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
+  const [hasErrors, setHasErrors] = useState<boolean>(false);
+  const [formData, setFormData] = useState<ProcurementOrderFormResponses>({
     requestorDeligation: getFinanceCode(user),
     ...formResponses,
   });
 
-  const handleInputChange = (fieldId: number | string, value: any) => {
+  // Unified handler for input changes
+  const handleInputChange = (
+    fieldId: keyof ProcurementOrderFormResponses | string,
+    value: any
+  ) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
   };
 
+  // Add a new empty row to storeItems
   const addMoreRow = () => {
     setStoreItems((prev) => [
       ...prev,
       {
-        articles: "",
-        denominationOfQty: "",
-        qtyReceived: "",
-        unitPrice: "",
-        amount: "",
-        ledgerFolio: "",
+        id: Date.now(),
+        itemName: "",
+        quantity: "",
       },
     ]);
   };
 
+  // When formResponses changes (eg, load), sync state
   useEffect(() => {
     setFormData((prev) => ({ ...prev, ...formResponses }));
-    if (formResponses?.storeItems) {
-      setStoreItems(formResponses?.storeItems);
+    if (formResponses?.storeItems && Array.isArray(formResponses.storeItems)) {
+      setStoreItems(
+        formResponses.storeItems.map((item, idx) => ({
+          ...item,
+          id: item.id ?? idx + "_" + Date.now(),
+        }))
+      );
     } else {
-      setStoreItems([{}, {}, {}]);
+      setStoreItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
     }
+    // eslint-disable-next-line
   }, [formResponses]);
 
+  // If preview mode, show extra blank rows
   useEffect(() => {
     if (mode === "preview") {
       setStoreItems([
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
-        {
-          articles: "",
-          denominationOfQty: "",
-          qtyReceived: "",
-          unitPrice: "",
-          amount: "",
-          ledgerFolio: "",
-        },
+        { id: 1, itemName: "", quantity: "" },
+        { id: 2, itemName: "", quantity: "" },
+        { id: 3, itemName: "", quantity: "" },
+        { id: 4, itemName: "", quantity: "" },
       ]);
     }
   }, [mode]);
 
+  // Field enable utility
   const isEnabled = (name: string) => enableInputList.includes(name);
 
+  // Validate required fields and store items
   const checkIsValid = () => {
-    const required = [];
+    const required: string[] = [];
     for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField])
+      if (
+        requiredFields.includes(enableField) &&
+        !formData?.[enableField as keyof ProcurementOrderFormResponses]
+      )
         required.push(enableField);
     }
 
@@ -122,10 +151,10 @@ const ProcurementOrder = ({
       )
         required.push("quantity");
     }
-
     return !!required.length;
   };
 
+  // Form submission handlers
   const handleSubmit = () => {
     if (!checkIsValid()) {
       onSubmit({ ...formData, storeItems });
@@ -136,19 +165,18 @@ const ProcurementOrder = ({
       setHasErrors(true);
     }
   };
-
   const handleCancel = () => {
     setFormData({});
     setStoreItems([]);
     onCancel();
   };
 
+  // Handler for per-row item field changes
   const handleStoreItemChange = (
-    eventName: any,
-    eventValue: any,
+    eventName: keyof StoreItem,
+    eventValue: string,
     index: number
   ) => {
-    // Assuming storeItems is kept in state as an array
     setStoreItems((prevItems) => {
       const updatedItems = [...prevItems];
       updatedItems[index] = {
@@ -165,19 +193,15 @@ const ProcurementOrder = ({
         <button
           className="px-2 py-1 bg-blue-900 text-white rounded"
           onClick={() =>
-            downloadPdf(componentRef, {
+            downloadPdf(componentRef as RefObject<HTMLElement>, {
               fileName: "payment-voucher.pdf",
               orientation: "portrait",
               format: "a4",
               margin: 24,
               scale: 2,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
-              onBeforeCapture: () => {
-                // e.g., switch your form to preview/read-only mode
-              },
-              onAfterCapture: () => {
-                // e.g., restore edit mode if you changed it
-              },
+              hideSelectors: ["[data-export-hide]"],
+              onBeforeCapture: () => {},
+              onAfterCapture: () => {},
             })
           }
         >
@@ -186,7 +210,7 @@ const ProcurementOrder = ({
       </div>
 
       <div
-        ref={componentRef}
+        ref={componentRef as React.RefObject<HTMLDivElement>}
         className="bg-white rounded-lg sm:p-2 w-full max-w-4xl"
       >
         <div className="flex gap-4 mb-4 sm:mb-0">
@@ -232,39 +256,27 @@ const ProcurementOrder = ({
           </div>
         </div>
 
-        {/* Store Items */}
+        {/* Store Items Table */}
         <div className="bg-white shadow rounded-lg mb-6 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="pr-5 py-1 text-left text-xs text-gray-500 text-sm"
-                  >
+                  <th className="pr-5 py-1 text-left text-xs text-gray-500 text-sm">
                     S/N
                   </th>
-
-                  <th
-                    scope="col"
-                    className="pr-125 py-1 text-left text-xs text-gray-500 text-sm"
-                  >
+                  <th className="pr-125 py-1 text-left text-xs text-gray-500 text-sm">
                     Items
                   </th>
-
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500 text-sm"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500 text-sm">
                     Quantity
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {storeItems?.map((item, index) => (
-                  <tr key={item.id}>
+                  <tr key={item.id ?? index}>
                     <td className="p-1">{index + 1}</td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -284,7 +296,6 @@ const ProcurementOrder = ({
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                       />
                     </td>
-
                     <td className="p-1">
                       <input
                         type="text"
@@ -329,7 +340,7 @@ const ProcurementOrder = ({
               name="additionalNotes"
               id="additionalNotes"
               disabled={!isEnabled("additionalNotes")}
-              value={formData?.additionalNotes}
+              value={formData?.additionalNotes ?? ""}
               onChange={(e) =>
                 handleInputChange("additionalNotes", e.target.value)
               }
@@ -340,33 +351,36 @@ const ProcurementOrder = ({
               } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
               rows={4}
               placeholder=""
-            ></textarea>
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-20 ">
           <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName}
-            lastName={formData?.requestor?.lastName || user?.lastName}
+            firstName={formData?.requestor?.firstName || user?.firstName || ""}
+            lastName={formData?.requestor?.lastName || user?.lastName || ""}
             date={
               formData?.requestor?.date ||
               moment(new Date()).format("DD/MM/YYYY")
             }
             department={
-              formData?.requestor?.department || user?.department?.name
+              formData?.requestor?.department || user?.department?.name || ""
             }
-            position={formData?.requestor?.position || user?.position?.title}
+            position={
+              formData?.requestor?.position || user?.position?.title || ""
+            }
             label="Request by"
           />
 
-          {formData?.approvers?.map((approver) => (
+          {formData?.approvers?.map((approver, idx) => (
             <Signer
-              firstName={approver.lastName}
-              lastName={approver.firstName}
-              date={approver.date}
-              department={approver.department}
-              position={approver.position}
-              label={approver.label}
+              key={idx}
+              firstName={approver.firstName}
+              lastName={approver.lastName}
+              date={approver.date ?? ""}
+              department={approver.department ?? ""}
+              position={approver.position ?? ""}
+              label={approver.label ?? ""}
             />
           ))}
         </div>
