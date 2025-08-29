@@ -47,12 +47,12 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
   const [positions, setPositions] = useState<Position[]>();
   const [formData, setFormData] = useState<Employee>({ ...emptyEmployee });
   const [units, setUnits] = useState<Unit[]>([]);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { mutateAsync: fetchDepartmentPositions } = useMutation({
     mutationFn: (body: ApiFilter) =>
       getMutationMethod("POST", `api/positions/get-positions`, body, true),
     onSuccess: (data) => {
-      console.log("-----------ROW---------", data);
       setPositions(data.rows);
     },
     onError: (error) => {
@@ -64,7 +64,30 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     if (employee?.id) setFormData(employee);
   }, [employee]);
 
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // Helper for direct value setting (type safe)
+  const setFieldValue = <K extends keyof Employee>(
+    name: K,
+    value: Employee[K]
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (errors[name as string] && String(value).trim() !== "") {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  // Field change handler for normal React events
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFieldValue(name as keyof Employee, value);
+  };
 
   useEffect(() => {
     if (formData.departmentId) {
@@ -80,13 +103,11 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
         offset: 0,
       });
     }
-  }, [formData.departmentId]);
+  }, [formData.departmentId, fetchDepartmentPositions]);
 
   useEffect(() => {
     if (formData.departmentId) {
-      handleInputChange({
-        target: { name: "unitId", value: "" },
-      });
+      setFieldValue("unitId", undefined);
       const selectedDepartment = departments?.find(
         (dept) => Number(dept.id) === Number(formData.departmentId)
       );
@@ -95,49 +116,26 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     } else {
       setUnits([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.departmentId, departments]);
 
   useEffect(() => {
     if (formData.schoolOrOfficeId) {
-      handleInputChange({
-        target: { name: "departmentId", value: "" },
-      });
-      handleInputChange({
-        target: { name: "unitId", value: "" },
-      });
-
+      setFieldValue("departmentId", undefined);
+      setFieldValue("unitId", undefined);
       const selectedSchoolOrOffice = schoolOffices.rows.find(
         (office) => Number(office.id) === Number(formData.schoolOrOfficeId)
       );
 
-      console.log("====selectedSchoolOrOffice========", selectedSchoolOrOffice);
-
       if (selectedSchoolOrOffice?.departments !== undefined) {
         setDepartments(selectedSchoolOrOffice?.departments);
-
         setPositions(selectedSchoolOrOffice?.positions);
       }
     } else {
       setUnits([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.schoolOrOfficeId]);
-
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    if (errors[name] && value.trim() !== "") {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,8 +151,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
       newErrors.email = "Email is invalid";
     }
     if (!formData?.phone.trim()) newErrors.phone = "Phone number is required";
-    if (!formData?.positionId?.trim())
-      newErrors.position = "Position is required";
+    if (!formData?.positionId) newErrors.position = "Position is required";
 
     setErrors(newErrors);
 
@@ -171,7 +168,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
       title={modalMode === "add" ? "Add New Employee" : "Edit Employee"}
     >
       <form onSubmit={handleSubmit}>
-        <div className="bg-white  rounded-lg  mb-6">
+        <div className="bg-white rounded-lg mb-6">
           <div className="mt-3">
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -180,8 +177,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   htmlFor="firstName"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  First Name
-                  <span className="text-red-500">*</span>
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -199,7 +195,6 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   </p>
                 )}
               </div>
-
               <div>
                 <label
                   htmlFor="middleName"
@@ -223,14 +218,12 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   </p>
                 )}
               </div>
-
               <div>
                 <label
                   htmlFor="lastName"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Last Name
-                  <span className="text-red-500">*</span>
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -257,8 +250,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Email
-                  <span className="text-red-500">*</span>
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -274,14 +266,12 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <p className="mt-1 text-sm text-red-600">{errors["email"]}</p>
                 )}
               </div>
-
               <div>
                 <label
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Phone
-                  <span className="text-red-500">*</span>
+                  Phone <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -302,7 +292,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label
-                  htmlFor="department"
+                  htmlFor="schoolOrOfficeId"
                   className="block text-sm font-medium text-gray-700"
                 >
                   School | Office <span className="text-red-500">*</span>
@@ -310,22 +300,21 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                 <select
                   name="schoolOrOfficeId"
                   id="schoolOrOfficeId"
-                  value={formData.schoolOrOfficeId}
+                  value={formData.schoolOrOfficeId || ""}
                   onChange={handleInputChange}
                   className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 >
                   <option value="">Select School or Office</option>
                   {schoolOffices.rows.map((schoolOrOffice) => (
-                    <option value={schoolOrOffice.id}>
+                    <option key={schoolOrOffice.id} value={schoolOrOffice.id}>
                       {schoolOrOffice.name}
                     </option>
                   ))}
                 </select>
               </div>
-
               <div>
                 <label
-                  htmlFor="department"
+                  htmlFor="departmentId"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Department
@@ -333,20 +322,22 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                 <select
                   name="departmentId"
                   id="departmentId"
-                  value={formData.departmentId}
+                  value={formData.departmentId || ""}
                   onChange={handleInputChange}
                   className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 >
                   <option value="">Select Department</option>
                   {departments?.map((dept) => (
-                    <option value={dept.id}>{dept.name}</option>
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
                   ))}
                 </select>
               </div>
               {units.length > 0 ? (
                 <div>
                   <label
-                    htmlFor="department"
+                    htmlFor="unitId"
                     className="block text-sm font-medium text-gray-700"
                   >
                     Unit
@@ -354,13 +345,15 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <select
                     name="unitId"
                     id="unitId"
-                    value={formData?.unitId}
+                    value={formData.unitId || ""}
                     onChange={handleInputChange}
                     className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                   >
                     <option value="">Select Unit</option>
                     {units.map((unit) => (
-                      <option value={unit.id}>{unit.name}</option>
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -370,16 +363,15 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
 
               <div>
                 <label
-                  htmlFor="position"
+                  htmlFor="positionId"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Position/Title <span className="text-red-500">*</span>
                 </label>
-
                 <select
                   name="positionId"
                   id="positionId"
-                  value={employee?.positionId}
+                  value={formData.positionId || ""}
                   onChange={handleInputChange}
                   className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                   required
@@ -391,7 +383,6 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                     </option>
                   ))}
                 </select>
-
                 {errors.position && (
                   <p className="mt-1 text-sm text-red-600">{errors.position}</p>
                 )}
@@ -401,16 +392,15 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label
-                  htmlFor="position"
+                  htmlFor="roles"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Role <span className="text-red-500">*</span>
                 </label>
-
                 <select
                   id="roles"
                   name="roles"
-                  value={formData?.roles}
+                  value={formData.roles || ""}
                   onChange={handleInputChange}
                   className={`block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${
                     errors.position ? "border-red-300" : ""
@@ -421,9 +411,8 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <option value="Manager">Manager</option>
                   <option value="Employee">Employee</option>
                 </select>
-
                 {errors?.roles && (
-                  <p className="mt-1 text-sm text-red-600">{errors.position}</p>
+                  <p className="mt-1 text-sm text-red-600">{errors.roles}</p>
                 )}
               </div>
             </div>
@@ -431,6 +420,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
           {/* Action Buttons */}
           <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 rounded-lg">
             <button
+              type="button"
               onClick={() => {
                 setErrors({});
                 setFormData({ ...emptyEmployee });
@@ -440,13 +430,12 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             >
               Cancel
             </button>
-
             <button
               type="submit"
               className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
             >
               <FaUserPlus className="mr-2" />
-              Add Employee
+              {modalMode === "add" ? "Add Employee" : "Save Employee"}
             </button>
           </div>
         </div>

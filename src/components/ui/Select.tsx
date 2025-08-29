@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
+import React from "react";
+import { cn } from "../lib/utils";
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -10,7 +10,10 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, helperText, options, placeholder, id, ...props }, ref) => {
+  (
+    { className, label, error, helperText, options, placeholder, id, ...props },
+    ref
+  ) => {
     const selectId = id || `select-${Math.random().toString(36).substring(2)}`;
 
     return (
@@ -24,8 +27,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           id={selectId}
           className={cn(
-            'form-input',
-            error && 'border-red-300 focus-visible:ring-red-500',
+            "form-input",
+            error && "border-red-300 focus-visible:ring-red-500",
             className
           )}
           ref={ref}
@@ -51,4 +54,4 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   }
 );
 
-Select.displayName = 'Select';
+Select.displayName = "Select";

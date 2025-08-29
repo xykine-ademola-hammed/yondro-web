@@ -5,24 +5,45 @@ import FormViewModal from "../../Forms/FormPreviewModal";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { type StageData, type WorkFlow } from "../../common/types";
 
+/**
+ * Normalizes "any" input stage (from BE, other components, etc)
+ * to ensure all StageData fields have the correct types (especially departmentId).
+ */
+function normalizeStageData(s: any): StageData {
+  return {
+    ...s,
+    departmentId:
+      s.departmentId === null || s.departmentId === undefined
+        ? undefined
+        : typeof s.departmentId === "string"
+        ? isNaN(Number(s.departmentId))
+          ? undefined
+          : Number(s.departmentId)
+        : s.departmentId,
+    // If more fields need to be normalized, add here
+  };
+}
+
 export default function WorkflowDetail() {
-  const params = useParams();
+  const params = useParams<{ workflowId?: string }>();
   const { workflowId } = params;
   const { workflows } = useOrganization();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [openWorkflowForm, setOpenWorkflowForm] = useState(false);
-  const [workflow, setWorkflow] = useState<WorkFlow>();
-  const [selectedStage, setSelectedStage] = useState<StageData>();
+  const [activeTab, setActiveTab] = useState<"overview" | "stages">("overview");
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [openWorkflowForm, setOpenWorkflowForm] = useState<boolean>(false);
+  const [workflow, setWorkflow] = useState<WorkFlow | undefined>(undefined);
+  const [selectedStage, setSelectedStage] = useState<StageData | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     const currentWorkflow = workflows.rows.find(
-      (wf) => Number(wf.id) === Number(workflowId)
+      (wf) => String(wf.id) === String(workflowId)
     );
     setWorkflow(currentWorkflow);
   }, [workflowId, workflows]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case "Active":
         return "bg-green-100 text-green-800";
@@ -34,8 +55,6 @@ export default function WorkflowDetail() {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  console.log("=====workflow=======", workflow);
 
   return (
     workflow && (
@@ -56,7 +75,6 @@ export default function WorkflowDetail() {
                 <p className="text-gray-600">{workflow?.description}</p>
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
@@ -81,10 +99,14 @@ export default function WorkflowDetail() {
                     <button
                       onClick={() => setIsEditModalOpen(true)}
                       className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm whitespace-nowrap cursor-pointer"
+                      type="button"
                     >
                       Edit Workflow
                     </button>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium text-sm whitespace-nowrap cursor-pointer">
+                    <button
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium text-sm whitespace-nowrap cursor-pointer"
+                      type="button"
+                    >
                       Start Instance
                     </button>
                   </div>
@@ -102,6 +124,7 @@ export default function WorkflowDetail() {
                         ? "border-blue-500 text-blue-600"
                         : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
+                    type="button"
                   >
                     Overview
                   </button>
@@ -112,6 +135,7 @@ export default function WorkflowDetail() {
                         ? "border-blue-500 text-blue-600"
                         : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
+                    type="button"
                   >
                     Workflow Stages
                   </button>
@@ -126,7 +150,7 @@ export default function WorkflowDetail() {
                         Workflow Description
                       </h3>
                       <p className="text-gray-600 leading-relaxed">
-                        {workflow.description}
+                        {workflow?.description}
                       </p>
                     </div>
 
@@ -138,8 +162,9 @@ export default function WorkflowDetail() {
                       <button
                         onClick={() => setOpenWorkflowForm(true)}
                         className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:cursor-pointer"
+                        type="button"
                       >
-                        {workflow.name}
+                        {workflow?.name}
                       </button>
                     </div>
 
@@ -151,15 +176,16 @@ export default function WorkflowDetail() {
                         <div className="flex items-center space-x-4 overflow-x-auto">
                           {workflow?.stages?.map((stage, index) => (
                             <div
-                              key={stage.id}
+                              key={stage.id || index}
                               className="flex items-center space-x-4 min-w-0"
                             >
                               <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap">
                                 {stage.name}
                               </div>
-                              {index < workflow.stages.length - 1 && (
-                                <i className="ri-arrow-right-line text-gray-400"></i>
-                              )}
+                              {workflow.stages &&
+                                index < workflow.stages.length - 1 && (
+                                  <i className="ri-arrow-right-line text-gray-400"></i>
+                                )}
                             </div>
                           ))}
                         </div>
@@ -172,7 +198,7 @@ export default function WorkflowDetail() {
                   <div className="space-y-4">
                     {workflow?.stages?.map((stage, index) => (
                       <div
-                        key={stage.id}
+                        key={stage.id || index}
                         className="border border-gray-200 rounded-lg p-4"
                       >
                         <div className="flex items-start space-x-4">
@@ -188,25 +214,26 @@ export default function WorkflowDetail() {
                               {!stage.assignToRequestor && (
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
                                   <div>Assigned to:</div>
-                                  <span
-                                    key={index}
-                                    className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
-                                  >
+                                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
                                     {stage.assignee?.departmentName}{" "}
                                     {stage.assignee?.positionName}
                                   </span>
                                 </div>
                               )}
 
-                              {(stage.fields.length > 0 ||
+                              {((stage.fields && stage.fields.length > 0) ||
                                 stage.isRequireApproval) && (
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
                                   <button
                                     onClick={() => {
-                                      setSelectedStage(stage);
+                                      // Fixed: Always normalize to StageData shape.
+                                      setSelectedStage(
+                                        normalizeStageData(stage)
+                                      );
                                       setOpenWorkflowForm(true);
                                     }}
                                     className="flex items-center justify-center bg-blue-600 text-white px-3 w-full py-1.5 rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer text-sm"
+                                    type="button"
                                   >
                                     Stage form ..
                                   </button>
@@ -228,8 +255,17 @@ export default function WorkflowDetail() {
           <FormViewModal
             modalMode="preview"
             isOpen={openWorkflowForm}
-            form={selectedStage}
-            onClose={() => setOpenWorkflowForm(false)}
+            form={
+              selectedStage
+                ? { ...selectedStage }
+                : workflow?.formId
+                ? { formId: workflow.formId }
+                : {}
+            }
+            onClose={() => {
+              setOpenWorkflowForm(false);
+              setSelectedStage(undefined);
+            }}
           />
         )}
 

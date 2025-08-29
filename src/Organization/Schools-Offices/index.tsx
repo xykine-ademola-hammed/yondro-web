@@ -1,107 +1,12 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState, useEffect } from "react";
-import AddEditSchoolOfficeModal from "./AddEditSchoolOfficeModal";
-import { type SchoolOffice } from "../../common/types";
-import { useMutation } from "@tanstack/react-query";
-import { getMutationMethod } from "../../common/api-methods";
-import { useAuth } from "../../GlobalContexts/AuthContext";
+import React, { useState } from "react";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import { useToast } from "../../GlobalContexts/ToastContext";
 import Pagination from "../../components/Pagination";
 
 const SchoolOfficePage: React.FC = () => {
-  const { user } = useAuth();
-  const { showToast } = useToast();
-  const { schoolOffices, fetchSchoolOffices, schoolOfficeFilter } =
-    useOrganization();
+  const { schoolOffices } = useOrganization();
   const [offset, setOffset] = useState(0);
-
-  // State for search and filter
   const [searchTerm, setSearchTerm] = useState("");
-
-  // State for sorting
-  const [sortConfig, setSortConfig] = useState<{
-    key: string;
-    direction: string;
-  } | null>(null);
-
-  // State for add/edit department modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-
-  const [currentSchoolOffice, setCurrentSchoolOffice] = useState<SchoolOffice>({
-    id: 0,
-    name: "",
-    description: "",
-    location: "",
-  });
-
-  const { mutateAsync: createSchoolOffice } = useMutation({
-    mutationFn: (body: SchoolOffice) =>
-      getMutationMethod("POST", `api/school-office`, body, true),
-    onSuccess: (data) => {
-      fetchSchoolOffices(schoolOfficeFilter);
-      showToast("SchoolOffice successfully created", "success");
-    },
-    onError: async (error) => {
-      console.log(error?.message);
-      showToast("SchoolOffice creation unsuccessful", "error");
-    },
-  });
-
-  const handleSchoolOfficeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (modalMode === "add") {
-      // Add new department
-      const newSchoolOffice = {
-        ...currentSchoolOffice,
-        organizationId: String(user?.organizationId),
-      };
-      createSchoolOffice(newSchoolOffice);
-    } else {
-      // // Update existing department
-      // setSchoolOffices(
-      //   schoolOffices?.rows.map((dept) =>
-      //     dept.id === currentSchoolOffice.id ? currentSchoolOffice : dept
-      //   )
-      // );
-    }
-    // Close modal and reset form
-    setIsModalOpen(false);
-    setCurrentSchoolOffice({
-      id: 0,
-      name: "",
-      description: "",
-      location: "",
-    });
-  };
-  // Handle input change for department form
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setCurrentSchoolOffice({
-      ...currentSchoolOffice,
-      [name]: value,
-    });
-  };
-  // Open modal for adding new department
-  const openAddModal = () => {
-    setModalMode("add");
-    setCurrentSchoolOffice({
-      id: 0,
-      name: "",
-      description: "",
-      location: "",
-    });
-    setIsModalOpen(true);
-  };
-  // Open modal for editing department
-  const openEditModal = (department: typeof currentSchoolOffice) => {
-    setModalMode("edit");
-    setCurrentSchoolOffice(department);
-    setIsModalOpen(true);
-  };
 
   const handlePageChange = (pageNumber: number) => {
     setOffset(pageNumber);
@@ -112,13 +17,12 @@ const SchoolOfficePage: React.FC = () => {
       <div className="">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
           <div className="m-2">
-            <button
-              onClick={openAddModal}
+            {/* <button
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
             >
               <i className="fas fa-plus mr-2"></i>
               Add School/Office
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
@@ -196,7 +100,7 @@ const SchoolOfficePage: React.FC = () => {
                       <button
                         className="text-blue-600 hover:text-blue-900 cursor-pointer"
                         title="Edit"
-                        onClick={() => openEditModal(department)}
+                        // onClick={() => openEditModal(department)}
                       >
                         <i className="fas fa-edit"></i>
                       </button>
@@ -222,19 +126,6 @@ const SchoolOfficePage: React.FC = () => {
           onPageChange={handlePageChange}
         />
       </div>
-
-      {/* Add/Edit SchoolOffice Modal */}
-      {isModalOpen && (
-        <AddEditSchoolOfficeModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          modalMode={modalMode}
-          currentSchoolOffice={currentSchoolOffice}
-          handleInputChange={handleInputChange}
-          handleSchoolOfficeSubmit={handleSchoolOfficeSubmit}
-          setCurrentSchoolOffice={setCurrentSchoolOffice}
-        />
-      )}
     </>
   );
 };

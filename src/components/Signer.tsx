@@ -1,12 +1,12 @@
 import React from "react";
 
 interface SignerProps {
-  firstName: string;
-  lastName: string;
-  position: string;
-  department: string;
-  date: string;
-  label: string;
+  firstName?: string;
+  lastName?: string;
+  position?: string;
+  department?: string;
+  date?: string;
+  label?: string;
 }
 
 const Signer: React.FC<SignerProps> = ({

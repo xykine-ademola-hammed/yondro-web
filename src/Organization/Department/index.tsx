@@ -1,5 +1,4 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import AddEditDepartmentModal from "./AddEditDepartmentModal";
 import { type Department } from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
@@ -9,11 +8,23 @@ import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useToast } from "../../GlobalContexts/ToastContext";
 import Pagination from "../../components/Pagination";
 
+const makeEmptyDepartment = (): Department => ({
+  // id is optional, so omit
+  name: "",
+  description: "",
+  location: "",
+  // Defensively include array fields per type definition
+  positions: [],
+  units: [],
+  // financeCode etc. optional, left out
+});
+
 const DepartmentPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { departments, fetchDepartments, departmentFilter } = useOrganization();
-  const [offset, setOffset] = useState(0);
+  // Pagination is by 1-based index in Pagination.tsx ("pageNumber"), so start at 1
+  const [offset, setOffset] = useState(1);
 
   // State for search and filter
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,12 +39,9 @@ const DepartmentPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
 
-  const [currentDepartment, setCurrentDepartment] = useState<Department>({
-    id: 0,
-    name: "",
-    description: "",
-    location: "",
-  });
+  const [currentDepartment, setCurrentDepartment] = useState<Department>(
+    makeEmptyDepartment()
+  );
 
   // Request sort
   const requestSort = (key: string) => {
@@ -51,67 +59,60 @@ const DepartmentPage: React.FC = () => {
   const { mutateAsync: createDepartment } = useMutation({
     mutationFn: (body: Department) =>
       getMutationMethod("POST", `api/departments`, body, true),
-    onSuccess: (data) => {
+    onSuccess: () => {
       fetchDepartments(departmentFilter);
       showToast("Department successfully created", "success");
     },
-    onError: async (error) => {
+    onError: async (error: any) => {
       console.log(error?.message);
       showToast("Department creation unsuccessful", "error");
     },
   });
 
-  const handleDepartmentSubmit = (e: React.FormEvent) => {
+  const handleDepartmentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (modalMode === "add") {
       // Add new department
-      const newDepartment = {
+      const newDepartment: Department = {
         ...currentDepartment,
         organizationId: String(user?.organizationId),
+        positions: currentDepartment.positions ?? [],
+        units: currentDepartment.units ?? [],
       };
       createDepartment(newDepartment);
     } else {
-      // // Update existing department
-      // setDepartments(
-      //   departments?.rows.map((dept) =>
-      //     dept.id === currentDepartment.id ? currentDepartment : dept
-      //   )
-      // );
+      // If you wish to implement edit, do so here
     }
     // Close modal and reset form
     setIsModalOpen(false);
-    setCurrentDepartment({
-      id: 0,
-      name: "",
-      description: "",
-      location: "",
-    });
+    setCurrentDepartment(makeEmptyDepartment());
   };
+
   // Handle input change for department form
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setCurrentDepartment({
-      ...currentDepartment,
+    setCurrentDepartment((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
   // Open modal for adding new department
   const openAddModal = () => {
     setModalMode("add");
-    setCurrentDepartment({
-      id: 0,
-      name: "",
-      description: "",
-      location: "",
-    });
+    setCurrentDepartment(makeEmptyDepartment());
     setIsModalOpen(true);
   };
   // Open modal for editing department
-  const openEditModal = (department: typeof currentDepartment) => {
+  const openEditModal = (department: Department) => {
     setModalMode("edit");
-    setCurrentDepartment(department);
+    // Defensive for arrays: fill in [] for units and positions for modal
+    setCurrentDepartment({
+      ...department,
+      positions: department.positions ?? [],
+      units: department.units ?? [],
+    });
     setIsModalOpen(true);
   };
 
@@ -162,6 +163,7 @@ const DepartmentPage: React.FC = () => {
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => requestSort("name")}
                 >
                   <div className="flex items-center">
                     Department
@@ -209,8 +211,8 @@ const DepartmentPage: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td>{department?.financeCode}</td>
-                  <td>{department?.units?.length}</td>
+                  <td>{department?.financeCode ?? ""}</td>
+                  <td>{department?.units?.length ?? 0}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
@@ -238,7 +240,7 @@ const DepartmentPage: React.FC = () => {
         <Pagination
           currentPage={offset}
           itemsPerPage={10}
-          totalItems={departments.count}
+          totalItems={departments?.count ?? 0}
           onPageChange={handlePageChange}
         />
       </div>
@@ -258,4 +260,5 @@ const DepartmentPage: React.FC = () => {
     </>
   );
 };
+
 export default DepartmentPage;

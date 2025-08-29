@@ -1,6 +1,5 @@
 // import AddEditWorkflowModal from "./AddEditWorkflowModal";
 import { Link } from "react-router-dom";
-import type { WorkFlow } from "../common/types";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 import moment from "moment";
 

@@ -38,6 +38,7 @@ export interface Department {
   organizationId?: string;
   financeCode?: string;
   units?: Unit[];
+  positions: Position[];
 }
 
 export interface Position {
@@ -51,6 +52,7 @@ export interface Position {
   parentPositionId?: number;
   description?: string;
   department?: Department;
+  schoolOrOffice?: any;
 }
 
 export interface Employee {
@@ -84,6 +86,7 @@ export interface WorkFlow {
   stages: WorkFlowStage[];
   createdAt: string;
   formId: string;
+  status?: string;
 }
 
 export interface MiniUser {
@@ -104,7 +107,7 @@ export interface StageType {
 
 export interface CurrentStageData {
   assignedTo: Employee;
-  stage: StageType;
+  stage: WorkFlowStage;
   createdAt: Date;
   updatedAt: Date;
   comment: string;
@@ -116,6 +119,7 @@ export interface CurrentStageData {
   stageName: string;
   step: number;
   stageId?: number;
+  assignedToUserId?: number;
 }
 
 export interface StageCompletionData {
@@ -137,6 +141,7 @@ export interface StageData {
   parentStageId?: number;
   organizationId?: number;
   formFields?: string[];
+  isSubStage?: boolean;
   status?:
     | "Approved"
     | "Rejected"

@@ -1,5 +1,3 @@
-import React from "react";
-
 const PaymentVoucher = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -95,7 +93,7 @@ const PaymentVoucher = () => {
             </label>
             <textarea
               className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="4"
+              rows={4}
               placeholder="Enter Payment Description"
             ></textarea>
           </div>
