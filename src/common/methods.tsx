@@ -1,23 +1,28 @@
-import type { Position } from "postcss";
+import type { User } from "../GlobalContexts/AuthContext";
 import type { Employee, SelectOption } from "./types";
+import _ from "lodash";
 
+/**
+ * Clears authentication token from localStorage.
+ */
 export function clearLocalStorage() {
   localStorage.removeItem("token");
 }
 
-export function removeObjectField(objectInput: any, fields: string[]) {
-  return;
-}
-
+/**
+ * Extracts positions from a list of employees into SelectOption[].
+ *
+ * @param employees List of Employee
+ */
 export const extractPositions = (employees: Employee[]): SelectOption[] => {
-  return employees.map((employee) => ({
-    id: Number(employee?.position?.id),
-    label: employee?.position?.title ?? "",
-    value: employee?.position?.id,
-  }));
+  return employees
+    .filter((employee) => !!employee.position?.id && !!employee.position?.title)
+    .map((employee) => ({
+      id: Number(employee.position!.id),
+      label: employee.position!.title!,
+      value: employee.position!.id!,
+    }));
 };
-
-import _ from "lodash";
 
 /**
  * Removes all keys from an object whose value is undefined or "" (empty string).
@@ -29,10 +34,16 @@ import _ from "lodash";
 export function cleanEmptyFields<T extends Record<string, any>>(
   obj: T
 ): Partial<T> {
-  return _.omitBy(obj, (v) => v === undefined || v === "" || v === 0);
+  return _.omitBy(obj, (v) => v === undefined || v === "") as Partial<T>;
 }
 
-export function getFinanceCode(user) {
+/**
+ * Safely retrieves the financeCode from a user object hierarchy.
+ *
+ * @param user The user object (can be an Employee or similar structure)
+ * @returns The first non-empty financeCode value found, or undefined
+ */
+export function getFinanceCode(user: User | null): string | undefined {
   return (
     user?.unit?.financeCode ||
     user?.department?.financeCode ||
@@ -40,8 +51,11 @@ export function getFinanceCode(user) {
   );
 }
 
+/**
+ * Generates a voucher code in the format: VCH-YYYYMMDDHHMMSS-ABC123
+ */
 export function generateVoucherCode(): string {
-  // Example: VCH-20240609-AB2CD3F
+  // Pattern: VCH-20240609T124530-AB2CD3F
   const datePart = new Date()
     .toISOString()
     .replace(/[-:.TZ]/g, "")

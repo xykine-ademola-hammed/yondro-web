@@ -20,7 +20,6 @@ import Organization from "./Organization";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SuperAdmin from "./SuperAdmin";
 import { ToastProvider } from "./GlobalContexts/ToastContext";
-import RequestDetailView from "./components/RequestDetailView";
 import { LoadingPage } from "./components/ui/LoadingSpinner";
 import { LayoutNew } from "./components/layout/Layout";
 import WorkflowDetail2 from "./components/RequestDetailView2";

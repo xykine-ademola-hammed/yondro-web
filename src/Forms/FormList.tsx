@@ -57,7 +57,7 @@ export default function FormList() {
                   Used in workflows:
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {form.workflows.map((workflow, index) => (
+                  {form.workflows.map((workflow: any, index: number) => (
                     <span
                       key={index}
                       className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs"

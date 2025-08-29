@@ -6,23 +6,26 @@ import {
   type Position,
   type Unit,
   type ApiFilter,
+  // Remove Department from types import!
 } from "../../common/types";
 import type { FormErrors } from "../../Dashboard/new-request";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import { useAuth, type Department } from "../../GlobalContexts/AuthContext";
 
+// Fix the currentPosition type if possible, we use `Position`
 interface AddEditPositionModalProps {
   isModalOpen: boolean;
   setIsModalOpen: (isModalOpen: boolean) => void;
   modalMode: "add" | "edit";
   currentPosition: Position;
-
-  setCurrentPosition: (position: any) => void;
+  setCurrentPosition: (position: Position) => void;
   handleInputChange: (
-    event: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    event:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLSelectElement>
+      | React.ChangeEvent<HTMLTextAreaElement>
+      | { target: { name: string; value: any } }
   ) => void;
   handlePositionSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }
@@ -32,18 +35,17 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
   setIsModalOpen,
   modalMode,
   currentPosition,
-  setCurrentPosition,
   handleInputChange,
   handlePositionSubmit,
 }) => {
   const { schoolOffices } = useOrganization();
   const { user } = useAuth();
 
-  const [departments, setDepartments] = useState<Department[]>();
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<PositionData>();
-  const [positionSearch, setPositionSearch] = useState("");
-  const [selectedPositionId, setSelectedPositionId] = useState<number>();
-  const [showPositionDropdown, setShowPositionDropdown] = useState<boolean>();
+  const [positionSearch, setPositionSearch] = useState<string>("");
+  const [showPositionDropdown, setShowPositionDropdown] =
+    useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [units, setUnits] = useState<Unit[]>([]);
 
@@ -59,22 +61,21 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
   });
 
   useEffect(() => {
-    console.log("----2---");
+    // When department changes, reset unit
     if (currentPosition.departmentId) {
       handleInputChange({
         target: { name: "unitId", value: "" },
       });
-      console.log("----2---", currentPosition.departmentId);
-      const selectedDepartment = departments?.find(
-        (dept) => Number(dept.id) === Number(currentPosition.departmentId)
+      const selectedDepartment = departments.find(
+        (dept) =>
+          dept.id && String(dept.id) === String(currentPosition.departmentId)
       );
-      console.log("----3---", selectedDepartment);
-
       if (selectedDepartment?.units) setUnits(selectedDepartment.units);
+      else setUnits([]);
     } else {
       setUnits([]);
     }
-  }, [currentPosition.departmentId, departments]);
+  }, [currentPosition.departmentId, departments]); // departments typed, empty state default
 
   useEffect(() => {
     if (currentPosition.schoolOrOfficeId) {
@@ -86,30 +87,35 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
       });
 
       const selectedSchoolOrOffice = schoolOffices.rows.find(
-        (dept) => Number(dept.id) === Number(currentPosition.schoolOrOfficeId)
+        (dept: any) =>
+          Number(dept.id) === Number(currentPosition.schoolOrOfficeId)
       );
       if (selectedSchoolOrOffice?.departments !== undefined) {
-        console.log("----4---", selectedSchoolOrOffice?.departments);
+        // Fix: convert all department ids to string
         setDepartments(
-          selectedSchoolOrOffice?.departments.map((dept) => ({
+          selectedSchoolOrOffice.departments.map((dept: any) => ({
             ...dept,
-            id: String(dept.id),
-          }))
+            id: dept.id !== undefined ? String(dept.id) : undefined,
+          })) as Department[]
         );
+      } else {
+        setDepartments([]);
       }
+      setUnits([]);
     } else {
-      console.log("----5---");
+      setDepartments([]);
       setUnits([]);
     }
-  }, [currentPosition.schoolOrOfficeId]);
+  }, [currentPosition.schoolOrOfficeId, schoolOffices.rows]);
 
   useEffect(() => {
+    if (!user?.organizationId) return; // only query if organizationId exists
     if (positionSearch) {
       fetchPositions({
         filters: [
           {
             key: "organizationId",
-            value: user?.organizationId,
+            value: user.organizationId,
             condition: "equal",
           },
           {
@@ -126,7 +132,7 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
         filters: [
           {
             key: "organizationId",
-            value: user?.organizationId || "",
+            value: user.organizationId,
             condition: "equal",
           },
         ],
@@ -134,14 +140,13 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
         offset: 0,
       });
     }
-  }, [positionSearch]);
+  }, [positionSearch, fetchPositions, user?.organizationId]);
 
   const handleParentPositionSelect = (position: Position) => {
-    setSelectedPositionId(position.id);
     handleInputChange({
       target: { name: "parentPositionId", value: position.id?.toString() },
     });
-    setPositionSearch(`${position.title}`);
+    setPositionSearch(`${position.title ?? ""}`);
     setShowPositionDropdown(false);
     if (errors.position) {
       setErrors((prev) => ({ ...prev, position: undefined }));
@@ -162,7 +167,7 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                 <div className="mt-4 space-y-4">
                   <div>
                     <label
-                      htmlFor="name"
+                      htmlFor="title"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Position Title
@@ -180,7 +185,7 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
 
                   <div>
                     <label
-                      htmlFor="department"
+                      htmlFor="schoolOrOfficeId"
                       className="block text-sm font-medium text-gray-700"
                     >
                       School | Office
@@ -188,13 +193,16 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                     <select
                       name="schoolOrOfficeId"
                       id="schoolOrOfficeId"
-                      value={currentPosition.schoolOrOfficeId}
+                      value={currentPosition.schoolOrOfficeId || ""}
                       onChange={handleInputChange}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     >
                       <option value="">Select School or Office</option>
-                      {schoolOffices.rows.map((schoolOrOffice) => (
-                        <option value={schoolOrOffice.id}>
+                      {schoolOffices.rows.map((schoolOrOffice: any) => (
+                        <option
+                          key={schoolOrOffice.id}
+                          value={schoolOrOffice.id}
+                        >
                           {schoolOrOffice.name}
                         </option>
                       ))}
@@ -203,7 +211,7 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
 
                   <div>
                     <label
-                      htmlFor="department"
+                      htmlFor="departmentId"
                       className="block text-sm font-medium text-gray-700"
                     >
                       Department
@@ -211,20 +219,22 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                     <select
                       name="departmentId"
                       id="departmentId"
-                      value={currentPosition.departmentId}
+                      value={currentPosition.departmentId || ""}
                       onChange={handleInputChange}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     >
                       <option value="">Select Department</option>
-                      {departments?.map((dept) => (
-                        <option value={dept.id}>{dept.name}</option>
+                      {departments?.map((dept: Department) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
                       ))}
                     </select>
                   </div>
                   {units.length > 0 && (
                     <div>
                       <label
-                        htmlFor="department"
+                        htmlFor="unitId"
                         className="block text-sm font-medium text-gray-700"
                       >
                         Unit
@@ -232,13 +242,15 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                       <select
                         name="unitId"
                         id="unitId"
-                        value={currentPosition?.unitId}
+                        value={currentPosition?.unitId || ""}
                         onChange={handleInputChange}
                         className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       >
                         <option value="">Select Unit</option>
-                        {units.map((unit) => (
-                          <option value={unit.id}>{unit.name}</option>
+                        {units.map((unit: Unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {unit.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -267,8 +279,8 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                       {showPositionDropdown && positionSearch && (
                         <div className="absolute z-1050 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                           {positions?.rows?.length &&
-                          positions?.rows?.length > 0 ? (
-                            positions?.rows?.map((position) => (
+                          positions?.rows.length > 0 ? (
+                            positions.rows.map((position: Position) => (
                               <div
                                 key={position.id}
                                 onClick={() =>

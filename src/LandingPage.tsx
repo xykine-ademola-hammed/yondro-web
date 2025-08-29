@@ -20,7 +20,7 @@ export default function Home() {
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1">
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-                    Yondro
+                    EduXora
                   </h1>
                   <h1 className="text-xl sm:text-2xl lg:text-2xl text-white mb-4 sm:mb-6 leading-tight">
                     Streamline Workflow Management
