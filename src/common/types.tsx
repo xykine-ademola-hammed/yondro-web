@@ -107,7 +107,7 @@ export interface StageType {
 
 export interface CurrentStageData {
   assignedTo: Employee;
-  stage: StageType;
+  stage: WorkFlowStage;
   createdAt: Date;
   updatedAt: Date;
   comment: string;

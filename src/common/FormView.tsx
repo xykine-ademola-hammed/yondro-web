@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from "react";
-import type {
-  ApiFilter,
-  Employee,
-  EmployeeData,
-  FormField,
-  Position,
-  StageData,
-} from "./types";
+import type { ApiFilter, Employee, StageData } from "./types";
 import FieldRender from "../components/FieldRender";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
-import { extractPositions } from "./methods";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "./api-methods";

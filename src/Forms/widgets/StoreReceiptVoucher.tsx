@@ -188,7 +188,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
     });
   };
 
-  const requestor = formData.requestor || {};
+  const requestor = formData?.requestor || {};
 
   return (
     <div className="">

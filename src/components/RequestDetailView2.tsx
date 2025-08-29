@@ -141,8 +141,22 @@ export default function WorkflowDetail2() {
                 formSections: combineFormSections(
                   selectedRequest?.workflow?.stages
                 ),
+                name: "Default Name",
+                instruction: "",
+                isSubStage: false,
+                isRequestor: false,
+                status: "Pending",
+                isRequireApproval: false,
+                formFields: [],
+                fields: [],
               }}
-              completedStages={selectedRequest?.stages}
+              completedStages={selectedRequest?.stages?.map((stage) => ({
+                ...stage,
+                stageId: stage.stageId ?? -1, // Provide a default value for undefined stageId
+                status: stage.status ?? "Unknown", // Provide a default value for undefined status
+              }))}
+              onSubmit={() => {}}
+              onCancel={() => navigate("/")}
             />
           ) : (
             <RequestFormWrapper
@@ -155,7 +169,11 @@ export default function WorkflowDetail2() {
               showActionButtons={
                 currentStageData?.status === "Pending" && hasActionAbility()
               }
-              completedStages={selectedRequest?.stages}
+              completedStages={selectedRequest?.stages?.map((stage) => ({
+                ...stage,
+                stageId: stage.stageId ?? -1, // Provide a default value for undefined stageId
+                status: stage.status ?? "Unknown", // Provide a default value for undefined status
+              }))}
             />
           )}
         </div>

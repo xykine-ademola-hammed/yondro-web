@@ -1,6 +1,7 @@
 {
   "name": "uni-work-flow-app",
   "private": true,
+  "homepage": "https://sped.eduxora.com/",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

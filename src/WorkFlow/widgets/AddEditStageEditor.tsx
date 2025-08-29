@@ -22,17 +22,17 @@ interface AddEditStageEditorProps {
 
 export interface WorkFlowStage {
   id?: number | undefined;
-  name: string;
-  instruction: string;
-  isSubStage: boolean;
-  isRequestor: boolean;
-  isRequestorDepartment: boolean;
+  name?: string;
+  instruction?: string;
+  isSubStage?: boolean;
+  isRequestor?: boolean;
+  isRequestorDepartment?: boolean;
   assigneeDepartmentId?: string;
   assigneePositionId?: string;
-  assigineeLookupField: string;
+  assigineeLookupField?: string;
   isRequireApproval: boolean;
   formFields: any[];
-  formSections: any[];
+  formSections?: any[];
   organizationId?: number | string;
   departmentId?: number | string;
   step?: number;
@@ -42,6 +42,7 @@ export interface WorkFlowStage {
   assignToRequestor?: any;
   assignee?: any;
   fields: any[];
+  status?: string;
 }
 
 export const emptyStageData: WorkFlowStage = {

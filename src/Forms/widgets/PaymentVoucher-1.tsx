@@ -200,8 +200,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     voucherNo: generateVoucherCode(),
     ...formResponses,
     // fill in defaults if necessary!
-    departmentCode: formResponses.departmentCode || "",
-    applicationDate: formResponses.applicationDate || new Date(),
+    departmentCode: formResponses?.departmentCode || "",
+    applicationDate: formResponses?.applicationDate || new Date(),
   });
 
   // --- HANDLERS --- //
@@ -764,8 +764,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
           </div>
         )}
 
-        {isDownloading && <div className="mb-45"></div>}
-
         {/* Audit Unit */}
         {(vissibleSections?.includes("auditApproval") ||
           mode === "preview") && (
@@ -973,6 +971,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             </div>
           </div>
         )}
+
+        {isDownloading && <div className="mb-40"></div>}
 
         {/* Central Payment Office Approval */}
         {(vissibleSections?.includes("cpoApproval") || mode === "preview") && (

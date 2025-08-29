@@ -183,10 +183,10 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
   const [hasErrors, setHasErrors] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<PaymentVoucherDataType>({
-    voucherNo: formResponses.voucherNo || generateVoucherCode(),
-    departmentCode: formResponses.departmentCode || "",
+    voucherNo: formResponses?.voucherNo || generateVoucherCode(),
+    departmentCode: formResponses?.departmentCode || "",
     applicationDate:
-      (formResponses.applicationDate as string) ||
+      (formResponses?.applicationDate as string) ||
       moment().format("YYYY-MM-DD"),
     financeCode: getFinanceCode(user),
     ...formResponses,
@@ -791,8 +791,6 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
           </div>
         )}
 
-        {isDownloading && <div className="mb-45"></div>}
-
         {/* Audit Unit */}
         {(vissibleSections?.includes("auditApproval") ||
           mode === "preview") && (
@@ -1000,6 +998,7 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </div>
           </div>
         )}
+        {isDownloading && <div className="mb-40"></div>}
 
         {/* Central Payment Office Approval */}
         {(vissibleSections?.includes("cpoApproval") || mode === "preview") && (
