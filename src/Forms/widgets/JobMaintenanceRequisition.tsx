@@ -1,5 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useOrganization } from "../../GlobalContexts/Organization-Context";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type RefObject,
+} from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/useDownloadPdf";
@@ -7,45 +12,90 @@ import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 
-const formatDate = (date: Date) => moment(date).format("DD-MM-YYYY");
+// --- Types ---
 
-const requiredFields = [
+interface Requestor {
+  firstName?: string;
+  lastName?: string;
+  date?: string;
+  department?: string;
+  position?: string;
+}
+
+interface Approver {
+  firstName: string;
+  lastName: string;
+  date?: string;
+  department?: string;
+  position?: string;
+  label?: string;
+}
+
+interface JobMaintenanceRequisitionForm {
+  date: string;
+  location?: string;
+  description?: string;
+  recommendationNotes?: string;
+  requestorDeligation?: string;
+  requestor?: Requestor;
+  approvers?: Approver[];
+  // for compatibility with spread
+  [key: string]: any;
+}
+
+interface JobMaintenanceRequisitionProps {
+  formResponses: Partial<JobMaintenanceRequisitionForm>;
+  enableInputList?: string[];
+  vissibleSections?: string[];
+  onSubmit: (data: JobMaintenanceRequisitionForm) => void;
+  onCancel: () => void;
+  showActionButtons?: boolean;
+  mode?: "edit" | "preview";
+}
+
+const requiredFields: (keyof JobMaintenanceRequisitionForm)[] = [
   "requestorDeligation",
   "date",
   "location",
   "description",
 ];
 
-const JobMaintenanceRequisition = ({
+const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
   formResponses,
   enableInputList = [""],
-  vissibleSections = [],
   onSubmit,
   onCancel,
   showActionButtons = false,
-  mode = "edit",
 }) => {
-  console.log("--------enableInputList---------", enableInputList);
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
-  const [hasErrors, setHasErrors] = useState(false);
-  const [formData, setFormData] = useState({
-    date: moment(new Date()).format("DD/MM/YYYY"),
+  const [hasErrors, setHasErrors] = useState<boolean>(false);
+
+  const [formData, setFormData] = useState<JobMaintenanceRequisitionForm>({
+    date: moment(new Date()).format("YYYY-MM-DD"),
     requestorDeligation: getFinanceCode(user),
     ...formResponses,
   });
 
-  const handleInputChange = (fieldId: number | string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [fieldId]: value }));
+  // Handle text, textarea, and date inputs
+  const handleInputChange = (
+    fieldId: keyof JobMaintenanceRequisitionForm,
+    value: string
+  ) => {
+    setFormData((prev) => ({ ...prev, [fieldId]: value }));
   };
 
   useEffect(() => {
-    setFormData((prev: any) => ({ ...prev, ...formResponses }));
+    setFormData((prev) => ({
+      ...prev,
+      ...formResponses,
+    }));
   }, [formResponses]);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
+  // Validation: check enabled required fields
   const checkIsValid = () => {
     const required = [];
     for (let enableField of enableInputList) {
@@ -59,7 +109,11 @@ const JobMaintenanceRequisition = ({
   const handleSubmit = () => {
     if (!checkIsValid()) {
       onSubmit(formData);
-      setFormData({});
+      // Reset only non-default fields
+      setFormData({
+        date: moment(new Date()).format("YYYY-MM-DD"),
+        requestorDeligation: getFinanceCode(user),
+      });
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -67,29 +121,28 @@ const JobMaintenanceRequisition = ({
   };
 
   const handleCancel = () => {
-    setFormData({});
+    setFormData({
+      date: moment(new Date()).format("YYYY-MM-DD"),
+      requestorDeligation: getFinanceCode(user),
+    });
     onCancel();
   };
 
   return (
-    <div className="">
+    <div>
       <div className="flex justify-end items-end ">
         <button
           className="px-2 py-1 bg-blue-900 text-white rounded"
           onClick={() =>
-            downloadPdf(componentRef, {
-              fileName: "payment-voucher.pdf",
+            downloadPdf(componentRef as RefObject<HTMLElement>, {
+              fileName: "job-maintenance-requisition.pdf",
               orientation: "portrait",
               format: "a4",
               margin: 10,
               scale: 1,
               hideSelectors: ["[data-export-hide]"], // hide buttons during capture
-              onBeforeCapture: () => {
-                // e.g., switch your form to preview/read-only mode
-              },
-              onAfterCapture: () => {
-                // e.g., restore edit mode if you changed it
-              },
+              onBeforeCapture: () => {},
+              onAfterCapture: () => {},
             })
           }
         >
@@ -121,7 +174,7 @@ const JobMaintenanceRequisition = ({
           </div>
         )}
 
-        <div className=" my-4">
+        <div className="my-4">
           <div className="">
             <span className="text-sm font-semibold">
               Department/School/Unit:{" "}
@@ -132,18 +185,17 @@ const JobMaintenanceRequisition = ({
               type="text"
               value={formData?.requestorDeligation ?? ""}
               disabled={!isEnabled("requestorDeligation")}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 handleInputChange("requestorDeligation", e.target.value)
               }
               className={`mt-1 w-full p-1 border ${
-                isEnabled(`requestorDeligation`)
+                isEnabled("requestorDeligation")
                   ? "border-red-500"
                   : "border-gray-300"
               } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
             />
           </div>
-
-          <div className=" my-4">
+          <div className="my-4">
             <div className="grid grid-cols-2 gap-10">
               <div className="flex flex-rows">
                 <div className="flex-1">
@@ -154,11 +206,11 @@ const JobMaintenanceRequisition = ({
                     type="text"
                     value={formData?.location ?? ""}
                     disabled={!isEnabled("location")}
-                    onChange={(e) =>
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("location", e.target.value)
                     }
                     className={`w-full p-1 border ${
-                      isEnabled(`location`)
+                      isEnabled("location")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -175,9 +227,11 @@ const JobMaintenanceRequisition = ({
                     type="date"
                     value={formData?.date}
                     disabled={!isEnabled("date")}
-                    onChange={(e) => handleInputChange("date", e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      handleInputChange("date", e.target.value)
+                    }
                     className={`w-full p-1 border ${
-                      isEnabled(`date`) ? "border-red-500" : "border-gray-300"
+                      isEnabled("date") ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                   />
                 </div>
@@ -194,8 +248,10 @@ const JobMaintenanceRequisition = ({
             <textarea
               name="description"
               id="description"
-              value={formData?.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
+              value={formData?.description || ""}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                handleInputChange("description", e.target.value)
+              }
               disabled={!isEnabled("description")}
               className={`mt-1 w-full p-1 border ${
                 isEnabled("description") ? "border-red-500" : "border-gray-300"
@@ -213,8 +269,8 @@ const JobMaintenanceRequisition = ({
           <textarea
             name="recommendationNotes"
             id="recommendationNotes"
-            value={formData?.recommendationNotes}
-            onChange={(e) =>
+            value={formData?.recommendationNotes || ""}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
               handleInputChange("recommendationNotes", e.target.value)
             }
             disabled={!isEnabled("recommendationNotes")}
@@ -230,23 +286,26 @@ const JobMaintenanceRequisition = ({
 
         <div className="grid grid-cols-3 gap-20 ">
           <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName}
-            lastName={formData?.requestor?.firstName || user?.lastName}
+            firstName={formData?.requestor?.firstName || user?.firstName || ""}
+            lastName={formData?.requestor?.lastName || user?.lastName || ""}
             date={
               formData?.requestor?.date ||
               moment(new Date()).format("DD/MM/YYYY")
             }
             department={
-              formData?.requestor?.department || user?.department?.name
+              formData?.requestor?.department || user?.department?.name || ""
             }
-            position={formData?.requestor?.position || user?.position?.title}
+            position={
+              formData?.requestor?.position || user?.position?.title || ""
+            }
             label="Request by"
           />
 
-          {formData?.approvers?.map((approver: any) => (
+          {(formData?.approvers || []).map((approver, idx) => (
             <Signer
-              firstName={approver.lastName}
-              lastName={approver.firstName}
+              key={idx}
+              firstName={approver.firstName}
+              lastName={approver.lastName}
               date={approver.date}
               department={approver.department}
               position={approver.position}

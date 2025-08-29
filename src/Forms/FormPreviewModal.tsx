@@ -1,10 +1,7 @@
 import ModalWrapper from "../components/modal-wrapper";
-import type { StageData } from "../common/types";
-import FormView from "../common/FormView";
-import PaymentVoucher from "./widgets/PaymentVoucher-1";
 
 export interface FormViewModalProps {
-  form: JSX.Element;
+  form: any;
   onClose: () => void;
   modalMode: "view" | "preview";
   isOpen: boolean;

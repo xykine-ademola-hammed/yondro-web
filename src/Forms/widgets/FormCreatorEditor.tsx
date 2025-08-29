@@ -310,7 +310,7 @@ export default function FormCreatorEditor() {
                               </span>
                             </div>
                             <button
-                              onClick={() => removeField(field?.id)}
+                              onClick={() => removeField(Number(field?.id))}
                               className="text-red-600 hover:text-red-800 cursor-pointer"
                             >
                               <i className="ri-delete-bin-line"></i>
@@ -326,7 +326,7 @@ export default function FormCreatorEditor() {
                                 type="text"
                                 value={field.label}
                                 onChange={(e) =>
-                                  updateField(field.id, {
+                                  updateField(Number(field.id), {
                                     label: e.target.value,
                                   })
                                 }
@@ -344,7 +344,7 @@ export default function FormCreatorEditor() {
                                     type="text"
                                     value={field.placeholder || ""}
                                     onChange={(e) =>
-                                      updateField(field.id, {
+                                      updateField(Number(field.id), {
                                         placeholder: e.target.value,
                                       })
                                     }
@@ -372,7 +372,7 @@ export default function FormCreatorEditor() {
                                         value={option}
                                         onChange={(e) =>
                                           updateOption(
-                                            field.id,
+                                            Number(field.id),
                                             optionIndex,
                                             e.target.value
                                           )
@@ -381,7 +381,10 @@ export default function FormCreatorEditor() {
                                       />
                                       <button
                                         onClick={() =>
-                                          removeOption(field.id, optionIndex)
+                                          removeOption(
+                                            Number(field.id),
+                                            optionIndex
+                                          )
                                         }
                                         className="text-red-600 hover:text-red-800 cursor-pointer"
                                       >
@@ -390,7 +393,7 @@ export default function FormCreatorEditor() {
                                     </div>
                                   ))}
                                   <button
-                                    onClick={() => addOption(field.id)}
+                                    onClick={() => addOption(Number(field.id))}
                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer"
                                   >
                                     <i className="ri-add-line mr-1"></i>
@@ -406,7 +409,7 @@ export default function FormCreatorEditor() {
                                 type="checkbox"
                                 checked={field.required}
                                 onChange={(e) =>
-                                  updateField(field.id, {
+                                  updateField(Number(field.id), {
                                     required: e.target.checked,
                                   })
                                 }

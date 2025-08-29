@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
                         {request.requestor?.lastName}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {request.requestor?.position?.name}
+                        {request.requestor?.position?.title}
                       </p>
                       <p className="text-sm text-gray-600">
                         {request.requestor?.department?.name}

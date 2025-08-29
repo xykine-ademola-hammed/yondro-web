@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
+import React from "react";
+import { cn } from "../lib/utils";
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,9 +9,7 @@ interface CardProps {
 
 export function Card({ children, className, padding = true }: CardProps) {
   return (
-    <div className={cn('card', padding && 'p-6', className)}>
-      {children}
-    </div>
+    <div className={cn("card", padding && "p-6", className)}>{children}</div>
   );
 }
 
@@ -21,11 +19,7 @@ interface CardHeaderProps {
 }
 
 export function CardHeader({ children, className }: CardHeaderProps) {
-  return (
-    <div className={cn('mb-4', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn("mb-4", className)}>{children}</div>;
 }
 
 interface CardTitleProps {
@@ -35,7 +29,7 @@ interface CardTitleProps {
 
 export function CardTitle({ children, className }: CardTitleProps) {
   return (
-    <h3 className={cn('text-lg font-semibold text-gray-900', className)}>
+    <h3 className={cn("text-lg font-semibold text-gray-900", className)}>
       {children}
     </h3>
   );
@@ -47,9 +41,5 @@ interface CardContentProps {
 }
 
 export function CardContent({ children, className }: CardContentProps) {
-  return (
-    <div className={cn(className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn(className)}>{children}</div>;
 }

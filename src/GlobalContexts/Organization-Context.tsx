@@ -4,7 +4,6 @@ import type {
   DepartmentData,
   EmployeeData,
   PositionData,
-  SchoolOffice,
   SchoolOfficeData,
   WorkFlowData,
   WorkflowRequestData,

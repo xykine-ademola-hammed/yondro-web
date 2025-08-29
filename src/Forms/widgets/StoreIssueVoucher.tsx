@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useOrganization } from "../../GlobalContexts/Organization-Context";
+import React, { useEffect, useRef, useState, type RefObject } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/useDownloadPdf";
 import Signer from "../../components/Signer";
 import spedLogo from "../../assets/spedLogo.png";
-
-const formatDate = (date: Date) => moment(date).format("DD-MM-YYYY");
 
 const requiredFields = [
   "unit",
@@ -28,7 +25,71 @@ const requiredStoreItemFields = [
   "remarks",
 ];
 
-const StoreIssueVoucher = ({
+// --- Types ---
+interface StoreItem {
+  id?: string | number;
+  articles: string;
+  denominationOfQty: string;
+  qtyDemanded: string;
+  qtyIssued: string;
+  rate: string;
+  amount: string;
+  ledgerFolio: string;
+  remarks: string;
+}
+
+interface Approver {
+  firstName: string;
+  lastName: string;
+  date?: string;
+  department?: string;
+  position?: string;
+}
+
+interface Requestor {
+  firstName?: string;
+  lastName?: string;
+  date?: string;
+  department?: string;
+  position?: string;
+}
+
+interface StoreIssueVoucherForm {
+  unit?: string;
+  applicationDate?: string;
+  sivNo?: string;
+  department?: string;
+  issueAuthoriseBy?: string;
+  designation?: string;
+  requestor?: Requestor;
+  approvers?: Approver[];
+  storeItems?: StoreItem[];
+  [key: string]: any;
+}
+
+interface StoreIssueVoucherProps {
+  formResponses: StoreIssueVoucherForm;
+  enableInputList?: string[];
+  vissibleSections?: Array<"addMore" | string>;
+  onSubmit: (data: StoreIssueVoucherForm) => void;
+  onCancel: () => void;
+  showActionButtons?: boolean;
+  mode?: "edit" | "preview";
+}
+
+// default empty Item for new rows
+const emptyItem: StoreItem = {
+  articles: "",
+  denominationOfQty: "",
+  qtyDemanded: "",
+  qtyIssued: "",
+  rate: "",
+  amount: "",
+  ledgerFolio: "",
+  remarks: "",
+};
+
+const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
@@ -37,46 +98,49 @@ const StoreIssueVoucher = ({
   showActionButtons = false,
   mode = "edit",
 }) => {
-  const componentRef = useRef<HTMLDivElement>(null);
+  const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
-  const [storeItems, setStoreItems] = useState([]);
 
-  const [formData, setFormData] = useState(formResponses);
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
+  const [formData, setFormData] =
+    useState<StoreIssueVoucherForm>(formResponses);
   const [hasErrors, setHasErrors] = useState(false);
-  const handleInputChange = (fieldId: number | string, value: any) => {
+
+  const handleInputChange = (fieldId: string, value: any) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
   };
 
   const addMoreRow = () => {
     setStoreItems((prev) => [
       ...prev,
-      {
-        articles: "",
-        denominationOfQty: "",
-        qtyReceived: "",
-        unitPrice: "",
-        amount: "",
-        ledgerFolio: "",
-      },
+      { ...emptyItem, id: Date.now() + Math.random() },
     ]);
   };
 
   useEffect(() => {
     setFormData(formResponses);
-    if (formResponses?.storeItems) {
-      setStoreItems(formResponses?.storeItems);
+    if (formResponses?.storeItems && Array.isArray(formResponses?.storeItems)) {
+      setStoreItems(
+        formResponses.storeItems.map((item, idx) => ({
+          ...emptyItem,
+          ...item,
+          id: item.id ?? idx + "_" + Date.now(),
+        }))
+      );
     } else {
-      setStoreItems([{}, {}, {}]);
+      setStoreItems([
+        { ...emptyItem, id: 1 },
+        { ...emptyItem, id: 2 },
+        { ...emptyItem, id: 3 },
+      ]);
     }
   }, [formResponses]);
-
-  console.log("--------formData?.approvers---------", formData?.approvers);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
   const checkIsValid = () => {
-    const required = [];
+    const required: string[] = [];
     // Check top-level required fields
     for (let enableField of enableInputList) {
       if (requiredFields.includes(enableField) && !formData?.[enableField]) {
@@ -85,14 +149,17 @@ const StoreIssueVoucher = ({
     }
 
     for (let item of storeItems) {
-      const allEmpty = requiredStoreItemFields.every((field) => !item[field]);
+      const allEmpty = requiredStoreItemFields.every(
+        (field) => !item[field as keyof StoreItem]
+      );
       if (allEmpty) continue;
-      const hasEmpty = requiredStoreItemFields.some((field) => !item[field]);
+      const hasEmpty = requiredStoreItemFields.some(
+        (field) => !item[field as keyof StoreItem]
+      );
       if (hasEmpty) {
         required.push("missing field");
       }
     }
-
     return !!required.length;
   };
 
@@ -113,13 +180,11 @@ const StoreIssueVoucher = ({
     onCancel();
   };
 
-  // Add this to your StoreIssueVoucher component (either as a method or inside the functional component)
   const handleStoreItemChange = (
-    eventName: any,
-    eventValue: any,
+    eventName: keyof StoreItem,
+    eventValue: string,
     index: number
   ) => {
-    // Assuming storeItems is kept in state as an array
     setStoreItems((prevItems) => {
       const updatedItems = [...prevItems];
       updatedItems[index] = {
@@ -136,19 +201,15 @@ const StoreIssueVoucher = ({
         <button
           className="px-2 py-1 bg-blue-900 text-white rounded"
           onClick={() =>
-            downloadPdf(componentRef, {
+            downloadPdf(componentRef as RefObject<HTMLElement>, {
               fileName: "payment-voucher.pdf",
               orientation: "portrait",
               format: "a4",
               margin: 24,
               scale: 2,
               hideSelectors: ["[data-export-hide]"], // hide buttons during capture
-              onBeforeCapture: () => {
-                // e.g., switch your form to preview/read-only mode
-              },
-              onAfterCapture: () => {
-                // e.g., restore edit mode if you changed it
-              },
+              onBeforeCapture: () => {},
+              onAfterCapture: () => {},
             })
           }
         >
@@ -157,7 +218,7 @@ const StoreIssueVoucher = ({
       </div>
 
       <div
-        ref={componentRef}
+        ref={componentRef as React.RefObject<HTMLDivElement>}
         className="bg-white rounded-lg sm:p-2 w-full max-w-4xl"
       >
         <div className="flex gap-4 mb-4 sm:mb-0">
@@ -312,66 +373,41 @@ const StoreIssueVoucher = ({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="pr-40 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="pr-40 py-1 text-left text-xs text-gray-500">
                     Articles
                   </th>
 
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500">
                     Denomination Qty.
                   </th>
 
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500">
                     Qty. demanded
                   </th>
 
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500">
                     Qty. issued
                   </th>
 
-                  <th
-                    scope="col"
-                    className="pl-1 pr-10 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="pl-1 pr-10 py-1 text-left text-xs text-gray-500">
                     Rate
                   </th>
-                  <th
-                    scope="col"
-                    className="pl-1 pr-10  py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="pl-1 pr-10 py-1 text-left text-xs text-gray-500">
                     Amount
                   </th>
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500">
                     Ledger Folio
                   </th>
-                  <th
-                    scope="col"
-                    className="px-1 py-1 text-left text-xs text-gray-500"
-                  >
+                  <th className="px-1 py-1 text-left text-xs text-gray-500">
                     Remarks
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {storeItems?.map((item, index) => (
-                  <tr key={item.id} className="items-center">
+                  <tr key={item.id ?? index} className="items-center">
                     <td className="p-1">
                       <textarea
-                        // type="text"
                         rows={1}
                         value={item?.articles ?? ""}
                         disabled={!isEnabled("articles")}
@@ -544,26 +580,29 @@ const StoreIssueVoucher = ({
 
         <div className="grid grid-cols-3 gap-x-20 gap-y-4 mt-1">
           <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName}
-            lastName={formData?.requestor?.lastName || user?.lastName}
+            firstName={formData?.requestor?.firstName || user?.firstName || ""}
+            lastName={formData?.requestor?.lastName || user?.lastName || ""}
             date={
               formData?.requestor?.date ||
               moment(new Date()).format("DD/MM/YYYY")
             }
             department={
-              formData?.requestor?.department || user?.department?.name
+              formData?.requestor?.department || user?.department?.name || ""
             }
-            position={formData?.requestor?.position || user?.position?.title}
+            position={
+              formData?.requestor?.position || user?.position?.title || ""
+            }
             label="Request by"
           />
 
-          {formData?.approvers?.map((approver) => (
+          {(formData?.approvers || []).map((approver, idx) => (
             <Signer
-              lastName={approver.firstName}
-              firstName={approver.lastName}
-              date={approver.date}
-              department={approver.department}
-              position={approver.position}
+              key={idx}
+              firstName={approver.firstName}
+              lastName={approver.lastName}
+              date={approver.date ?? ""}
+              department={approver.department ?? ""}
+              position={approver.position ?? ""}
               label="Endorsed/Approved by"
             />
           ))}

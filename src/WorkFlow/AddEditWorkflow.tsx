@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ModalWrapper from "../components/modal-wrapper";
 import AddEditStageEditor, {
   emptyStageData,
   type WorkFlowStage,
 } from "./widgets/AddEditStageEditor";
 import StageViewCard from "./widgets/StageViewCard";
-import type { StageData, WorkFlow } from "../common/types";
+import type { WorkFlow } from "../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod, getQueryMethod } from "../common/api-methods";
 import { useAuth } from "../GlobalContexts/AuthContext";
@@ -37,6 +37,7 @@ export default function AddEditWorkflow() {
     status: "",
     createdAt: "",
     formId: "",
+    isActive: true,
   });
 
   const handleSubmitStage = (stageIndex: number, stageData: WorkFlowStage) => {
@@ -77,7 +78,7 @@ export default function AddEditWorkflow() {
   const { mutateAsync: createWorkflow } = useMutation({
     mutationFn: (body: WorkFlow) =>
       getMutationMethod("POST", `api/workflows`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       fetchWorkFlows(workflowFilter);
       showToast("Workflow successfully created", "success");
       navigate(-1);
@@ -120,6 +121,7 @@ export default function AddEditWorkflow() {
         status: "Draft",
         createdAt: new Date().toISOString(),
         formId: "",
+        isActive: true,
       });
     }
   }, [workflowId]);

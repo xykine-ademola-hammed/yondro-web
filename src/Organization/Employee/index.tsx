@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AddEditEmployeeModal, { emptyEmployee } from "./AddEditEmployeeModal";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import type { ApiFilter, Employee } from "../../common/types";
@@ -9,10 +8,7 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 import { useToast } from "../../GlobalContexts/ToastContext";
 import { cleanEmptyFields } from "../../common/methods";
 
-const statuses = ["Pending", "Approved", "Rejected", "Under Review"];
-
 export default function AllEmployee() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
   const {
@@ -29,7 +25,7 @@ export default function AllEmployee() {
   // UI state
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const itemsPerPage = 10;
 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee>({
     ...emptyEmployee,
@@ -46,7 +42,7 @@ export default function AllEmployee() {
   const { mutateAsync: createEmployee } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/employees`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       fetchEmployees(employeeFilter);
       showToast("Employee successfully created", "success");
     },

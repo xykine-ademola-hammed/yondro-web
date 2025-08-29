@@ -2,11 +2,6 @@ import React, { useEffect, useRef } from "react";
 import ModalWrapper from "../../components/modal-wrapper";
 import type { Department } from "../../common/types";
 
-interface Unit {
-  name: string;
-  subUnits: { name: string }[];
-}
-
 interface AddEditDepartmentModalProps {
   isOpen: boolean;
   onClose: () => void;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import type { FormField } from "../common/types";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 
@@ -87,7 +87,7 @@ const FieldRender: React.FC<FieldRenderProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm pr-8"
           >
             <option value="">Select an option</option>
-            {employeeOptions?.map((employee, idx) => (
+            {employeeOptions?.map((employee) => (
               <option key={employee.id} value={employee.value}>
                 {employee.label}
               </option>

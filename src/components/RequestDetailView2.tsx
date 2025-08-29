@@ -83,7 +83,7 @@ export default function WorkflowDetail2() {
         body,
         true
       ),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       refetchWorkflowRequest(refetchFilter);
       showToast("Response successfully submitted", "success");
     },
@@ -117,12 +117,12 @@ export default function WorkflowDetail2() {
     return currentStageData?.assignedToUserId === user?.id;
   };
 
-  const handleSubmit = async (formResponses) => {
+  const handleSubmit = async (formResponses: any) => {
     setFormResponses(formResponses);
     setIsConfirmationModalOpen(true);
   };
 
-  function combineFormSections(stages): string[] {
+  function combineFormSections(stages: any): string[] {
     if (!Array.isArray(stages)) return [];
     const allSections = stages.map((stage) => stage.formSections || []).flat();
     // Remove duplicates
@@ -141,8 +141,22 @@ export default function WorkflowDetail2() {
                 formSections: combineFormSections(
                   selectedRequest?.workflow?.stages
                 ),
+                name: "Default Name",
+                instruction: "",
+                isSubStage: false,
+                isRequestor: false,
+                status: "Pending",
+                isRequireApproval: false,
+                formFields: [],
+                fields: [],
               }}
-              completedStages={selectedRequest?.stages}
+              completedStages={selectedRequest?.stages?.map((stage) => ({
+                ...stage,
+                stageId: stage.stageId ?? -1, // Provide a default value for undefined stageId
+                status: stage.status ?? "Unknown", // Provide a default value for undefined status
+              }))}
+              onSubmit={() => {}}
+              onCancel={() => navigate("/")}
             />
           ) : (
             <RequestFormWrapper
@@ -155,7 +169,11 @@ export default function WorkflowDetail2() {
               showActionButtons={
                 currentStageData?.status === "Pending" && hasActionAbility()
               }
-              completedStages={selectedRequest?.stages}
+              completedStages={selectedRequest?.stages?.map((stage) => ({
+                ...stage,
+                stageId: stage.stageId ?? -1, // Provide a default value for undefined stageId
+                status: stage.status ?? "Unknown", // Provide a default value for undefined status
+              }))}
             />
           )}
         </div>
