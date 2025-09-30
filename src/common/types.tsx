@@ -74,7 +74,8 @@ export interface Employee {
   isActive: boolean;
   departmentId?: number;
   positionId?: number;
-  roles?: string;
+  role?: string;
+  permissions?: string[];
 }
 
 export interface WorkFlow {

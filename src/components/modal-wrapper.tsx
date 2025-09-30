@@ -65,10 +65,14 @@ const ModalWrapper: React.FC<ModalWrapperProps> = ({
           >
             <DialogTitle
               as="h3"
-              className="text-base font-semibold text-gray-900"
+              className="text-base font-semibold text-gray-900 mb-2"
             >
-              {title}
+              <div className="flex items-center justify-between">
+                {title}
+                <span onClick={() => onClose()}> Close </span>
+              </div>
             </DialogTitle>
+
             <div className="">{children}</div>
           </DialogPanel>
         </div>

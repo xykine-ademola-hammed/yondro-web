@@ -69,8 +69,6 @@ export default function FormView({
     },
   });
 
-  console.log("---formData-----", formData);
-
   useEffect(() => {
     if (formData.currentDepartmentId) {
       fetchDepartmentEmployees({

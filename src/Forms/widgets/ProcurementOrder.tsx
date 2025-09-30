@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, type RefObject } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
-import useDownloadPdf from "../../common/useDownloadPdf";
+import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
+import FormActions from "./FormActions";
 
 /** Interfaces for core objects **/
 interface StoreItem {
@@ -47,13 +48,16 @@ interface ProcurementOrderFormResponses {
 }
 
 interface ProcurementOrderProps {
+  loading: boolean;
+  setLoading: (value: boolean) => void;
   formResponses: ProcurementOrderFormResponses;
   enableInputList?: string[];
   vissibleSections?: string[];
-  onSubmit: (data: ProcurementOrderFormResponses) => void;
+  onSubmit: (data: ProcurementOrderFormResponses, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
-  mode?: "edit" | "preview";
+  mode?: "edit" | "preview" | "new" | "in_progress";
+  responseTypes: string[];
 }
 
 /** Required field names **/
@@ -67,8 +71,12 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   onSubmit,
   onCancel,
   showActionButtons = false,
-  mode = "edit",
+  mode = "new",
+  responseTypes = [""],
+  loading = false,
+  setLoading,
 }) => {
+  // console.log("====mode=====", mode);
   // Use HTMLElement for PDF compatibility
   const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
@@ -155,16 +163,18 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   };
 
   // Form submission handlers
-  const handleSubmit = () => {
+  const handleSubmit = (status: string) => {
     if (!checkIsValid()) {
-      onSubmit({ ...formData, storeItems });
-      setFormData({});
-      setStoreItems([]);
+      setLoading(true);
+      onSubmit({ ...formData, storeItems }, status);
+      // setFormData({});
+      // setStoreItems([]);
       setHasErrors(false);
     } else {
       setHasErrors(true);
     }
   };
+
   const handleCancel = () => {
     setFormData({});
     setStoreItems([]);
@@ -186,6 +196,46 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
       return updatedItems;
     });
   };
+
+  // const responseButtonProps: Record<
+  //   string,
+  //   {
+  //     bgColor: string;
+  //     label: string;
+  //     action: () => void;
+  //   }
+  // > = {
+  //   Reject: {
+  //     bgColor: "green",
+  //     label: "Approve",
+  //     action: () => handleSubmit("Reject"),
+  //   },
+  //   Approve: {
+  //     bgColor: "green",
+  //     label: "Approve",
+  //     action: () => handleSubmit("Approve"),
+  //   },
+  //   Approval: {
+  //     bgColor: "green",
+  //     label: "Approve",
+  //     action: () => handleSubmit("Approve"),
+  //   },
+  //   Acknowledgement: {
+  //     bgColor: "green",
+  //     label: "Acknowledgement",
+  //     action: () => handleSubmit("Approve"),
+  //   },
+  //   Payment: {
+  //     bgColor: "green",
+  //     label: "Approve payment",
+  //     action: () => handleSubmit("Payment"),
+  //   },
+  //   Procurement: {
+  //     bgColor: "blue",
+  //     label: "Approve procurement",
+  //     action: () => handleSubmit("Procurement"),
+  //   },
+  // };
 
   return (
     <div className="">
@@ -355,7 +405,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-20 ">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
           <Signer
             firstName={formData?.requestor?.firstName || user?.firstName || ""}
             lastName={formData?.requestor?.lastName || user?.lastName || ""}
@@ -385,22 +435,14 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
           ))}
         </div>
 
-        {/* Action Buttons */}
         {showActionButtons && (
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Submit
-            </button>
-          </div>
+          <FormActions
+            loading={loading}
+            handleCancel={handleCancel}
+            mode={mode}
+            handleSubmit={handleSubmit}
+            responseTypes={responseTypes}
+          />
         )}
       </div>
     </div>

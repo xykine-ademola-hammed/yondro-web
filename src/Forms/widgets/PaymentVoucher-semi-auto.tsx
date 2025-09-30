@@ -1,22 +1,18 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type RefObject,
-} from "react";
+import React, { useEffect, useRef, useState, type RefObject } from "react";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
-import useDownloadPdf from "../../common/useDownloadPdf";
+import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import { generateVoucherCode, getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import Signer from "../../components/Signer";
-
-// --- TYPE DEFINITIONS --- //
+import FormActions from "./FormActions";
+import VoucherAccountLookup, {
+  type VoteBookAccountLookup,
+} from "../../vouchers/VoucherAccountLookup";
 
 export interface PaymentDetail {
-  paymentDate: Date;
+  paymentDate: string;
   paymentParticles: string;
   Amount: number;
 }
@@ -38,9 +34,9 @@ export interface EntryDistribution {
 
 export interface PersonnelType {
   id: number;
-  name: string | number; // previous: number, but probably a string name
+  name: string | number;
   positionName: string;
-  date: Date;
+  date: string;
 }
 
 export interface VoucherPersonnels {
@@ -66,7 +62,9 @@ export interface AuditRemark {
 export interface PaymentVoucherDataType {
   voucherNo: string;
   departmentCode: string;
-  applicationDate: Date | string;
+  applicationDate: string;
+  // Flatten fields for controlled form
+  financeCode?: string;
   applicantName?: string;
   applicantAddress?: string;
   applicantDescription?: string;
@@ -80,69 +78,67 @@ export interface PaymentVoucherDataType {
   debitDescription?: string;
   creditAmount?: string;
   creditDescription?: string;
-  unitVoucherHeadById?: string | number;
-  preparedById?: string | number;
-  reviewedById?: string | number;
-  approvedById?: string | number;
+  unitVoucherHeadById?: string;
+  preparedById?: string;
+  reviewedById?: string;
+  approvedById?: string;
   auditRemarkPass?: string;
   auditRemarkQuery?: string;
-  auditCheckedById?: string | number;
+  auditCheckedById?: string;
   auditCheckedByDate?: string;
-  auditReviewedById?: string | number;
+  auditReviewedById?: string;
   auditReviewedByDate?: string;
-  auditRemarkedById?: string | number;
+  auditRemarkedById?: string;
   auditApprovedByDate?: string;
-  cpoHeadById?: string | number;
-  cpoPreparedById?: string | number;
-  cpoReviewedById?: string | number;
-  cpoApprovedById?: string | number;
+  cpoHeadById?: string;
+  cpoPreparedById?: string;
+  cpoReviewedById?: string;
+  cpoApprovedById?: string;
   additionalNotes?: string;
-  financeCode?: string;
   [key: string]: any;
-  // legacy fields not used (to match spread/forms usage)
-  applicantDetail?: ApplicantDetail;
-  paymentDetails?: PaymentDetail[];
-  entryDistribution?: EntryDistribution;
-  voucherPersonnels?: VoucherPersonnels;
-  auditUnitPersonnels?: AuditUnitPersonnels;
-  auditRemark?: AuditRemark;
 }
 
-// Used for stages
-type CompletedStage = {
-  step: number | string;
-  updatedAt: string | Date;
-  assignedTo: {
-    firstName: string;
-    lastName: string;
-    department?: { name: string };
-    position?: { title: string };
-    [key: string]: any;
-  };
-};
-
-type EmployeeOption = {
+export interface EmployeeOption {
   id: string | number;
   value: string | number;
   label: string;
-};
+}
 
-/** Props **/
-interface PaymentVoucherProps {
+export interface CompletedStage {
+  step: string | number;
+  updatedAt: string | Date;
+  assignedTo: {
+    firstName?: string;
+    lastName?: string;
+    department?: { name?: string };
+    position?: { title?: string };
+    [key: string]: any;
+  };
+}
+
+interface Approver {
+  bottomComment?: string;
+  stepNumber: number;
+}
+
+interface PaymentVoucherSemiAutoProps {
+  loading: boolean;
+  setLoading: (value: boolean) => void;
   formResponses: Partial<PaymentVoucherDataType>;
   enableInputList?: string[];
   vissibleSections?: string[];
   showFormTitle?: boolean;
   showApplicationFormTitle?: boolean;
   instruction?: string;
-  onSubmit: (data: PaymentVoucherDataType) => void;
+  onSubmit: (data: PaymentVoucherDataType, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
-  mode?: "edit" | "preview";
+  mode?: "edit" | "preview" | "new" | "in_progress";
+  responseTypes: string[];
   completedStages?: CompletedStage[];
 }
 
-const formatDate = (date: Date | string | undefined) =>
+const formatDate = (date: string | Date | undefined) =>
   date ? moment(date).format("DD-MM-YYYY") : "";
 
 const requiredFields = [
@@ -165,9 +161,7 @@ const requiredFields = [
   "approvedById",
 ];
 
-// --- BEGIN COMPONENT --- //
-
-const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
+const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
@@ -175,72 +169,73 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
   onSubmit,
   onCancel,
   showActionButtons = false,
-  mode = "edit",
+  mode = "new",
   completedStages = [],
+  responseTypes = [""],
+  loading = false,
+  setLoading,
 }) => {
-  const componentRef = useRef<HTMLElement>(null);
+  const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
   const { userDepartmenttMembers } = useOrganization();
 
-  // Type safety for employee options
   const employeeOptions: EmployeeOption[] =
-    (userDepartmenttMembers?.rows?.map((employee: any) => ({
+    userDepartmenttMembers?.rows?.map((employee: any) => ({
       id: employee.id,
       value: employee.id,
-      label: `${employee.firstName} - ${employee.lastName} `,
-    })) as EmployeeOption[]) ?? [];
+      label: `${employee.firstName} - ${employee.lastName}`,
+    })) ?? [];
 
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [hasErrors, setHasErrors] = useState<boolean>(false);
+  const [_selectedVoucherAccount, setSelectedVoucherAccount] =
+    useState<VoteBookAccountLookup | null>(null);
 
-  // type-safe state
   const [formData, setFormData] = useState<PaymentVoucherDataType>({
-    financeCode: getFinanceCode(user),
-    voucherNo: generateVoucherCode(),
-    ...formResponses,
-    // fill in defaults if necessary!
+    voucherNo: formResponses?.voucherNo || generateVoucherCode(),
     departmentCode: formResponses?.departmentCode || "",
-    applicationDate: formResponses?.applicationDate || new Date(),
+    applicationDate:
+      (formResponses?.applicationDate as string) ||
+      moment().format("YYYY-MM-DD"),
+    financeCode: getFinanceCode(user),
+    ...formResponses,
   });
 
-  // --- HANDLERS --- //
-
-  // input handler
   const handleInput = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prevData) => {
       const keys = name.split("_");
-      if (
-        keys.length > 1 &&
-        prevData.paymentDetails &&
-        Array.isArray(prevData.paymentDetails)
-      ) {
+      if (keys.length > 1) {
         const [field, index] = keys;
-        return {
-          ...prevData,
-          paymentDetails: prevData.paymentDetails.map((detail, i) =>
-            i === parseInt(index) ? { ...detail, [field]: value } : detail
-          ),
-        };
+        // Only support for paymentDetails if actually used in the form
+        if (Array.isArray(prevData.paymentDetails)) {
+          return {
+            ...prevData,
+            paymentDetails: prevData.paymentDetails.map(
+              (detail: any, i: number) =>
+                i === parseInt(index) ? { ...detail, [field]: value } : detail
+            ),
+          };
+        }
       }
-      // all controlled
       return { ...prevData, [name]: value };
     });
   };
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, ...formResponses }));
-    // eslint-disable-next-line
   }, [formResponses]);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  // type-safe validation
   const checkIsValid = () => {
     const required: string[] = [];
+    // Check top-level required fields
     for (let enableField of enableInputList) {
       if (requiredFields.includes(enableField) && !formData?.[enableField]) {
         required.push(enableField);
@@ -249,10 +244,11 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     return !!required.length;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (status: string) => {
     if (!checkIsValid()) {
-      onSubmit(formData);
-      setFormData({} as PaymentVoucherDataType);
+      setLoading(true);
+      onSubmit(formData, status);
+      // setFormData({} as PaymentVoucherDataType);
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -264,43 +260,28 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     onCancel();
   };
 
-  // --- TYPE-SAFE SIGNER MAP --- //
-  const approvers: {
-    bottomComment?: string;
-    stepNumber: number;
-  }[] = [
-    { bottomComment: "Approved By", stepNumber: 1 },
-    { bottomComment: "Approved By", stepNumber: 2 },
+  const approvers: Approver[] = [
     { bottomComment: "Approved By", stepNumber: 3 },
-    { bottomComment: "Approved By", stepNumber: 4 },
-    { bottomComment: "Approved By", stepNumber: 17 },
+    { bottomComment: "Approved By", stepNumber: 11 },
   ];
 
-  // type for getSignerProps param
-  function getSignerProps(approver: {
-    stepNumber: number;
-    bottomComment?: string;
-  }) {
-    const completedStage =
-      completedStages &&
-      completedStages.find(
-        (comStage) => Number(comStage.step) === approver.stepNumber
-      );
+  const getSignerProps = (approver: Approver) => {
+    const completedStage = (completedStages || []).find(
+      (comStage) => Number(comStage.step) === approver.stepNumber
+    );
     if (!completedStage) return undefined;
-    const assignee = completedStage.assignedTo;
+    const assignee = completedStage.assignedTo ?? {};
     return {
-      firstName: assignee?.firstName,
-      lastName: assignee?.lastName,
-      date:
-        completedStage?.updatedAt &&
-        moment(completedStage?.updatedAt).format("DD/MM/YYYY"),
-      department: assignee.department?.name,
-      position: assignee?.position?.title,
+      firstName: assignee.firstName || "",
+      lastName: assignee.lastName || "",
+      date: completedStage?.updatedAt
+        ? moment(completedStage?.updatedAt).format("DD/MM/YYYY")
+        : "",
+      department: assignee.department?.name || "",
+      position: assignee?.position?.title || "",
       label: approver.bottomComment,
     };
-  }
-
-  // --- COMPONENT RENDER --- //
+  };
 
   return (
     <div className="">
@@ -330,7 +311,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
       </div>
 
       <div
-        ref={componentRef as RefObject<HTMLDivElement>}
+        ref={componentRef}
         className="bg-white rounded-lg sm:p-1 w-full max-w-4xl"
       >
         <div className="flex flex-col sm:flex-row items-start mt-2">
@@ -357,7 +338,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
           </div>
         )}
 
-        {/* Header */}
+        {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-end items-start mt-2">
           <div className="text-left">
             <p className="text-sm font-semibold">
@@ -398,7 +379,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <input
                   name="applicantName"
                   id="applicantName"
-                  value={formData?.applicantName ?? ""}
+                  value={formData?.applicantName || ""}
                   onChange={handleInput}
                   type="text"
                   disabled={!isEnabled("applicantName")}
@@ -417,7 +398,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <input
                   name="applicantAddress"
                   id="applicantAddress"
-                  value={formData?.applicantAddress ?? ""}
+                  value={formData?.applicantAddress || ""}
                   onChange={handleInput}
                   type="text"
                   disabled={!isEnabled("applicantAddress")}
@@ -436,7 +417,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <textarea
                   name="applicantDescription"
                   id="applicantDescription"
-                  value={formData?.applicantDescription ?? ""}
+                  value={formData?.applicantDescription || ""}
                   onChange={handleInput}
                   disabled={!isEnabled("applicantDescription")}
                   className={`mt-0 w-full p-1 border ${
@@ -470,7 +451,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                   <input
                     name={`paymentDate`}
                     id={`paymentDate`}
-                    value={formData?.paymentDate ?? ""}
+                    value={formData?.paymentDate || ""}
                     onChange={handleInput}
                     type="date"
                     disabled={!isEnabled(`paymentDate`)}
@@ -489,7 +470,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                   <textarea
                     name={`paymentParticles`}
                     id={`paymentParticles`}
-                    value={formData?.paymentParticles ?? ""}
+                    value={formData?.paymentParticles || ""}
                     onChange={handleInput}
                     disabled={!isEnabled(`paymentParticles`)}
                     className={`mt-0 w-full p-1 border ${
@@ -508,7 +489,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                   <input
                     name={`paymentDetailAmount`}
                     id={`paymentDetailAmount`}
-                    value={formData?.paymentDetailAmount ?? ""}
+                    value={formData?.paymentDetailAmount || ""}
                     onChange={handleInput}
                     type="text"
                     disabled={!isEnabled(`paymentDetailAmount`)}
@@ -528,7 +509,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <input
                   name="amountInWord"
                   id="amountInWord"
-                  value={formData?.amountInWord ?? ""}
+                  value={formData?.amountInWord || ""}
                   onChange={handleInput}
                   disabled={!isEnabled("amountInWord")}
                   className={`mt-0 w-full p-1 border ${
@@ -556,45 +537,25 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             <div className="p-1 border rounded-lg border-gray-200">
               <div className="">
                 <div className="flex flex-col sm:flex-row w-full gap-1">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">
-                      Account Title
-                    </label>
-                    <input
-                      name="accountTitle"
-                      id="accountTitle"
-                      value={formData?.accountTitle ?? ""}
-                      onChange={handleInput}
-                      disabled={!isEnabled("accountTitle")}
-                      className={`mt-0 w-full p-1 border ${
-                        isEnabled("accountTitle")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="text"
-                      placeholder=""
-                    />
-                  </div>
-                  <div className="">
-                    <label className="block text-sm font-medium text-gray-600">
-                      Account Code No.
-                    </label>
-                    <input
-                      name="accountCodeNo"
-                      id="accountCodeNo"
-                      value={formData?.accountCodeNo ?? ""}
-                      onChange={handleInput}
-                      disabled={!isEnabled("accountCodeNo")}
-                      className={`mt-0 w-full p-1 border ${
-                        isEnabled("accountCodeNo")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      type="text"
-                      placeholder=""
-                    />
-                  </div>
+                  <VoucherAccountLookup
+                    isEnabled={
+                      isEnabled("accountTitle") && isEnabled("accountCodeNo")
+                    }
+                    onSelect={(selected) => {
+                      console.log("===========", selected);
+                      if (selected !== null)
+                        setSelectedVoucherAccount(selected);
+                      setFormData((prev) => ({
+                        ...prev,
+                        selectedVoucherAccount: selected,
+                        accountTitle: selected?.name,
+                        accountCodeNo: selected?.code,
+                      }));
+                    }}
+                    selectedAccount={formData.selectedVoucherAccount}
+                  />
                 </div>
+
                 <div className="col-span-2 mt-0">
                   <label className="block text-sm font-medium text-gray-600">
                     Amount
@@ -608,7 +569,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                         <input
                           name="debitAmount"
                           id="debitAmount"
-                          value={formData?.debitAmount ?? ""}
+                          value={formData?.debitAmount || ""}
                           onChange={handleInput}
                           disabled={!isEnabled("debitAmount")}
                           className={`mt-0 w-full p-1 border ${
@@ -616,13 +577,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="text"
-                          placeholder=""
+                          type="number"
+                          placeholder="Amount"
                         />
                         <input
                           name="debitDescription"
                           id="debitDescription"
-                          value={formData?.debitDescription ?? ""}
+                          value={formData?.debitDescription || ""}
                           onChange={handleInput}
                           disabled={!isEnabled("debitDescription")}
                           className={`mt-0 w-full p-1 border ${
@@ -631,7 +592,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           type="text"
-                          placeholder=""
+                          placeholder="Description"
                         />
                       </div>
                     </div>
@@ -643,7 +604,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                         <input
                           name="creditAmount"
                           id="creditAmount"
-                          value={formData?.creditAmount ?? ""}
+                          value={formData?.creditAmount || ""}
                           onChange={handleInput}
                           disabled={!isEnabled("creditAmount")}
                           className={`mt-0 w-full p-1 border ${
@@ -651,13 +612,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                               ? "border-red-500"
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          type="text"
-                          placeholder=""
+                          type="number"
+                          placeholder="Amount"
                         />
                         <input
                           name="creditDescription"
                           id="creditDescription"
-                          value={formData?.creditDescription ?? ""}
+                          value={formData?.creditDescription || ""}
                           onChange={handleInput}
                           disabled={!isEnabled("creditDescription")}
                           className={`mt-0 w-full p-1 border ${
@@ -666,7 +627,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                               : "border-gray-300"
                           } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           type="text"
-                          placeholder=""
+                          placeholder="Description"
                         />
                       </div>
                     </div>
@@ -692,7 +653,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <select
                   name="unitVoucherHeadById"
                   id="unitVoucherHeadById"
-                  value={formData?.unitVoucherHeadById ?? ""}
+                  value={formData?.unitVoucherHeadById || ""}
                   onChange={handleInput}
                   required
                   disabled={!isEnabled("unitVoucherHeadById")}
@@ -712,53 +673,108 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
-                {/** Prepared, Reviewed, Approved By selects */}
-                {[
-                  { name: "preparedById", label: "Prepared By", stepNumber: 6 },
-                  { name: "reviewedById", label: "Reviewed By", stepNumber: 7 },
-                  { name: "approvedById", label: "Approved By", stepNumber: 8 },
-                ].map((role) => (
-                  <div key={role.name}>
-                    <label className="block text-sm font-medium text-gray-600">
-                      {role.label}
-                    </label>
-                    {getSignerProps({ stepNumber: role.stepNumber }) ? (
-                      <div
-                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                      >
-                        {
-                          getSignerProps({ stepNumber: role.stepNumber })
-                            ?.firstName
-                        }{" "}
-                        {
-                          getSignerProps({ stepNumber: role.stepNumber })
-                            ?.lastName
-                        }
-                      </div>
-                    ) : (
-                      <select
-                        name={role.name}
-                        id={role.name}
-                        value={(formData as any)?.[role.name] ?? ""}
-                        onChange={handleInput}
-                        required
-                        disabled={!isEnabled(role.name)}
-                        className={`mt-0 w-full p-1 border ${
-                          isEnabled(role.name)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="">Select an option</option>
-                        {employeeOptions?.map((employee) => (
-                          <option key={employee.id} value={employee.value}>
-                            {employee.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Prepared By
+                  </label>
+                  {getSignerProps({ stepNumber: 0 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 0 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 0 })?.lastName}
+                    </div>
+                  ) : (
+                    <select
+                      name="preparedById"
+                      id="preparedById"
+                      value={formData?.preparedById || ""}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("preparedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("preparedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Reviewed By
+                  </label>
+                  {getSignerProps({ stepNumber: 1 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 1 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 1 })?.lastName}
+                    </div>
+                  ) : (
+                    <select
+                      name="reviewedById"
+                      id="reviewedById"
+                      value={formData?.reviewedById || ""}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("reviewedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("reviewedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Approved By
+                  </label>
+                  {getSignerProps({ stepNumber: 2 }) ? (
+                    <div
+                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                    >
+                      {getSignerProps({ stepNumber: 2 })?.firstName}{" "}
+                      {getSignerProps({ stepNumber: 2 })?.lastName}
+                    </div>
+                  ) : (
+                    <select
+                      name="approvedById"
+                      id="approvedById"
+                      value={formData?.approvedById || ""}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("approvedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("approvedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -781,7 +797,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     <textarea
                       name="auditRemarkPass"
                       id="auditRemarkPass"
-                      value={formData?.auditRemarkPass ?? ""}
+                      value={formData?.auditRemarkPass || ""}
                       onChange={handleInput}
                       disabled={!isEnabled("auditRemarkPass")}
                       className={`mt-0 w-full p-1 border ${
@@ -802,7 +818,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     <textarea
                       name="auditRemarkQuery"
                       id="auditRemarkQuery"
-                      value={formData?.auditRemarkQuery ?? ""}
+                      value={formData?.auditRemarkQuery || ""}
                       onChange={handleInput}
                       disabled={!isEnabled("auditRemarkQuery")}
                       className={`mt-0 w-full p-1 border ${
@@ -822,18 +838,18 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     Audit Checker:
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 10 }) ? (
+                    {getSignerProps({ stepNumber: 4 }) ? (
                       <div
                         className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
                       >
-                        {getSignerProps({ stepNumber: 10 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 10 })?.lastName}
+                        {getSignerProps({ stepNumber: 4 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 4 })?.lastName}
                       </div>
                     ) : (
                       <select
                         name="auditCheckedById"
                         id="auditCheckedById"
-                        value={formData?.auditCheckedById ?? ""}
+                        value={formData?.auditCheckedById || ""}
                         onChange={handleInput}
                         required
                         disabled={!isEnabled("auditCheckedById")}
@@ -854,7 +870,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     <input
                       name="auditCheckedByDate"
                       id="auditCheckedByDate"
-                      value={formData?.auditCheckedByDate ?? ""}
+                      value={formData?.auditCheckedByDate || ""}
                       onChange={handleInput}
                       disabled={!isEnabled("auditCheckedByDate")}
                       className={`mt-0 w-full p-1 border ${
@@ -872,18 +888,18 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     Audit Reviewer
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 11 }) ? (
+                    {getSignerProps({ stepNumber: 5 }) ? (
                       <div
                         className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
                       >
-                        {getSignerProps({ stepNumber: 11 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 11 })?.lastName}
+                        {getSignerProps({ stepNumber: 5 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 5 })?.lastName}
                       </div>
                     ) : (
                       <select
                         name="auditReviewedById"
                         id="auditReviewedById"
-                        value={formData?.auditReviewedById ?? ""}
+                        value={formData?.auditReviewedById || ""}
                         onChange={handleInput}
                         required
                         disabled={!isEnabled("auditReviewedById")}
@@ -904,7 +920,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     <input
                       name="auditReviewedByDate"
                       id="auditReviewedByDate"
-                      value={formData?.auditReviewedByDate ?? ""}
+                      value={formData?.auditReviewedByDate || ""}
                       onChange={handleInput}
                       disabled={!isEnabled("auditReviewedByDate")}
                       className={`mt-0 w-full p-1 border ${
@@ -922,18 +938,18 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     Audit Remarker
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 12 }) ? (
+                    {getSignerProps({ stepNumber: 6 }) ? (
                       <div
                         className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
                       >
-                        {getSignerProps({ stepNumber: 12 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 12 })?.lastName}
+                        {getSignerProps({ stepNumber: 6 })?.firstName}{" "}
+                        {getSignerProps({ stepNumber: 6 })?.lastName}
                       </div>
                     ) : (
                       <select
                         name="auditRemarkedById"
                         id="auditRemarkedById"
-                        value={formData?.auditRemarkedById ?? ""}
+                        value={formData?.auditRemarkedById || ""}
                         onChange={handleInput}
                         required
                         disabled={!isEnabled("auditRemarkedById")}
@@ -954,7 +970,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     <input
                       name="auditApprovedByDate"
                       id="auditApprovedByDate"
-                      value={formData?.auditApprovedByDate ?? ""}
+                      value={formData?.auditApprovedByDate || ""}
                       onChange={handleInput}
                       disabled={!isEnabled("auditApprovedByDate")}
                       className={`mt-0 w-full p-1 border ${
@@ -971,7 +987,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             </div>
           </div>
         )}
-
         {isDownloading && <div className="mb-40"></div>}
 
         {/* Central Payment Office Approval */}
@@ -985,18 +1000,18 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <label className=" text-sm font-medium text-gray-600">
                   Head of Unit [CPO]
                 </label>
-                {getSignerProps({ stepNumber: 13 }) ? (
+                {getSignerProps({ stepNumber: 7 }) ? (
                   <div
                     className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
                   >
-                    {getSignerProps({ stepNumber: 13 })?.firstName}{" "}
-                    {getSignerProps({ stepNumber: 13 })?.lastName}
+                    {getSignerProps({ stepNumber: 7 })?.firstName}{" "}
+                    {getSignerProps({ stepNumber: 7 })?.lastName}
                   </div>
                 ) : (
                   <select
                     name="cpoHeadById"
                     id="cpoHeadById"
-                    value={formData?.cpoHeadById ?? ""}
+                    value={formData?.cpoHeadById || ""}
                     onChange={handleInput}
                     required
                     disabled={!isEnabled("cpoHeadById")}
@@ -1020,17 +1035,17 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                   {
                     name: "cpoPreparedById",
                     label: "Payment Initiator",
-                    stepNumber: 14,
+                    stepNumber: 8,
                   },
                   {
                     name: "cpoReviewedById",
                     label: "Payment Reviewer",
-                    stepNumber: 15,
+                    stepNumber: 9,
                   },
                   {
                     name: "cpoApprovedById",
                     label: "Payment Approver",
-                    stepNumber: 16,
+                    stepNumber: 10,
                   },
                 ].map((role) => (
                   <div key={role.name}>
@@ -1054,7 +1069,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                       <select
                         name={role.name}
                         id={role.name}
-                        value={(formData as any)?.[role.name] ?? ""}
+                        value={(formData as any)?.[role.name] || ""}
                         onChange={handleInput}
                         required
                         disabled={!isEnabled(role.name)}
@@ -1089,7 +1104,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
               <textarea
                 name="additionalNotes"
                 id="additionalNotes"
-                value={formData?.additionalNotes ?? ""}
+                value={formData?.additionalNotes || ""}
                 onChange={handleInput}
                 disabled={!isEnabled("additionalNotes")}
                 className={`mt-0 w-full p-1 border ${
@@ -1104,40 +1119,32 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
           </div>
         )}
 
-        {(vissibleSections?.includes("approvals") || mode === "preview") && (
+        {(vissibleSections.includes("approvals") || mode === "preview") && (
           <div className="mt-2 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {approvers.map((approver, idx) => {
-                const signer = getSignerProps(approver);
-                return <Signer {...(signer ?? {})} key={idx} />;
-              })}
+              {approvers.map((approver, idx) => (
+                <Signer key={idx} {...(getSignerProps(approver) ?? {})} />
+              ))}
             </div>
           </div>
         )}
 
         {/* Action Buttons */}
         {showActionButtons && (
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Submit
-            </button>
-          </div>
+          <FormActions
+            loading={loading}
+            handleCancel={handleCancel}
+            mode={mode}
+            handleSubmit={handleSubmit}
+            responseTypes={responseTypes}
+          />
         )}
       </div>
     </div>
   );
 };
 
-export default PaymentVoucher;
+export default PaymentVoucherSemiAuto;

@@ -7,12 +7,11 @@ import React, {
 } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
-import useDownloadPdf from "../../common/useDownloadPdf";
+import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
-
-// --- Types ---
+import FormActions from "./FormActions";
 
 interface Requestor {
   firstName?: string;
@@ -47,10 +46,13 @@ interface JobMaintenanceRequisitionProps {
   formResponses: Partial<JobMaintenanceRequisitionForm>;
   enableInputList?: string[];
   vissibleSections?: string[];
-  onSubmit: (data: JobMaintenanceRequisitionForm) => void;
+  onSubmit: (data: JobMaintenanceRequisitionForm, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
-  mode?: "edit" | "preview";
+  mode?: "edit" | "preview" | "new" | "in_progress";
+  responseTypes: string[];
+  loading: boolean;
+  setLoading: (value: boolean) => void;
 }
 
 const requiredFields: (keyof JobMaintenanceRequisitionForm)[] = [
@@ -66,6 +68,10 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
   onSubmit,
   onCancel,
   showActionButtons = false,
+  mode = "new",
+  responseTypes = [""],
+  loading = false,
+  setLoading,
 }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
@@ -106,14 +112,15 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
     return !!required.length;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (status: string) => {
     if (!checkIsValid()) {
-      onSubmit(formData);
+      setLoading(true);
+      onSubmit(formData, status);
       // Reset only non-default fields
-      setFormData({
-        date: moment(new Date()).format("YYYY-MM-DD"),
-        requestorDeligation: getFinanceCode(user),
-      });
+      // setFormData({
+      //   date: moment(new Date()).format("YYYY-MM-DD"),
+      //   requestorDeligation: getFinanceCode(user),
+      // });
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -175,33 +182,38 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
         )}
 
         <div className="my-4">
-          <div className="">
-            <span className="text-sm font-semibold">
-              Department/School/Unit:{" "}
-            </span>
+          {/* Department/School/Unit */}
+          <div className="flex flex-col md:flex-row items-start md:items-center">
+            <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+              <span className="text-sm font-semibold">
+                Department/School/Unit:
+              </span>
+            </div>
+            <div className="w-full">
+              <input
+                type="text"
+                value={formData?.requestorDeligation ?? ""}
+                disabled={!isEnabled("requestorDeligation")}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleInputChange("requestorDeligation", e.target.value)
+                }
+                className={`mt-1 w-full p-1 border ${
+                  isEnabled("requestorDeligation")
+                    ? "border-red-500"
+                    : "border-gray-300"
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              />
+            </div>
           </div>
-          <div className="flex-6">
-            <input
-              type="text"
-              value={formData?.requestorDeligation ?? ""}
-              disabled={!isEnabled("requestorDeligation")}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                handleInputChange("requestorDeligation", e.target.value)
-              }
-              className={`mt-1 w-full p-1 border ${
-                isEnabled("requestorDeligation")
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-            />
-          </div>
+
+          {/* LOCATION & DATE */}
           <div className="my-4">
-            <div className="grid grid-cols-2 gap-10">
-              <div className="flex flex-rows">
-                <div className="flex-1">
-                  <span className="text-sm font-semibold">Location: </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+                  <span className="text-sm font-semibold">Location:</span>
                 </div>
-                <div className="flex-6">
+                <div className="w-full">
                   <input
                     type="text"
                     value={formData?.location ?? ""}
@@ -217,12 +229,11 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
                   />
                 </div>
               </div>
-
-              <div className="flex flex-rows">
-                <div className="flex-1">
-                  <span className="text-sm font-semibold">Date: </span>
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+                  <span className="text-sm font-semibold">Date:</span>
                 </div>
-                <div className="flex-6">
+                <div className="w-full">
                   <input
                     type="date"
                     value={formData?.date}
@@ -284,7 +295,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
           ></textarea>
         </div>
 
-        <div className="grid grid-cols-3 gap-20 ">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
           <Signer
             firstName={formData?.requestor?.firstName || user?.firstName || ""}
             lastName={formData?.requestor?.lastName || user?.lastName || ""}
@@ -316,20 +327,13 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
 
         {/* Action Buttons */}
         {showActionButtons && (
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Submit
-            </button>
-          </div>
+          <FormActions
+            loading={loading}
+            handleCancel={handleCancel}
+            mode={mode}
+            handleSubmit={handleSubmit}
+            responseTypes={responseTypes}
+          />
         )}
       </div>
     </div>

@@ -21,8 +21,6 @@ const FieldRender: React.FC<FieldRenderProps> = ({
     label: `${employee.firstName} - ${employee.lastName} `,
   }));
 
-  console.log("----employeeOptions-----", employeeOptions);
-
   switch (field.type) {
     case "text":
     case "email":

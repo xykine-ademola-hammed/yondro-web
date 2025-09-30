@@ -1,10 +1,11 @@
 import React from "react";
-import ModalWrapper from "./modal-wrapper";
+import ModalWrapper from "../components/modal-wrapper";
 import type { WorkflowRequest } from "../common/types";
 interface ConfirmationModalProps {
+  submissionStatus: string;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (status: string) => void;
+  onConfirm: () => void;
   request?: WorkflowRequest;
   onChangeComment: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -14,13 +15,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   request,
   onChangeComment,
+  submissionStatus,
 }) => {
   if (!isOpen || !request) return null;
   return (
-    <ModalWrapper title="Confirm Approval" onClose={onClose} isOpen={isOpen}>
+    <ModalWrapper title="Confirm" onClose={onClose} isOpen={isOpen}>
       <div>
         <p className="text-gray-600 mb-4">
-          Are you sure you want to <strong>APPROVE</strong> this request?
+          Are you sure you want to <strong>{submissionStatus}</strong> this
+          request?
         </p>
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="mt-4">
@@ -51,17 +54,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           >
             Cancel
           </button>
+
           <button
-            onClick={() => onConfirm("Reject")}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm w-full sm:w-auto"
-          >
-            Confirm Rejection
-          </button>
-          <button
-            onClick={() => onConfirm("Approve")}
+            onClick={onConfirm}
             className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer !rounded-button whitespace-nowrap"
           >
-            Confirm Approval
+            Confirm
           </button>
         </div>
       </div>

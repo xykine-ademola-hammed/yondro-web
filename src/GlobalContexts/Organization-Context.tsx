@@ -142,11 +142,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         value: user?.schoolOrOfficeId || "",
         condition: "equal",
       },
-      // {
-      //   key: "departmentId",
-      //   value: user?.departmentId || "",
-      //   condition: "equal",
-      // },
     ],
     limit: 10000,
     offset: 0,

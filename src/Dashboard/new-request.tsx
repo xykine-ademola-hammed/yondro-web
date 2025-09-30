@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
-import type { Employee, WorkFlow } from "../common/types";
+import type { WorkFlow } from "../common/types";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
 import { useToast } from "../GlobalContexts/ToastContext";
 import { useNavigate } from "react-router-dom";
 import RequestFormWrapper from "../components/RequestFormWrapper";
+import { appendFormData, containsFiles } from "../common/methods";
 
 export interface FormErrors {
   requestType?: string;
@@ -20,21 +21,23 @@ const NewRequest: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const { workflowReqiestFilter, fetchWorkflowRequest } = useOrganization();
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, _setErrors] = useState<FormErrors>({});
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-  const [employeeSearch, setEmployeeSearch] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number>();
+  const [loading, setLoading] = useState(false);
+  // const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployeeId, _setSelectedEmployeeId] = useState<number>();
   const [selectedWorkFlow, setSelectedWorkFlow] = useState<WorkFlow>();
 
-  const { employees, workflows } = useOrganization();
+  const { workflows } = useOrganization();
 
   const { mutateAsync: createNewWorkflowRequest } = useMutation({
-    mutationFn: (body: any) =>
+    mutationFn: (body: FormData) =>
       getMutationMethod("POST", `api/workflow-request`, body, true),
     onSuccess: (_data) => {
       fetchWorkflowRequest(workflowReqiestFilter);
       navigate("/");
       showToast("Workflow request successfully created", "success");
+      setLoading(false);
     },
     onError: async (error) => {
       console.log(error?.message);
@@ -42,21 +45,35 @@ const NewRequest: React.FC = () => {
     },
   });
 
-  const handleEmployeeSelect = (employee: Employee) => {
-    setSelectedEmployeeId(employee.id);
-    setEmployeeSearch(`${employee.firstName} ${employee.lastName}`);
-    setShowEmployeeDropdown(false);
-    if (errors.employee) {
-      setErrors((prev) => ({ ...prev, employee: undefined }));
-    }
-  };
+  // const handleEmployeeSelect = (employee: Employee) => {
+  //   setSelectedEmployeeId(employee.id);
+  //   setEmployeeSearch(`${employee.firstName} ${employee.lastName}`);
+  //   setShowEmployeeDropdown(false);
+  //   if (errors.employee) {
+  //     setErrors((prev) => ({ ...prev, employee: undefined }));
+  //   }
+  // };
 
   const handleSubmit = async (formResponses: any) => {
-    createNewWorkflowRequest({
-      workflowId: selectedWorkFlow?.id,
-      requestorId: selectedEmployeeId ?? user?.id,
-      formResponses,
-    });
+    console.log("Form Responses", formResponses);
+    let payload: any;
+
+    if (containsFiles(formResponses)) {
+      const formData = new FormData();
+      if (selectedWorkFlow?.id)
+        formData.append("workflowId", selectedWorkFlow.id.toString());
+      formData.append("requestorId", String(selectedEmployeeId ?? user?.id));
+      appendFormData(formData, formResponses);
+      payload = formData;
+    } else {
+      payload = {
+        workflowId: selectedWorkFlow?.id,
+        requestorId: selectedEmployeeId ?? user?.id,
+        ...formResponses,
+      };
+    }
+
+    await createNewWorkflowRequest(payload);
   };
 
   return (
@@ -111,7 +128,7 @@ const NewRequest: React.FC = () => {
                     </p>
                   )}
                 </div>
-                {user?.role !== "Employee" && (
+                {/* {user?.role !== "Employee" && (
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Employee <span className="text-red-500">*</span>
@@ -167,11 +184,13 @@ const NewRequest: React.FC = () => {
                       )}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
 
               {selectedWorkFlow && (
                 <RequestFormWrapper
+                  loading={loading}
+                  setLoading={setLoading}
                   onSubmit={handleSubmit}
                   onCancel={() => navigate("/")}
                   selectedWorkFlow={selectedWorkFlow}

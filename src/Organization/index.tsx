@@ -6,27 +6,30 @@ import { useAuth } from "../GlobalContexts/AuthContext";
 import SchoolOfficePage from "./Schools-Offices";
 
 export default function Organization() {
-  const [activeTab, setActiveTab] = useState("Employee");
+  const [activeTab, setActiveTab] = useState("Staff");
   const { user } = useAuth();
+  const storedUser = localStorage.getItem("user");
 
-  const tabNames = ["Employee", "Position", "Department", "School | Office"];
+  const tabNames = ["Staff", "Position", "Department", "Sch|Office"];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {user?.organization?.name}
+          {!storedUser
+            ? user?.organization?.name
+            : JSON.parse(storedUser)?.organization?.name}
         </h1>
         {/* <p className="text-gray-600">Create and manage workflows.</p> */}
       </div>
 
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8 px-6">
+        <nav className="flex space-x-4 px-6">
           {tabNames.map((tabName) => (
             <button
               key={tabName}
               onClick={() => setActiveTab(tabName)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm cursor-pointer ${
+              className={`py-4 pr-1 border-b-2 font-medium text-sm cursor-pointer ${
                 activeTab === tabName
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
@@ -39,10 +42,10 @@ export default function Organization() {
       </div>
 
       <div className="p-6">
-        {activeTab === "School | Office" && <SchoolOfficePage />}
+        {activeTab === "Sch|Office" && <SchoolOfficePage />}
         {activeTab === "Department" && <DepartmentPage />}
         {activeTab === "Position" && <PositionPage />}
-        {activeTab === "Employee" && <AllEmployee />}
+        {activeTab === "Staff" && <AllEmployee />}
       </div>
     </div>
   );

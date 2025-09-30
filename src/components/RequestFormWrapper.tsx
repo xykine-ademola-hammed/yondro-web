@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import useForm from "../common/useForms";
-import type { StageData, WorkflowRequest } from "../common/types";
+import useForm from "../common/hooks/useForms";
+import type { StageData } from "../common/types";
 import type { WorkFlowStage } from "../WorkFlow/widgets/AddEditStageEditor";
 
 // For generic form response, use 'any' unless a stricter type is available.
 interface RequestFormWrapperProps {
+  loading: boolean;
+  setLoading: (value: boolean) => void;
   formResponses?: any; // replace with actual type if known
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, status: string) => void;
   onCancel: () => void;
   selectedWorkFlow?: any;
   mode?: "new" | "edit" | string;
@@ -28,15 +30,14 @@ export default function RequestFormWrapper({
   currentWorkflowStage,
   showActionButtons = false,
   completedStages = [],
+  loading,
+  setLoading,
 }: RequestFormWrapperProps) {
   const [activeTab, setActiveTab] = useState<string>("Form");
   const [activeComponent, setActiveComponent] = useState<React.ReactNode>();
-
   const { getFormById } = useForm();
 
-  // If completedStages comes from formResponses with a different shape, adjust the interface above!
-
-  const getStageStatus = (stage: StageData) => {
+  const getStageStatus = (stage: StageData): string => {
     const stageResponse = completedStages?.find(
       (stg: any) => Number(stg.stageId) === Number(stage.id)
     );
@@ -46,22 +47,7 @@ export default function RequestFormWrapper({
       (currentWorkflowStage?.id ?? (currentWorkflowStage as any)?.stageId)
     )
       return "Current";
-
-    return stageResponse?.status;
-  };
-
-  const getComponentProps = (_selectedWorkFlow: WorkflowRequest) => {
-    return {
-      formResponses,
-      enableInputList: currentWorkflowStage?.formFields,
-      vissibleSections: currentWorkflowStage?.formSections,
-      showFormTitle: false,
-      onSubmit,
-      onCancel,
-      instruction: currentWorkflowStage?.instruction,
-      showActionButtons,
-      completedStages,
-    };
+    return stageResponse?.status ?? "";
   };
 
   // Define the menu type
@@ -74,19 +60,31 @@ export default function RequestFormWrapper({
     {
       name: "Form",
       component: (props: any) => {
-        const componentProps = getComponentProps(props);
         const form = getFormById(
           (props as any)?.formId ?? selectedWorkFlow?.type
-        ); // fallback if formId is missing
-        if (form && typeof form.component === "function") {
-          return form.component(componentProps);
-        }
-        return null;
+        );
+        return (
+          <div>
+            {form?.component({
+              formResponses,
+              trigerVoucherCreation:
+                currentWorkflowStage?.trigerVoucherCreation,
+              enableInputList: currentWorkflowStage?.formFields,
+              vissibleSections: currentWorkflowStage?.formSections,
+              showFormTitle: false,
+              onSubmit,
+              onCancel,
+              instruction: currentWorkflowStage?.instruction,
+              showActionButtons,
+              completedStages,
+              responseTypes: currentWorkflowStage?.responseTypes,
+              mode,
+              loading,
+              setLoading,
+            })}
+          </div>
+        );
       },
-    },
-    {
-      name: "Attachments",
-      component: () => <>Attachments</>,
     },
     {
       name: "Progress",
@@ -104,7 +102,9 @@ export default function RequestFormWrapper({
                       stage.isSubStage ? "w-5 h-5" : "w-8 h-8"
                     }  rounded-full flex items-center justify-center mr-3 ${
                       getStageStatus(stage) === "Approved" ||
-                      getStageStatus(stage) === "Submitted"
+                      getStageStatus(stage) === "Submitted" ||
+                      getStageStatus(stage) === "Payment" ||
+                      getStageStatus(stage) === "Procurement"
                         ? "bg-green-500 text-white"
                         : getStageStatus(stage) === "Current"
                         ? "bg-blue-500 text-white"
@@ -113,8 +113,13 @@ export default function RequestFormWrapper({
                         : "bg-gray-300 text-gray-600"
                     }`}
                   >
-                    {getStageStatus(stage) === "Approved" ||
-                    getStageStatus(stage) === "Rejected" ? (
+                    {[
+                      "Approved",
+                      "Submitted",
+                      "Payment",
+                      "Procurement",
+                      "Rejected",
+                    ].includes(getStageStatus(stage)) ? (
                       <i className="fas fa-check text-sm"></i>
                     ) : (
                       index + 1
@@ -123,7 +128,9 @@ export default function RequestFormWrapper({
                   <span
                     className={`text-sm ${
                       getStageStatus(stage) === "Approved" ||
-                      getStageStatus(stage) === "Submitted"
+                      getStageStatus(stage) === "Submitted" ||
+                      getStageStatus(stage) === "Payment" ||
+                      getStageStatus(stage) === "Procurement"
                         ? "text-green-700 font-medium"
                         : getStageStatus(stage) === "Current"
                         ? "text-blue-700 font-medium"
@@ -144,15 +151,9 @@ export default function RequestFormWrapper({
   ];
 
   useEffect(() => {
-    if (mode === "new") {
-      setActiveComponent(tabMenu[0].component(selectedWorkFlow));
-    } else {
-      if (currentWorkflowStage && selectedWorkFlow) {
-        setActiveComponent(tabMenu[0].component(selectedWorkFlow));
-      }
-    }
-    // eslint-disable-next-line
-  }, [mode, currentWorkflowStage, selectedWorkFlow]);
+    setActiveComponent(tabMenu[0].component(selectedWorkFlow));
+    setActiveTab("Form");
+  }, [mode, currentWorkflowStage, selectedWorkFlow, loading]);
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">

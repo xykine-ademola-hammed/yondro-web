@@ -7,6 +7,8 @@ import { getMutationMethod } from "../../common/api-methods";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import { useToast } from "../../GlobalContexts/ToastContext";
 import { cleanEmptyFields } from "../../common/methods";
+import { authService } from "../../services/authService";
+import UserPermissionsModal from "../../Permission/PermissionsModal";
 
 export default function AllEmployee() {
   const { user } = useAuth();
@@ -21,6 +23,7 @@ export default function AllEmployee() {
 
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
 
   // UI state
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,13 +45,34 @@ export default function AllEmployee() {
   const { mutateAsync: createEmployee } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/employees`, body, true),
-    onSuccess: (_data) => {
+    onSuccess: async (data) => {
       fetchEmployees(employeeFilter);
       showToast("Employee successfully created", "success");
+      const result = await authService.requestReset(data?.data?.email);
+      if (result.success) {
+        showToast(
+          "Email successfully sent to employee to reset password",
+          "success"
+        );
+      }
     },
     onError: async (error) => {
       console.log(error?.message);
       showToast("Employee creation unsuccessful", "error");
+    },
+  });
+
+  const { mutateAsync: updateEmployee } = useMutation({
+    mutationFn: (body: any) =>
+      getMutationMethod("PUT", `api/employee/${body.id}`, body, true),
+    onSuccess: async (_data) => {
+      fetchEmployees(employeeFilter);
+      showToast("Employee successfully updated", "success");
+      setShowPermissionsModal(false);
+    },
+    onError: async (error) => {
+      console.log(error?.message);
+      showToast("Employee updated unsuccessful", "error");
     },
   });
 
@@ -60,7 +84,6 @@ export default function AllEmployee() {
         organizationId: Number(user?.organizationId),
         password: data.email.split("@")[0],
       });
-      console.log("====================", newEmployee);
       createEmployee(newEmployee);
     } else {
       // // Update existing department
@@ -101,21 +124,41 @@ export default function AllEmployee() {
   return (
     <main>
       <div>
+        <div className="flex justify-end mb-1">
+          <button
+            onClick={() => setShowPermissionsModal(true)}
+            type="button"
+            className="inline-flex items-center mr-4 px-2 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+          >
+            <i className="fas fa-plus mx-2"></i>
+            Manage Employee Permission
+          </button>
+
+          <button
+            onClick={() => setIsAddEditModalOpen(true)}
+            type="button"
+            className="inline-flex items-center px-2 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+          >
+            <i className="fas fa-plus mx-2"></i>
+            Add Employee
+          </button>
+        </div>
+
         {/* Search and Filter Bar */}
         <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 flex-1">
-              <div className="relative flex-1">
+              <div className="relative">
                 <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                 <input
                   type="text"
                   placeholder="Search employee by email, name, or position..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
-              <div className="flex space-x-3">
+              <div className="">
                 <div className="relative">
                   <select
                     value={selectedDepartment}
@@ -132,15 +175,6 @@ export default function AllEmployee() {
                   <i className="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                 </div>
               </div>
-              <button
-                onClick={() => setIsAddEditModalOpen(true)}
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Add Employee
-              </button>
-              {/* Search and Filter Section */}
             </div>
           </div>
         </div>
@@ -450,6 +484,15 @@ export default function AllEmployee() {
         onClose={() => setIsAddEditModalOpen(false)}
         onSave={onSave}
         employee={selectedEmployee}
+      />
+
+      {/* User Permissions Modal */}
+      <UserPermissionsModal
+        isOpen={showPermissionsModal}
+        onClose={() => {
+          setShowPermissionsModal(false);
+        }}
+        onSubmit={updateEmployee}
       />
     </main>
   );

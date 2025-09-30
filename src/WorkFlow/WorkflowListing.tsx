@@ -1,10 +1,11 @@
 // import AddEditWorkflowModal from "./AddEditWorkflowModal";
 import { Link } from "react-router-dom";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
-import moment from "moment";
+import { useState } from "react";
 
 export default function WorkflowListing() {
   const { workflows } = useOrganization();
+  const [showStages, setShowStages] = useState(false);
 
   //   const [editingWorkflow, setEditingWorkflow] = useState<WorkFlow | null>(null);
 
@@ -27,12 +28,12 @@ export default function WorkflowListing() {
         {workflows?.rows?.map((workflow) => (
           <div
             key={workflow.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
           >
             <div className="flex items-center justify-between flex-col sm:flex-row">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-l font-semibold text-gray-900">
                     {workflow?.name}
                   </h3>
                   <span
@@ -45,24 +46,26 @@ export default function WorkflowListing() {
                 </div>
                 <p className="text-gray-600 mb-4">{workflow.description}</p>
 
-                <div className="flex items-center flex-wrap gap-2 mb-4">
+                <div className="flex items-center flex-wrap gap-2 mb-1">
                   <span className="text-sm font-medium text-gray-500">
                     Stages:
                   </span>
-                  {workflow?.stages?.map((stage, index) => (
-                    <span
-                      key={index}
-                      className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
-                    >
-                      {stage.name}
-                    </span>
-                  ))}
+                  <button
+                    className="px-2 py-0.5 text-sm font-medium text-gray-500 bg-green-300 rounded hover:cursor-pointer"
+                    onClick={() => setShowStages(!showStages)}
+                  >
+                    {workflow?.stages.length}
+                  </button>
+                  {showStages &&
+                    workflow?.stages?.map((stage, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
+                      >
+                        {stage.name}
+                      </span>
+                    ))}
                 </div>
-
-                <p className="text-sm text-gray-500">
-                  Last modified:{" "}
-                  {moment(workflow.createdAt).format("MMMM Do YYYY, h:mm:ss a")}
-                </p>
               </div>
 
               <div className="flex sm:flex-row md:flex-col sm:items-center md:sm:items-start space-x-4 space-y-2 mt-4 sm:mt-0 sm:ml-6 sm:flex-grow-0">
@@ -72,7 +75,7 @@ export default function WorkflowListing() {
                 >
                   View Details
                 </Link>
-                <Link
+                {/* <Link
                   to={`/workflows/add-edit/${workflow.id}`}
                   className="flex items-center justify-center bg-gray-100 text-gray-700 px-3 w-full py-1.5 rounded-lg hover:bg-gray-200 whitespace-nowrap cursor-pointer text-sm"
                 >
@@ -80,7 +83,7 @@ export default function WorkflowListing() {
                 </Link>
                 <button className="bg-red-100 text-red-700 w-full px-3 py-1.5 rounded-lg hover:bg-red-200 whitespace-nowrap cursor-pointer text-sm">
                   Delete
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

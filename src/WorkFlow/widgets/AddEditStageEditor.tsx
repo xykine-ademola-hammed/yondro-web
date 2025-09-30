@@ -7,8 +7,8 @@ import type {
 } from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
-import useForm from "../../common/useForms";
-import type { FormProps } from "../../common/useForms";
+import useForm from "../../common/hooks/useForms";
+import type { FormProps } from "../../common/hooks/useForms";
 import type { FormErrors } from "../../Dashboard/new-request";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 
@@ -20,17 +20,24 @@ interface AddEditStageEditorProps {
   formId: string;
 }
 
+export interface SplitPosition {
+  id?: number;
+  title: string;
+  marker?: string;
+}
+
 export interface WorkFlowStage {
   id?: number | undefined;
   name?: string;
   instruction?: string;
   isSubStage?: boolean;
   isRequestor?: boolean;
+  hasSplitAssignee?: boolean;
   isRequestorDepartment?: boolean;
+  trigerVoucherCreation?: boolean;
   assigneeDepartmentId?: string;
   assigneePositionId?: string;
   assigineeLookupField?: string;
-  isRequireApproval: boolean;
   formFields: any[];
   formSections?: any[];
   organizationId?: number | string;
@@ -43,6 +50,8 @@ export interface WorkFlowStage {
   assignee?: any;
   fields: any[];
   status?: string;
+  splitPositions?: SplitPosition[];
+  responseTypes?: string[];
 }
 
 export const emptyStageData: WorkFlowStage = {
@@ -55,7 +64,6 @@ export const emptyStageData: WorkFlowStage = {
   assigneeDepartmentId: undefined,
   assigneePositionId: undefined,
   assigineeLookupField: "",
-  isRequireApproval: false,
   formFields: [],
   formSections: [],
   fields: [],
@@ -70,10 +78,20 @@ export default function AddEditStageEditor({
 }: AddEditStageEditorProps) {
   const { user } = useAuth();
   const [positionData, setPositionData] = useState<PositionData>();
-  const [formData, setStageData] = useState<WorkFlowStage>(selectedStage);
+  const [formData, setStageData] = useState<WorkFlowStage>({
+    ...selectedStage,
+    responseTypes: selectedStage.responseTypes ?? [],
+  });
   const [selectedForm, setSelectedForm] = useState<FormProps>({} as FormProps);
   const [positionSearch, setPositionSearch] = useState("");
+  const [activeSplitPositionIndex, setActiveSplitPositionIndex] =
+    useState<number>();
+  const [splitPositionSearch, setSplitPositionSearch] = useState<string[]>([]);
   const [showPositionDropdown, setShowPositionDropdown] = useState<boolean>();
+
+  const [showSplitPositionDropdown, setShowSplitPositionDropdown] =
+    useState<boolean>();
+
   const [errors, setErrors] = useState<FormErrors>({});
 
   const { getFormById } = useForm();
@@ -90,7 +108,10 @@ export default function AddEditStageEditor({
   });
 
   useEffect(() => {
-    if (positionSearch) {
+    if (
+      positionSearch ||
+      (formData.hasSplitAssignee && activeSplitPositionIndex !== undefined)
+    ) {
       fetchPositions({
         filters: [
           {
@@ -100,7 +121,11 @@ export default function AddEditStageEditor({
           },
           {
             key: "title",
-            value: positionSearch,
+            value:
+              formData.hasSplitAssignee &&
+              activeSplitPositionIndex !== undefined
+                ? splitPositionSearch[activeSplitPositionIndex]
+                : positionSearch,
             condition: "like",
           },
         ],
@@ -120,7 +145,7 @@ export default function AddEditStageEditor({
         offset: 0,
       });
     }
-  }, [positionSearch]);
+  }, [positionSearch, splitPositionSearch]);
 
   useEffect(() => {
     if (formId) {
@@ -156,6 +181,50 @@ export default function AddEditStageEditor({
     if (errors.position) {
       setErrors((prev) => ({ ...prev, position: undefined }));
     }
+  };
+
+  const handleSplitPositionSelect = (index: number, position: Position) => {
+    setStageData((prevData: any) => {
+      const splitPositions = [...(prevData.splitPositions || [])];
+      splitPositions[index] = {
+        ...(splitPositions[index] || {}),
+        id: position.id,
+        title: position.title,
+      };
+      return {
+        ...prevData,
+        splitPositions,
+      };
+    });
+
+    let splitPositionSearchHolder = [...splitPositionSearch];
+    splitPositionSearchHolder[index] = position.title;
+
+    setSplitPositionSearch(splitPositionSearchHolder);
+    setShowSplitPositionDropdown(false);
+    setActiveSplitPositionIndex(undefined);
+  };
+
+  const handleSplitPositionMarkerSelect = (index: number, marker: string) => {
+    setStageData((prevData: any) => {
+      const splitPositions = [...(prevData.splitPositions || [])];
+      splitPositions[index] = {
+        ...(splitPositions[index] || {}),
+        marker,
+      };
+      return {
+        ...prevData,
+        splitPositions,
+      };
+    });
+  };
+
+  const handleSplitPositionSearch = (index: number, search: string) => {
+    setSplitPositionSearch((prev) => {
+      const next = [...prev];
+      next[index] = search;
+      return next;
+    });
   };
 
   return (
@@ -221,140 +290,343 @@ export default function AddEditStageEditor({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assignee
                 </label>
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    id="isRequestor"
-                    checked={formData.isRequestor}
-                    onChange={(e) =>
-                      setStageData((prev) => ({
-                        ...prev,
-                        isRequestor: e.target.checked,
-                      }))
-                    }
-                    className="mr-2"
-                  />
-                  <label
-                    htmlFor="assignToRequestor"
-                    className="text-sm text-gray-700"
-                  >
-                    Requestor
-                  </label>
-                </div>
 
-                {!formData.isRequestor && (
-                  <div className="border border-gray-300 p-4 rounded-lg bg-white">
-                    {/* Assignee Selection Row */}
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Assignee Position
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={positionSearch}
-                            onChange={(e) => {
-                              setPositionSearch(e.target.value);
-                              setShowPositionDropdown(true);
-                            }}
-                            onFocus={() => setShowPositionDropdown(true)}
-                            placeholder="Search and select employee"
-                            className={`w-full px-4 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer ${
-                              errors.position
-                                ? "border-red-300"
-                                : "border-gray-300"
-                            }`}
-                          />
-                          <i className="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-
-                          {showPositionDropdown && positionSearch && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                              {positionData?.rows?.length &&
-                              positionData?.rows?.length > 0 ? (
-                                positionData?.rows?.map((position) => (
-                                  <div
-                                    key={position.id}
-                                    onClick={() =>
-                                      handleParentPositionSelect(position)
-                                    }
-                                    className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                  >
-                                    <div className="font-medium text-gray-900">
-                                      {position.title}
-                                    </div>
-                                    <div className="text-sm text-gray-600">
-                                      {position.department?.name}
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="px-4 py-3 text-gray-500">
-                                  No position found
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Assignee Holder Selection */}
-                      <div className="flex-1">
-                        <label className="block text-gray-700 text-sm mb-2">
-                          Select assignee lookup field
-                        </label>
-                        <select
-                          name="assigineeLookupField"
-                          id="assigineeLookupField"
-                          value={formData?.assigineeLookupField}
-                          onChange={(e) =>
-                            setStageData((prev) => ({
-                              ...prev,
-                              assigineeLookupField: e.target.value,
-                            }))
-                          }
-                          required
-                          className=" w-full py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                        >
-                          <option value="">Select an option</option>
-                          {selectedForm?.assigneeHolders &&
-                            Object.entries(selectedForm.assigneeHolders).map(
-                              ([key, value]) => (
-                                <option key={key} value={key}>
-                                  {value}
-                                </option>
-                              )
-                            )}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Approval Requirement */}
-                    <div className="mt-5 flex items-center">
+                <div className="flex gap-4 ">
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      id="assignee"
+                      checked={formData.isRequestor}
+                      onChange={(e) =>
+                        setStageData((prev) => ({
+                          ...prev,
+                          isRequestor: e.target.checked,
+                        }))
+                      }
+                      className="mr-2"
+                    />
+                    <label
+                      htmlFor="assignToRequestor"
+                      className="text-sm text-gray-700"
+                    >
+                      Requestor
+                    </label>
+                  </div>
+                  <div>
+                    <div className="flex items-center mb-2">
                       <input
                         type="checkbox"
-                        id="isRequireApproval"
-                        checked={formData.isRequireApproval}
-                        onChange={(e) =>
+                        id="assignee"
+                        checked={formData.hasSplitAssignee}
+                        onChange={(e) => {
                           setStageData((prev) => ({
                             ...prev,
-                            isRequireApproval: e.target.checked,
-                          }))
-                        }
+                            hasSplitAssignee: e.target.checked,
+                            splitPositions: [
+                              { title: "", id: undefined, marker: "" },
+                              { title: "", id: undefined, marker: "" },
+                            ],
+                          }));
+                        }}
                         className="mr-2"
                       />
                       <label
-                        htmlFor="isRequireApproval"
+                        htmlFor="hasSplitAssignee"
                         className="text-sm text-gray-700"
                       >
-                        Require approval
+                        Split assignees
                       </label>
-                      <span className="ml-4 text-yellow-500 text-xs">
-                        This will add approve, reject and comment
-                        functionalities.
-                      </span>
                     </div>
                   </div>
+                </div>
+
+                {!formData.isRequestor && (
+                  <>
+                    {!formData.hasSplitAssignee ? (
+                      <div className="border border-gray-300 p-4 rounded-lg bg-white">
+                        <div className="flex flex-col sm:flex-row gap-6">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Assignee Position
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={positionSearch}
+                                onChange={(e) => {
+                                  setPositionSearch(e.target.value);
+                                  setShowPositionDropdown(true);
+                                }}
+                                onFocus={() => setShowPositionDropdown(true)}
+                                placeholder="Search and select employee"
+                                className={`w-full px-4 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer ${
+                                  errors.position
+                                    ? "border-red-300"
+                                    : "border-gray-300"
+                                }`}
+                              />
+                              <i className="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+
+                              {showPositionDropdown && positionSearch && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                  {positionData?.rows?.length &&
+                                  positionData?.rows?.length > 0 ? (
+                                    positionData?.rows?.map((position) => (
+                                      <div
+                                        key={position.id}
+                                        onClick={() =>
+                                          handleParentPositionSelect(position)
+                                        }
+                                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                      >
+                                        <div className="font-medium text-gray-900">
+                                          {position.title}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          {position.department?.name}
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="px-4 py-3 text-gray-500">
+                                      No position found
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Assignee Holder Selection */}
+                          <div className="flex-1">
+                            <label className="block text-gray-700 text-sm mb-2">
+                              Select assignee lookup field
+                            </label>
+                            <select
+                              name="assigineeLookupField"
+                              id="assigineeLookupField"
+                              value={formData?.assigineeLookupField}
+                              onChange={(e) =>
+                                setStageData((prev) => ({
+                                  ...prev,
+                                  assigineeLookupField: e.target.value,
+                                }))
+                              }
+                              required
+                              className=" w-full py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                              <option value="">Select an option</option>
+                              {selectedForm?.assigneeHolders &&
+                                Object.entries(
+                                  selectedForm.assigneeHolders
+                                ).map(([key, value]) => (
+                                  <option key={key} value={key}>
+                                    {value}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border border-gray-300 p-4 rounded-lg bg-white">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Split Approval(s)
+                        </label>
+                        {formData?.splitPositions?.map(
+                          (splitPosition, index) => (
+                            <div
+                              key={splitPosition.id}
+                              className="flex flex-col sm:flex-row gap-6"
+                            >
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Position
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={splitPositionSearch[index]}
+                                    onChange={(e) => {
+                                      setActiveSplitPositionIndex(index);
+                                      handleSplitPositionSearch(
+                                        index,
+                                        e.target.value
+                                      );
+                                      setShowSplitPositionDropdown(true);
+                                    }}
+                                    onFocus={() =>
+                                      setShowSplitPositionDropdown(true)
+                                    }
+                                    placeholder="Search and select employee"
+                                    className={`w-full px-4 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer ${
+                                      errors.position
+                                        ? "border-red-300"
+                                        : "border-gray-300"
+                                    }`}
+                                  />
+                                  <i className="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+
+                                  {showSplitPositionDropdown &&
+                                    activeSplitPositionIndex === index && (
+                                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        {positionData?.rows?.length &&
+                                        positionData?.rows?.length > 0 ? (
+                                          positionData?.rows?.map(
+                                            (position) => (
+                                              <div
+                                                key={position.id}
+                                                onClick={() =>
+                                                  handleSplitPositionSelect(
+                                                    index,
+                                                    position
+                                                  )
+                                                }
+                                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                              >
+                                                <div className="font-medium text-gray-900">
+                                                  {position.title}
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                  {position.department?.name}
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        ) : (
+                                          <div className="px-4 py-3 text-gray-500">
+                                            No position found
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+
+                              {/* Assignee Holder Selection */}
+                              <div className="flex-1">
+                                <label className="block text-gray-700 text-sm mb-2">
+                                  Select split indicator
+                                </label>
+                                <select
+                                  name="splitPositionMarker"
+                                  id="splitPositionMarker"
+                                  value={splitPosition.marker}
+                                  onChange={(e) =>
+                                    handleSplitPositionMarkerSelect(
+                                      index,
+                                      e.target.value
+                                    )
+                                  }
+                                  required
+                                  className=" w-full py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                >
+                                  <option value="">Select an option</option>
+                                  {selectedForm?.splitApprovalMarker?.map(
+                                    (splitPositionMarker) => (
+                                      <option
+                                        key={splitPositionMarker}
+                                        value={splitPositionMarker}
+                                      >
+                                        {splitPositionMarker}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    <div className="border border-gray-300 mt-2 p-4 rounded-lg bg-white">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Response Type
+                      </label>
+                      <div className="flex gap-4">
+                        {[
+                          "Approval",
+                          "Acknowledgement",
+                          "Payment",
+                          "Procurement",
+                          "Recommend",
+                        ].map((responseType) => (
+                          <div
+                            className="mt-3 flex items-center"
+                            key={responseType}
+                          >
+                            <input
+                              type="checkbox"
+                              id={`responseType-${responseType}`}
+                              checked={(formData.responseTypes ?? []).includes(
+                                responseType
+                              )}
+                              onChange={(e) =>
+                                setStageData((prev) => ({
+                                  ...prev,
+                                  responseTypes: e.target.checked
+                                    ? [
+                                        ...(prev.responseTypes ?? []),
+                                        responseType,
+                                      ]
+                                    : (prev.responseTypes ?? []).filter(
+                                        (type) => type !== responseType
+                                      ),
+                                }))
+                              }
+                              className="mr-2"
+                            />
+                            <label
+                              htmlFor={`responseType-${responseType}`}
+                              className="text-sm text-gray-700"
+                            >
+                              {responseType}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border border-gray-300 mt-2 p-4 rounded-lg bg-white">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Voucher and Votebook Trigger
+                      </label>
+                      <div className="flex gap-4">
+                        {[
+                          {
+                            key: "trigerVoucherCreation",
+                            label: "Trigger Voucher Creation",
+                          },
+                          {
+                            key: "triggerVotebookEntry",
+                            label: "Trigger Votebook Entry",
+                          },
+                        ].map(({ key, label }) => (
+                          <div className="mt-3 flex items-center" key={key}>
+                            <input
+                              type="checkbox"
+                              id={`responseType-${key}`}
+                              checked={formData[key as keyof WorkFlowStage]}
+                              onChange={(e) =>
+                                setStageData((prev) => ({
+                                  ...prev,
+                                  [key]: e.target.checked,
+                                }))
+                              }
+                              className="mr-2"
+                            />
+                            <label
+                              htmlFor={`responseType-${key}`}
+                              className="text-sm text-gray-700"
+                            >
+                              {label}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 

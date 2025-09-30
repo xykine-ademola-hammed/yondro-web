@@ -32,7 +32,7 @@ export const emptyEmployee: Employee = {
   isActive: true,
   departmentId: undefined,
   positionId: undefined,
-  roles: undefined,
+  role: undefined,
 };
 
 const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
@@ -152,10 +152,12 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     }
     if (!formData?.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData?.positionId) newErrors.position = "Position is required";
+    if (!formData?.role) newErrors.role = "Role is required";
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
+      console.log("===========FORMDATA========", formData);
       onSave({ ...formData });
       setFormData({ ...emptyEmployee });
     }
@@ -392,15 +394,15 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label
-                  htmlFor="roles"
+                  htmlFor="role"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Role <span className="text-red-500">*</span>
                 </label>
                 <select
-                  id="roles"
-                  name="roles"
-                  value={formData.roles || ""}
+                  id="role"
+                  name="role"
+                  value={formData.role || ""}
                   onChange={handleInputChange}
                   className={`block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${
                     errors.position ? "border-red-300" : ""
@@ -411,8 +413,8 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                   <option value="Manager">Manager</option>
                   <option value="Employee">Employee</option>
                 </select>
-                {errors?.roles && (
-                  <p className="mt-1 text-sm text-red-600">{errors.roles}</p>
+                {errors?.role && (
+                  <p className="mt-1 text-sm text-red-600">{errors.role}</p>
                 )}
               </div>
             </div>

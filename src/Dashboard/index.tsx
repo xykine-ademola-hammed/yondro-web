@@ -106,16 +106,6 @@ const Dashboard: React.FC = () => {
           <i className="fas fa-plus mr-2"></i>New Request
         </button>
       </div>
-
-      {/*       
-
-      <RequestDetailViewModal
-        isOpen={isDetailModalOpen}
-        onClose={handleCloseDetailModal}
-        request={selectedRequest}
-        onReject={handleRejectClick}
-        onApprove={handleApproveClick}
-      /> */}
     </div>
   );
 };

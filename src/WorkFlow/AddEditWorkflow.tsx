@@ -12,7 +12,7 @@ import { getMutationMethod, getQueryMethod } from "../common/api-methods";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
 import { useToast } from "../GlobalContexts/ToastContext";
-import useForm from "../common/useForms";
+import useForm from "../common/hooks/useForms";
 
 export default function AddEditWorkflow() {
   const { workflowId } = useParams();
@@ -91,12 +91,6 @@ export default function AddEditWorkflow() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    console.log("--------HER-----", {
-      ...formData,
-      organizationId: user?.organizationId,
-    });
-
     createWorkflow({ ...formData, organizationId: user?.organizationId });
   };
 

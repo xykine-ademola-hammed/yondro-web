@@ -81,7 +81,6 @@ const PositionPage: React.FC = () => {
       | { target: { name: string; value: any } }
   ) => {
     const { name, value } = event.target;
-    console.log("-----handleInputChange------", name, value);
     setCurrentPosition({
       ...currentPosition,
       [name]: value,
@@ -122,12 +121,23 @@ const PositionPage: React.FC = () => {
   }, [selectedDepartment]);
 
   return (
-    <>
+    <div>
+      <div className="flex justify-end mb-1">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          type="button"
+          className="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+        >
+          <i className="fas fa-plus mr-2"></i>
+          Add Position
+        </button>
+      </div>
+
       {/* Search and Filter Bar */}
       <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 flex-1">
-            <div className="relative flex-1">
+            <div className="relative ">
               <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
               <input
                 type="text"
@@ -137,7 +147,7 @@ const PositionPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-            <div className="flex space-x-3">
+            <div className="space-x-3">
               <div className="relative">
                 <select
                   value={selectedDepartment}
@@ -154,15 +164,6 @@ const PositionPage: React.FC = () => {
                 <i className="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
               </div>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              type="button"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              Add Position
-            </button>
-            {/* Search and Filter Section */}
           </div>
         </div>
       </div>
@@ -258,7 +259,7 @@ const PositionPage: React.FC = () => {
           handlePositionSubmit={handlePositionSubmit}
         />
       )}
-    </>
+    </div>
   );
 };
 

@@ -1,28 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
-  X,
   Home,
   Workflow,
   FileText,
   Building2,
   LogOut,
+  UserIcon,
+  BookOpen,
+  X,
   User,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { OrganizationProvider } from "../../GlobalContexts/Organization-Context";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 
-const navigation = [
+export interface NavigationItem {
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+}
+
+const navigation: NavigationItem[] = [
   { name: "Home", href: "/", icon: Home },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "Requests", href: "/requests", icon: FileText },
   { name: "Forms", href: "/forms", icon: FileText },
   { name: "Organization", href: "/organization", icon: Building2 },
+  { name: "Permission", href: "/permissions", icon: User },
+  // { name: "Approvals", href: "/approvals", icon: CheckCircle },
+  { name: "Bursary", href: "/bursary", icon: BookOpen },
+  { name: "Profile", href: "/profile", icon: UserIcon },
+  // { name: "Vouchers", href: "/vouchers", icon: FileText },
+  // { name: "Vote Book", href: "/votebook", icon: BookOpen },
+  // { name: "Budget Adjustments", href: "/budget-adjustments", icon: TrendingUp },
+  // { name: "NCOA Codes", href: "/ncoa", icon: BookOpen },
+  // { name: "Reports", href: "/reports", icon: BarChart3 },
+  // { name: "Fiscal Years", href: "/fiscal-years", icon: Calendar },
+];
+
+const employeeNavigation: NavigationItem[] = [
+  { name: "Home", href: "/", icon: Home },
+  { name: "Requests", href: "/requests", icon: FileText },
+  { name: "Profile", href: "/profile", icon: UserIcon },
 ];
 
 export function LayoutNew() {
+  const [sideBarNavigation, setNavBarNavigations] = useState<NavigationItem[]>(
+    []
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -30,12 +57,20 @@ export function LayoutNew() {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/login");
   };
+
+  useEffect(() => {
+    if (user?.role === "Employee") {
+      setNavBarNavigations(employeeNavigation);
+    } else {
+      setNavBarNavigations(navigation);
+    }
+  }, [user]);
 
   return (
     <OrganizationProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         {/* Mobile sidebar */}
         <div
           className={`fixed inset-0 z-50 lg:hidden ${
@@ -48,7 +83,7 @@ export function LayoutNew() {
           />
           <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
             <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-gray-900">Yondro</h1>
+              <h1 className="text-xl font-bold text-gray-900">EduXora</h1>
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -57,7 +92,7 @@ export function LayoutNew() {
               </button>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2">
-              {navigation.map((item) => {
+              {sideBarNavigation.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 return (
@@ -108,7 +143,7 @@ export function LayoutNew() {
         <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col mb-20">
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
             <div className="flex h-16 items-center px-6 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-gray-900">Workflow</h1>
+              <h1 className="text-xl font-bold text-gray-900">EduXora</h1>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2">
               {navigation.map((item) => {

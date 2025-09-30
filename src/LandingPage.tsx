@@ -1,11 +1,8 @@
 import LoginForm from "./LoginForm";
-import { useAuth } from "./GlobalContexts/AuthContext";
 
 export default function Home() {
-  const { user, isRole } = useAuth();
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
       <main className="pt-2 pb-22">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
@@ -30,7 +27,7 @@ export default function Home() {
                     processes, and seamless team collaboration.
                   </p>
 
-                  {!user?.institution && isRole("Admin") && (
+                  {/* {!user?.institution && isRole("Admin") && (
                     <div className="flex flex-col sm:flex-row gap-4">
                       <button
                         onClick={() => {}}
@@ -40,7 +37,7 @@ export default function Home() {
                         <i className="ri-arrow-right-line ml-2"></i>
                       </button>
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 <LoginForm />

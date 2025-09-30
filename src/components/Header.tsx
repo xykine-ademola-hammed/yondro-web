@@ -47,8 +47,8 @@ const HeaderNav: React.FC<HeaderProps> = ({
             className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer"
           >
             <span className="text-white text-sm font-medium">
-              {user?.firstName[0]}
-              {user?.lastName[0]}
+              {user?.firstName?.[0]}
+              {user?.lastName?.[0]}
             </span>
           </div>
 

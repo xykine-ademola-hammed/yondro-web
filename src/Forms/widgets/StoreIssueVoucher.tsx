@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, type RefObject } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
-import useDownloadPdf from "../../common/useDownloadPdf";
+import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import spedLogo from "../../assets/spedLogo.png";
+import FormActions from "./FormActions";
+import GenericTable from "./StoreItemTable";
 
 const requiredFields = [
   "unit",
@@ -44,6 +46,7 @@ interface Approver {
   date?: string;
   department?: string;
   position?: string;
+  label?: string;
 }
 
 interface Requestor {
@@ -68,13 +71,16 @@ interface StoreIssueVoucherForm {
 }
 
 interface StoreIssueVoucherProps {
+  loading: boolean;
+  setLoading: (value: boolean) => void;
   formResponses: StoreIssueVoucherForm;
   enableInputList?: string[];
   vissibleSections?: Array<"addMore" | string>;
-  onSubmit: (data: StoreIssueVoucherForm) => void;
+  onSubmit: (data: StoreIssueVoucherForm, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
-  mode?: "edit" | "preview";
+  mode?: "edit" | "preview" | "new" | "in_progress";
+  responseTypes: string[];
 }
 
 // default empty Item for new rows
@@ -96,7 +102,10 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
   onSubmit,
   onCancel,
   showActionButtons = false,
-  mode = "edit",
+  mode = "new",
+  responseTypes = [""],
+  loading = false,
+  setLoading,
 }) => {
   const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
@@ -163,11 +172,12 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
     return !!required.length;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (status: string) => {
     if (!checkIsValid()) {
-      onSubmit({ ...formData, storeItems });
-      setFormData({});
-      setStoreItems([]);
+      setLoading(true);
+      onSubmit({ ...formData, storeItems }, status);
+      // setFormData({});
+      // setStoreItems([]);
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -194,6 +204,64 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
       return updatedItems;
     });
   };
+
+  const storeColumns = [
+    {
+      label: "Articles",
+      field: "articles" as keyof StoreItem,
+      renderCell: (
+        val: string,
+        _row: any,
+        _idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <textarea
+          rows={1}
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm"
+        />
+      ),
+      isDisabled: (_row: any, _idx: number) => !isEnabled("articles"),
+    },
+    {
+      label: "Denomination Qty.",
+      field: "denominationOfQty" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("denominationOfQty"),
+    },
+    {
+      label: "Qty. demanded",
+      field: "qtyDemanded" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("qtyDemanded"),
+    },
+    {
+      label: "Qty. issued",
+      field: "qtyIssued" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("qtyIssued"),
+    },
+    {
+      label: "Rate",
+      field: "rate" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("rate"),
+    },
+    {
+      label: "Amount",
+      field: "amount" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("amount"),
+    },
+    {
+      label: "Ledger Folio",
+      field: "ledgerFolio" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("ledgerFolio"),
+    },
+    {
+      label: "Remarks",
+      field: "remarks" as keyof StoreItem,
+      isDisabled: (_row: any, _idx: number) => !isEnabled("remarks"),
+    },
+  ];
 
   return (
     <div className="">
@@ -242,30 +310,32 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
         )}
 
         {/* Header Section */}
-        <div className="f my-4">
-          <div className="">
-            <div className="flex flex-rows mb-2">
-              <div className="flex-1">
+        <div className="my-4">
+          <div>
+            {/* Unit */}
+            <div className="flex flex-col md:flex-row items-start md:items-center mb-2">
+              <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                 <span className="text-xs font-semibold">Unit: </span>
               </div>
-              <div className="flex-7">
+              <div className="w-full">
                 <input
                   type="text"
                   value={formData?.unit ?? ""}
                   disabled={!isEnabled("unit")}
                   onChange={(e) => handleInputChange("unit", e.target.value)}
                   className={`w-full p-1 border ${
-                    isEnabled(`unit`) ? "border-red-500" : "border-gray-300"
+                    isEnabled("unit") ? "border-red-500" : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4  mb-2">
-              <div className="flex flex-rows">
-                <div className="flex-1">
+            {/* Date & SIV No */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-xs font-semibold">Date: </span>
                 </div>
-                <div className="flex-3">
+                <div className="w-full">
                   <input
                     type="date"
                     disabled={!isEnabled("applicationDate")}
@@ -274,37 +344,36 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                       handleInputChange("applicationDate", e.target.value)
                     }
                     className={`w-full p-1 border ${
-                      isEnabled(`applicationDate`)
+                      isEnabled("applicationDate")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
                   />
                 </div>
               </div>
-
-              <div className="flex flex-rows">
-                <div className="flex-1">
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-xs font-semibold">SIV No: </span>
                 </div>
-                <div className="flex-3">
+                <div className="w-full">
                   <input
                     type="text"
                     value={formData?.sivNo ?? ""}
                     disabled={!isEnabled("sivNo")}
                     onChange={(e) => handleInputChange("sivNo", e.target.value)}
                     className={`w-full p-1 border ${
-                      isEnabled(`sivNo`) ? "border-red-500" : "border-gray-300"
+                      isEnabled("sivNo") ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
                   />
                 </div>
               </div>
             </div>
-
-            <div className="flex flex-rows mb-2">
-              <div className="flex-1">
+            {/* Department */}
+            <div className="flex flex-col md:flex-row items-start md:items-center mb-2">
+              <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                 <span className="text-xs font-semibold">Department: </span>
               </div>
-              <div className="flex-7">
+              <div className="w-full">
                 <input
                   type="text"
                   value={formData?.department ?? ""}
@@ -313,20 +382,20 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                     handleInputChange("department", e.target.value)
                   }
                   className={`w-full p-1 border ${
-                    isEnabled(`department`)
+                    isEnabled("department")
                       ? "border-red-500"
                       : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
                 />
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4  mb-2">
-              <div className="flex flex-rows">
-                <div className="flex-1">
+            {/* Authorised By & Designation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-xs font-semibold">Authorised By: </span>
                 </div>
-                <div className="flex-2">
+                <div className="w-full">
                   <input
                     type="text"
                     value={formData?.issueAuthoriseBy ?? ""}
@@ -335,19 +404,18 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                       handleInputChange("issueAuthoriseBy", e.target.value)
                     }
                     className={`w-full p-1 border ${
-                      isEnabled(`issueAuthoriseBy`)
+                      isEnabled("issueAuthoriseBy")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
                   />
                 </div>
               </div>
-
-              <div className="flex flex-rows">
-                <div className="flex-1">
+              <div className="flex flex-col md:flex-row items-start md:items-center">
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-xs font-semibold">Designation: </span>
                 </div>
-                <div className="flex-3">
+                <div className="w-full">
                   <input
                     type="text"
                     value={formData?.designation ?? ""}
@@ -356,7 +424,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                       handleInputChange("designation", e.target.value)
                     }
                     className={`w-full p-1 border ${
-                      isEnabled(`designation`)
+                      isEnabled("designation")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
@@ -367,218 +435,18 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
           </div>
         </div>
 
-        {/* Store Items */}
-        <div className="bg-white shadow rounded-lg mb-6 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="pr-40 py-1 text-left text-xs text-gray-500">
-                    Articles
-                  </th>
+        <GenericTable
+          columns={storeColumns}
+          rows={storeItems}
+          onCellChange={(field, value, rowIndex, _row) => {
+            handleStoreItemChange(field, value, rowIndex);
+          }}
+          onAddRow={addMoreRow}
+          canAddRow={vissibleSections?.includes("addMore")}
+          addRowLabel="Add row"
+        />
 
-                  <th className="px-1 py-1 text-left text-xs text-gray-500">
-                    Denomination Qty.
-                  </th>
-
-                  <th className="px-1 py-1 text-left text-xs text-gray-500">
-                    Qty. demanded
-                  </th>
-
-                  <th className="px-1 py-1 text-left text-xs text-gray-500">
-                    Qty. issued
-                  </th>
-
-                  <th className="pl-1 pr-10 py-1 text-left text-xs text-gray-500">
-                    Rate
-                  </th>
-                  <th className="pl-1 pr-10 py-1 text-left text-xs text-gray-500">
-                    Amount
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500">
-                    Ledger Folio
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500">
-                    Remarks
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {storeItems?.map((item, index) => (
-                  <tr key={item.id ?? index} className="items-center">
-                    <td className="p-1">
-                      <textarea
-                        rows={1}
-                        value={item?.articles ?? ""}
-                        disabled={!isEnabled("articles")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "articles",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`articles`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.denominationOfQty ?? ""}
-                        disabled={!isEnabled("denominationOfQty")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "denominationOfQty",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`denominationOfQty`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.qtyDemanded ?? ""}
-                        disabled={!isEnabled("qtyDemanded")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "qtyDemanded",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`qtyDemanded`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.qtyIssued ?? ""}
-                        disabled={!isEnabled("qtyIssued")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "qtyIssued",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`qtyIssued`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.rate ?? ""}
-                        disabled={!isEnabled("rate")}
-                        onChange={(e) =>
-                          handleStoreItemChange("rate", e.target.value, index)
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`rate`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.amount ?? ""}
-                        disabled={!isEnabled("amount")}
-                        onChange={(e) =>
-                          handleStoreItemChange("amount", e.target.value, index)
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`amount`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.ledgerFolio ?? ""}
-                        disabled={!isEnabled("ledgerFolio")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "ledgerFolio",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`ledgerFolio`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-                    <td className="p-1">
-                      <input
-                        type="text"
-                        value={item?.remarks ?? ""}
-                        disabled={!isEnabled("remarks")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "remarks",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border ${
-                          isEnabled(`remarks`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {(vissibleSections?.includes("addMore") || mode === "preview") && (
-              <button
-                type="button"
-                onClick={addMoreRow}
-                className="bg-blue-100 text-blue-600 px-3 py-1 rounded text-xs hover:bg-blue-200"
-              >
-                Add row
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* <div className="flex justify-end">
-          <div className="flex flex-rows">
-            <div>Total Amount:{formData?.totalAmount ?? "_____________"}</div>
-          </div>
-        </div> */}
-
-        <div className="grid grid-cols-3 gap-x-20 gap-y-4 mt-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
           <Signer
             firstName={formData?.requestor?.firstName || user?.firstName || ""}
             lastName={formData?.requestor?.lastName || user?.lastName || ""}
@@ -603,7 +471,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
               date={approver.date ?? ""}
               department={approver.department ?? ""}
               position={approver.position ?? ""}
-              label="Endorsed/Approved by"
+              label={approver.label || `Approved`}
             />
           ))}
         </div>
@@ -617,20 +485,13 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
 
         {/* Action Buttons */}
         {showActionButtons && (
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Submit
-            </button>
-          </div>
+          <FormActions
+            loading={loading}
+            handleCancel={handleCancel}
+            mode={mode}
+            handleSubmit={handleSubmit}
+            responseTypes={responseTypes}
+          />
         )}
       </div>
     </div>

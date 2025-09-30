@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import PaymentVoucher from "../Forms/widgets/PaymentVoucher-1";
-import StoreReceiptVoucher from "../Forms/widgets/StoreReceiptVoucher";
-import StoreIssueVoucher from "../Forms/widgets/StoreIssueVoucher";
-import ProcurementOrder from "../Forms/widgets/ProcurementOrder";
-import JobMaintenanceRequisition from "../Forms/widgets/JobMaintenanceRequisition";
-import PaymentVoucherSemiAuto from "../Forms/widgets/PaymentVoucher-1-semi-auto";
+import PaymentVoucher from "../../Forms/widgets/PaymentVoucher";
+import StoreReceiptVoucher from "../../Forms/widgets/StoreReceiptVoucher";
+import StoreIssueVoucher from "../../Forms/widgets/StoreIssueVoucher";
+import ProcurementOrder from "../../Forms/widgets/ProcurementOrder";
+import JobMaintenanceRequisition from "../../Forms/widgets/JobMaintenanceRequisition";
+import PaymentVoucherSemiAuto from "../../Forms/widgets/PaymentVoucher-semi-auto";
+import DutyTourExpense from "../../Forms/widgets/DutyTourExpense";
+import ClaimOutOfPocketExpense from "../../Forms/widgets/ClaimOutOfPocketExpenses";
+import RequestForPurchaseOrSpecialAdvance from "../../Forms/widgets/RequestForPurchaseOrSpecialAdvance";
 
 export interface FormProps {
   id: string | number;
@@ -18,6 +21,7 @@ export interface FormProps {
   inputLabels: { [key: string]: string }; // Added inputLabels property
   assigneeHolders: { [key: string]: string };
   formSections: { [key: string]: string };
+  splitApprovalMarker?: string[];
 }
 
 const useForm = () => {
@@ -184,6 +188,7 @@ const useForm = () => {
       formSections: {
         addMore: "Add more button",
       },
+      splitApprovalMarker: ["Approve for payment", "Approve for procurement"],
     },
     {
       id: 5,
@@ -290,6 +295,86 @@ const useForm = () => {
         approvals: "Approvals",
         showActionButtons: "Action buttons",
       },
+    },
+    {
+      id: 7,
+      name: "Duty Tour Expense Form",
+      description: "",
+      status: "Active",
+      createdBy: "Bursar",
+      lastUpdated: "2024-01-10",
+      workflows: ["Finance Request"],
+      component: (props: any) => <DutyTourExpense {...props} />,
+      inputLabels: {
+        officerName: "Name of Officer",
+        phone: "Phone number",
+        rank: "Rank",
+        contedisConpcass: "CONTEDISS/CONPCASS",
+        purpose: "Purpose of Tour",
+        travelLocation: "Place(s) of travel",
+        startDate: "Period of Tour [Start Date]",
+        endDate: "Period of Tour [End Date]",
+        travelMode: "Tranport mode specify",
+        estimatedTransportCost: "Estimated Transport Cost",
+        estimatedNight: "Estimated Night Allowance",
+        others: "Other(s) (If Applicable) Specify",
+        totalEstimate: "Total",
+        totalInWord: "Total in words",
+        bank: "Bank",
+        accountNumber: "Account number",
+        amountApproveFigure: "Sum of amount (in figure)",
+        amountApproveWord: "Approve amount (in word)",
+      },
+      assigneeHolders: {},
+      formSections: {},
+    },
+    {
+      id: 8,
+      name: "Claim Form for Out-of-Pocket Expenses",
+      description: "",
+      status: "Active",
+      createdBy: "Bursar",
+      lastUpdated: "2024-01-10",
+      workflows: ["Finance Request"],
+      component: (props: any) => <ClaimOutOfPocketExpense {...props} />,
+      inputLabels: {
+        officerName: "Officer Name",
+        department: "Department",
+        amount: "Amount",
+        amountInWord: "Amount in word",
+        purpose: "Purpose as follows",
+        noReceiptAttestation: "No Receipt Attestation",
+        bank: "Bank",
+        accountNumber: "Account number",
+      },
+      assigneeHolders: {},
+      formSections: {},
+    },
+    {
+      id: 9,
+      name: "Request for Purchase or Special Advance",
+      description: "",
+      status: "Active",
+      createdBy: "Bursar",
+      lastUpdated: "2024-01-10",
+      workflows: ["Finance Request"],
+      component: (props: any) => (
+        <RequestForPurchaseOrSpecialAdvance {...props} />
+      ),
+      inputLabels: {
+        officerName: "Name of Officer",
+        rank: "Rank",
+        contiss: "CONTISS",
+        compNo: "COMP No",
+        purpose: "Purpose of Advance",
+        bank: "Bank",
+        accountNumber: "Account number",
+        outstandingBalance: "Outstanding Balance yet to be retired",
+        advanceAmount: "Amount of Advance Required",
+        totalInWord: "totalInWord",
+      },
+      assigneeHolders: {},
+      formSections: {},
     },
   ]);
 

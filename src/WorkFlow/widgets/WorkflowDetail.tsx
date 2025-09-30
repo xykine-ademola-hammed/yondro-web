@@ -5,25 +5,6 @@ import FormViewModal from "../../Forms/FormPreviewModal";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { type StageData, type WorkFlow } from "../../common/types";
 
-/**
- * Normalizes "any" input stage (from BE, other components, etc)
- * to ensure all StageData fields have the correct types (especially departmentId).
- */
-function normalizeStageData(s: any): StageData {
-  return {
-    ...s,
-    departmentId:
-      s.departmentId === null || s.departmentId === undefined
-        ? undefined
-        : typeof s.departmentId === "string"
-        ? isNaN(Number(s.departmentId))
-          ? undefined
-          : Number(s.departmentId)
-        : s.departmentId,
-    // If more fields need to be normalized, add here
-  };
-}
-
 export default function WorkflowDetail() {
   const params = useParams<{ workflowId?: string }>();
   const { workflowId } = params;
@@ -167,30 +148,6 @@ export default function WorkflowDetail() {
                         {workflow?.name}
                       </button>
                     </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        Process Flow
-                      </h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center space-x-4 overflow-x-auto">
-                          {workflow?.stages?.map((stage, index) => (
-                            <div
-                              key={stage.id || index}
-                              className="flex items-center space-x-4 min-w-0"
-                            >
-                              <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap">
-                                {stage.name}
-                              </div>
-                              {workflow.stages &&
-                                index < workflow.stages.length - 1 && (
-                                  <i className="ri-arrow-right-line text-gray-400"></i>
-                                )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -218,25 +175,6 @@ export default function WorkflowDetail() {
                                     {stage.assignee?.departmentName}{" "}
                                     {stage.assignee?.positionName}
                                   </span>
-                                </div>
-                              )}
-
-                              {((stage.fields && stage.fields.length > 0) ||
-                                stage.isRequireApproval) && (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
-                                  <button
-                                    onClick={() => {
-                                      // Fixed: Always normalize to StageData shape.
-                                      setSelectedStage(
-                                        normalizeStageData(stage)
-                                      );
-                                      setOpenWorkflowForm(true);
-                                    }}
-                                    className="flex items-center justify-center bg-blue-600 text-white px-3 w-full py-1.5 rounded-lg hover:bg-blue-700 whitespace-nowrap cursor-pointer text-sm"
-                                    type="button"
-                                  >
-                                    Stage form ..
-                                  </button>
                                 </div>
                               )}
                             </div>

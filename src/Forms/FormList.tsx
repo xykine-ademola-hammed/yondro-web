@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import FormPreviewViewModal from "./FormPreviewModal";
-import useForm from "../common/useForms";
+import useForm from "../common/hooks/useForms";
 
 export default function FormList() {
   const [previewForm, setPreviewForm] = useState<any>(null);
@@ -70,12 +69,12 @@ export default function FormList() {
             )}
 
             <div className="flex items-center space-x-2">
-              <Link
+              {/* <Link
                 to={`/forms/${form.id}`}
                 className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-center hover:bg-blue-700 font-medium text-sm whitespace-nowrap cursor-pointer"
               >
                 Edit Form
-              </Link>
+              </Link> */}
               <button
                 onClick={() => setPreviewForm(getFormById(form.id))}
                 className="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 font-medium text-sm whitespace-nowrap cursor-pointer"
