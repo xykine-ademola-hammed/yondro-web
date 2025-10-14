@@ -2,165 +2,296 @@ import LoginForm from "./LoginForm";
 
 export default function Home() {
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
-      <main className="pt-2 pb-22">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className="relative bg-cover bg-center rounded-2xl overflow-hidden"
-            style={{
-              backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.9)), url('https://readdy.ai/api/search-image?query=modern%20office%20workspace%20with%20professionals%20collaborating%20on%20digital%20workflow%20management%20systems%2C%20clean%20bright%20environment%20with%20computers%20showing%20task%20boards%20and%20project%20management%20interfaces%2C%20professional%20business%20setting%20with%20teamwork%20and%20productivity%20focus&width=1200&height=600&seq=hero1&orientation=landscape')`,
-              minHeight: "600px",
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-indigo-600/80"></div>
-            <div className="relative z-10 py-12 px-4 sm:py-24 sm:px-8 lg:px-16">
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1">
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-                    EduXora
-                  </h1>
-                  <h1 className="text-xl sm:text-2xl lg:text-2xl text-white mb-4 sm:mb-6 leading-tight">
-                    Streamline Workflow Management
-                  </h1>
-                  <p className="text-base sm:text-lg text-blue-100 mb-6 sm:mb-8 max-w-2xl leading-relaxed">
-                    Powerful process management, automated workflows, approval
-                    processes, and seamless team collaboration.
-                  </p>
-
-                  {/* {!user?.institution && isRole("Admin") && (
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <button
-                        onClick={() => {}}
-                        className="bg-white text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:bg-gray-50 transition-colors inline-flex items-center justify-center whitespace-nowrap cursor-pointer"
-                      >
-                        Set up institution
-                        <i className="ri-arrow-right-line ml-2"></i>
-                      </button>
-                    </div>
-                  )} */}
-                </div>
-
-                <LoginForm />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      {/* Header */}
+      <header className="border-b border-slate-200/70 bg-white/70 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <span className="text-sm font-bold">EX</span>
             </div>
-          </div>
-
-          <div className="mt-10 sm:mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-200">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 sm:mb-6">
-                <i className="ri-workflow-line text-green-600 text-lg sm:text-xl"></i>
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
-                Automated Workflows
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Create custom workflows with approval stages, automated
-                notifications, and seamless task progression through your
-                processes.
+            <div>
+              <p className="text-base font-semibold tracking-tight text-slate-900">
+                EduXora
               </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-200">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 sm:mb-6">
-                <i className="ri-form-line text-purple-600 text-lg sm:text-xl"></i>
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
-                Dynamic Forms
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Built-in form generator to create custom forms for any task,
-                with easy attachment and submission tracking capabilities.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-200">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 sm:mb-6">
-                <i className="ri-team-line text-orange-600 text-lg sm:text-xl"></i>
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
-                Team Collaboration
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Enhanced collaboration with comments, mentions, file sharing,
-                and real-time updates to keep everyone in sync.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-200">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 sm:mb-6">
-                <i className="ri-user-settings-line text-red-600 text-lg sm:text-xl"></i>
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
-                Employee Portal
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Dedicated employee portal for task management, workflow
-                initiation, and seamless interaction with assigned work.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-200">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 sm:mb-6">
-                <i className="ri-check-double-line text-indigo-600 text-lg sm:text-xl"></i>
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-4">
-                Approval Process
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Multi-stage approval workflows with customizable approval
-                chains, comments, and decision tracking for complete
-                accountability.
+              <p className="text-[11px] leading-none text-slate-500">
+                Financial Workflow Suite
               </p>
             </div>
           </div>
-
-          <div className="mt-10 sm:mt-20 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-              <div className="p-8 sm:p-12 lg:p-16">
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">
-                  Ready to Transform Your Workflow?
-                </h2>
-                <p className="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed">
-                  Join thousands of teams who have streamlined their processes
-                  with our comprehensive workflow management solution.
-                </p>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <i className="ri-check-line text-green-600 text-xs sm:text-sm"></i>
-                    </div>
-                    <span className="text-gray-700 text-sm sm:text-base">
-                      Unlimited tasks and workflows
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <i className="ri-check-line text-green-600 text-xs sm:text-sm"></i>
-                    </div>
-                    <span className="text-gray-700 text-sm sm:text-base">
-                      Advanced reporting and analytics
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <i className="ri-check-line text-green-600 text-xs sm:text-sm"></i>
-                    </div>
-                    <span className="text-gray-700 text-sm sm:text-base">
-                      24/7 customer support
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div
-                className="bg-cover bg-center min-h-[300px] sm:min-h-[400px] lg:min-h-full"
-                style={{
-                  backgroundImage: `url('https://readdy.ai/api/search-image?query=business%20professionals%20using%20modern%20workflow%20management%20software%20on%20computers%20and%20tablets%2C%20clean%20office%20environment%20with%20task%20boards%20and%20collaboration%20tools%20visible%20on%20screens%2C%20productive%20team%20working%20together&width=800&height=600&seq=cta1&orientation=landscape')`,
-                }}
-              ></div>
-            </div>
+          <div className="hidden items-center gap-6 md:flex">
+            <a className="text-sm text-slate-600 hover:text-slate-900" href="#">
+              Product
+            </a>
+            <a className="text-sm text-slate-600 hover:text-slate-900" href="#">
+              Pricing
+            </a>
+            <a className="text-sm text-slate-600 hover:text-slate-900" href="#">
+              Docs
+            </a>
+            <a
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+              href="#login"
+            >
+              Sign in
+            </a>
           </div>
         </div>
+      </header>
+
+      <main>
+        {/* Hero */}
+        <section className="relative">
+          {/* Subtle background pattern */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              backgroundImage:
+                "radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.09) 0, transparent 60%), radial-gradient(1000px 500px at 100% 10%, rgba(37,99,235,0.08) 0, transparent 55%)",
+            }}
+          />
+
+          <div className="mx-auto max-w-7xl px-4 py-10 sm:py-16 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+              {/* Copy */}
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                  <span className="h-2 w-2 rounded-full bg-indigo-600"></span>
+                  Enterprise Finance Workflows
+                </div>
+
+                <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+                  Orchestrate approvals. Control spend.{" "}
+                  <span className="text-indigo-600">Close faster.</span>
+                </h1>
+
+                <p className="mt-4 max-w-xl text-slate-600 sm:text-lg">
+                  Centralize purchase requests, automate approvals, enforce GL
+                  rules, and keep auditors happy—without slowing down the
+                  business.
+                </p>
+
+                {/* Stats / trust row */}
+                <div className="mt-8 flex flex-wrap items-center gap-6">
+                  <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+                    <p className="text-2xl font-semibold text-slate-900">
+                      99.9%
+                    </p>
+                    <p className="text-xs text-slate-500">Uptime SLA</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+                    <p className="text-2xl font-semibold text-slate-900">SOX</p>
+                    <p className="text-xs text-slate-500">Audit-ready trails</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+                    <p className="text-2xl font-semibold text-slate-900">2×</p>
+                    <p className="text-xs text-slate-500">Faster month-end</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Login Card */}
+              <div className="">
+                <LoginForm />
+                <p className="mt-4 text-center text-xs text-slate-500">
+                  SSO supported • SOC2 Type II • Role-based access
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature grid */}
+        <section className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-8 sm:pb-16">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Feature
+              badge="Automation"
+              iconBg="bg-emerald-100"
+              iconColor="text-emerald-700"
+              title="Automated Approval Chains"
+              desc="Route by department, amount, or vendor. Escalate automatically and track SLAs."
+              icon="ri-flow-chart"
+            />
+            <Feature
+              badge="Finance"
+              iconBg="bg-indigo-100"
+              iconColor="text-indigo-700"
+              title="GL Mapping & Controls"
+              desc="Validate coding against your chart of accounts and enforce policies before spend."
+              icon="ri-bill-line"
+            />
+            <Feature
+              badge="Operations"
+              iconBg="bg-orange-100"
+              iconColor="text-orange-700"
+              title="Dynamic Forms"
+              desc="Configurable request forms with conditional logic, attachments, and templates."
+              icon="ri-file-list-3-line"
+            />
+            <Feature
+              badge="Collaboration"
+              iconBg="bg-sky-100"
+              iconColor="text-sky-700"
+              title="Comments & Mentions"
+              desc="Keep context close to the transaction with threaded conversations and mentions."
+              icon="ri-chat-3-line"
+            />
+            <Feature
+              badge="Compliance"
+              iconBg="bg-rose-100"
+              iconColor="text-rose-700"
+              title="Audit-Ready Trails"
+              desc="Immutable logs, approver evidence, and exportable packets for auditors."
+              icon="ri-shield-check-line"
+            />
+            <Feature
+              badge="Insights"
+              iconBg="bg-purple-100"
+              iconColor="text-purple-700"
+              title="Real-time Reporting"
+              desc="Spend by cost center, bottlenecks by stage, cycle times, and policy breaches."
+              icon="ri-bar-chart-2-line"
+            />
+          </div>
+        </section>
+
+        {/* Compliance banner */}
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-2">
+              <div className="p-8 sm:p-12">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  Built for Finance. Loved by Auditors.
+                </h2>
+                <p className="mt-3 text-slate-600 sm:text-lg">
+                  Enforce separation of duties, ensure approver evidence, and
+                  export everything auditors need in a single click.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-slate-700">
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                      ✓
+                    </span>
+                    SOX-friendly approval trails
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                      ✓
+                    </span>
+                    Role-based access & maker-checker controls
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                      ✓
+                    </span>
+                    Exports for audit packages
+                  </li>
+                </ul>
+              </div>
+              <div
+                className="min-h-[260px] bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://readdy.ai/api/search-image?query=modern%20finance%20audit%20review%20with%20checklist%20and%20laptop%2C%20professional%20workspace%20aesthetic&width=1000&height=750&seq=fw-compliance&orientation=landscape')",
+                }}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
+          <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600">
+            <div className="grid grid-cols-1 items-center gap-0 lg:grid-cols-2">
+              <div className="p-8 sm:p-12">
+                <h3 className="text-2xl font-bold text-white sm:text-3xl">
+                  Ready to transform approvals and month-end close?
+                </h3>
+                <p className="mt-3 max-w-xl text-indigo-100">
+                  Start with the essentials and scale to enterprise controls as
+                  you grow.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href="#login"
+                    className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-indigo-50"
+                  >
+                    Sign in
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded-lg border border-white/40 bg-transparent px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
+                  >
+                    Talk to Sales
+                  </a>
+                </div>
+              </div>
+              <div className="hidden h-full lg:block">
+                <img
+                  alt="Workflow dashboard preview"
+                  className="h-full w-full object-cover opacity-95"
+                  src="https://readdy.ai/api/search-image?query=financial%20workflow%20dashboard%20with%20approvals%2C%20charts%2C%20and%20tables%20on%20a%20clean%20UI%20screen&width=1200&height=900&seq=fw-cta&orientation=landscape"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row sm:px-6 lg:px-8">
+          <p className="text-sm text-slate-500">
+            © {new Date().getFullYear()} EduXora • Financial Workflow Suite
+          </p>
+          <div className="flex items-center gap-6 text-sm">
+            <a className="text-slate-500 hover:text-slate-800" href="#">
+              Security
+            </a>
+            <a className="text-slate-500 hover:text-slate-800" href="#">
+              Privacy
+            </a>
+            <a className="text-slate-500 hover:text-slate-800" href="#">
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* --- Small feature card helper --- */
+function Feature({
+  badge,
+  icon,
+  iconBg,
+  iconColor,
+  title,
+  desc,
+}: {
+  badge: string;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+          {badge}
+        </span>
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}
+        >
+          <i className={`${icon} ${iconColor} text-lg`} />
+        </div>
+      </div>
+      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
     </div>
   );
 }

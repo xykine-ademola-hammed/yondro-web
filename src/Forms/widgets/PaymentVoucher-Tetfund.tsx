@@ -4,12 +4,16 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import { generateVoucherCode, getFinanceCode } from "../../common/methods";
-import spedLogo from "../../assets/spedLogo.png";
+import tetFundLogo from "../../assets/tetfundLogo.jpg";
 import Signer from "../../components/Signer";
 import FormActions from "./FormActions";
 import VoucherAccountLookup, {
   type VoteBookAccountLookup,
 } from "../../vouchers/VoucherAccountLookup";
+import ModalWrapper from "../../components/modal-wrapper";
+import ParentRequestPreview from "./ParentRequestPreview";
+import type { PaymentVoucherDataType } from "./PaymentVoucher";
+import DocumentAttachmentForm from "./DocumentAttachmentForm.tsx";
 
 export interface PaymentDetail {
   paymentDate: string;
@@ -58,46 +62,6 @@ export interface AuditRemark {
   pass: string;
   query: string;
 }
-
-export interface PaymentVoucherDataType {
-  voucherNo: string;
-  departmentCode: string;
-  applicationDate: string;
-  // Flatten fields for controlled form
-  financeCode?: string;
-  applicantName?: string;
-  applicantAddress?: string;
-  applicantDescription?: string;
-  paymentDate?: string;
-  paymentParticles?: string;
-  paymentDetailAmount?: string;
-  amountInWord?: string;
-  accountTitle?: string;
-  accountCodeNo?: string;
-  debitAmount?: string;
-  debitDescription?: string;
-  creditAmount?: string;
-  creditDescription?: string;
-  unitVoucherHeadById?: string;
-  preparedById?: string;
-  reviewedById?: string;
-  approvedById?: string;
-  auditRemarkPass?: string;
-  auditRemarkQuery?: string;
-  auditCheckedById?: string;
-  auditCheckedByDate?: string;
-  auditReviewedById?: string;
-  auditReviewedByDate?: string;
-  auditRemarkedById?: string;
-  auditApprovedByDate?: string;
-  cpoHeadById?: string;
-  cpoPreparedById?: string;
-  cpoReviewedById?: string;
-  cpoApprovedById?: string;
-  additionalNotes?: string;
-  [key: string]: any;
-}
-
 export interface EmployeeOption {
   id: string | number;
   value: string | number;
@@ -121,7 +85,7 @@ interface Approver {
   stepNumber: number;
 }
 
-interface PaymentVoucherSemiAutoProps {
+interface PaymentVoucherTetfundProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
   formResponses: Partial<PaymentVoucherDataType>;
@@ -136,6 +100,7 @@ interface PaymentVoucherSemiAutoProps {
   mode?: "edit" | "preview" | "new" | "in_progress";
   responseTypes: string[];
   completedStages?: CompletedStage[];
+  parentRequestId?: number;
 }
 
 const formatDate = (date: string | Date | undefined) =>
@@ -161,7 +126,7 @@ const requiredFields = [
   "approvedById",
 ];
 
-const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
+const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
   formResponses,
   enableInputList = [""],
   vissibleSections = [],
@@ -174,11 +139,15 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
   responseTypes = [""],
   loading = false,
   setLoading,
+  parentRequestId,
 }) => {
+  const [isApplicationFormOpen, openApplicationForm] = useState(false);
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
   const { userDepartmenttMembers } = useOrganization();
+
+  console.log("[[[[[[[[[[[[[[[", formResponses);
 
   const employeeOptions: EmployeeOption[] =
     userDepartmenttMembers?.rows?.map((employee: any) => ({
@@ -260,11 +229,6 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
     onCancel();
   };
 
-  const approvers: Approver[] = [
-    { bottomComment: "Approved By", stepNumber: 3 },
-    { bottomComment: "Approved By", stepNumber: 11 },
-  ];
-
   const getSignerProps = (approver: Approver) => {
     const completedStage = (completedStages || []).find(
       (comStage) => Number(comStage.step) === approver.stepNumber
@@ -316,19 +280,20 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
       >
         <div className="flex flex-col sm:flex-row items-start mt-2">
           <div className="mb-4 sm:mb-0">
-            <img src={spedLogo} alt="Company Logo" className="h-24" />
+            <img src={tetFundLogo} alt="Company Logo" className="h-15" />
           </div>
           <div>
-            <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-600">
-              {user?.organization?.name}
+            <h2 className="text-center text-4xl font-bold text-gray-600">
+              TETFund Funded Projects
             </h2>
             <h1 className="text-xl sm:text-2xl font-semibold text-center text-gray-500">
-              {vissibleSections?.includes("showFormTitle") || mode === "preview"
-                ? "PAYMENT VOUCHER"
-                : "FINANCIAL REQUEST"}
+              Payment Voucher
             </h1>
           </div>
         </div>
+        <p className="my-4 font-semibold text-center text-gray-500">
+          NAME OF INSTITUTION: {user?.organization?.name}
+        </p>
 
         {hasErrors && (
           <div className="bg-red-50 p-4 rounded-lg mb-2">
@@ -337,16 +302,15 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </p>
           </div>
         )}
-
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-end items-start mt-2">
           <div className="text-left">
             <p className="text-sm font-semibold">
-              Voucher No:{" "}
+              Payment Voucher No:{" "}
               <span className="font-normal">{formData?.voucherNo}</span>
             </p>
             <p className="text-sm font-semibold">
-              Department Code:{" "}
+              Serial No:{" "}
               <span className="font-normal">{formData?.financeCode}</span>
             </p>
             <p className="text-sm font-semibold">
@@ -357,13 +321,11 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </p>
           </div>
         </div>
-
         {instruction && (
           <div className="bg-yellow-50 p-4 rounded-lg mb-2">
             <p className="text-yellow-800 text-sm">{instruction}</p>
           </div>
         )}
-
         {/* Applicant Information */}
         {(vissibleSections?.includes("applicantInformation") ||
           mode === "preview") && (
@@ -374,7 +336,7 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             <div className="p-1 border rounded-lg border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-600">
-                  Name
+                  PAYEE
                 </label>
                 <input
                   name="applicantName"
@@ -391,48 +353,55 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                   placeholder=""
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-600">
-                  Address
+                  File Ref No:
                 </label>
                 <input
-                  name="applicantAddress"
-                  id="applicantAddress"
-                  value={formData?.applicantAddress || ""}
+                  name="applicantName"
+                  id="applicantName"
+                  value={formData?.applicantName || ""}
                   onChange={handleInput}
                   type="text"
-                  disabled={!isEnabled("applicantAddress")}
+                  disabled={!isEnabled("applicantName")}
                   className={`mt-0 w-full p-1 border ${
-                    isEnabled("applicantAddress")
+                    isEnabled("applicantName")
                       ? "border-red-500"
                       : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   placeholder=""
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Request detail
-                </label>
-                <textarea
-                  name="applicantDescription"
-                  id="applicantDescription"
-                  value={formData?.applicantDescription || ""}
-                  onChange={handleInput}
-                  disabled={!isEnabled("applicantDescription")}
-                  className={`mt-0 w-full p-1 border ${
-                    isEnabled("applicantDescription")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  rows={2}
-                  placeholder="Enter Description"
-                ></textarea>
+
+              <div className="grid grid-cols-2 gap-4 mt-1">
+                {parentRequestId && (
+                  <div className="flex flex-col items-start border-gray-300 p-1 rounded-md border">
+                    <span className="text-sm font-semibold">
+                      Financial Request Applicatiion:
+                    </span>
+                    <button
+                      onClick={() => openApplicationForm(true)}
+                      className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+                    >
+                      View Application
+                    </button>
+                  </div>
+                )}
+
+                <div></div>
               </div>
+
+              <DocumentAttachmentForm
+                onSubmit={(documents) =>
+                  setFormData((prev) => ({ ...prev, attachments: documents }))
+                }
+                mode="new"
+                initialDocuments={formData?.attachments || []}
+              />
             </div>
           </div>
         )}
-
         {/* Payment Detail */}
         {(vissibleSections?.includes("paymentDetails") ||
           mode === "preview") && (
@@ -444,7 +413,7 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </div>
             <div className="p-1 border rounded-lg border-gray-200">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-1 mb-4 ">
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-600">
                     Date
                   </label>
@@ -462,10 +431,10 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     placeholder="Enter Amount"
                   />
-                </div>
+                </div> */}
                 <div className="col-span-1 sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-600">
-                    Particlars (Including References)
+                    Particulars (Including References)
                   </label>
                   <textarea
                     name={`paymentParticles`}
@@ -482,6 +451,7 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                     placeholder="Enter Payment Description"
                   ></textarea>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
                     Amount
@@ -502,28 +472,112 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                   />
                 </div>
               </div>
+
+              <div className=" grid grid-cols-2 gap-1">
+                <div className="flex justify-end mb-0 md:mb-0 md:mr-2 min-w-max">
+                  <span className="text-sm">Gross Total Bill</span>
+                </div>
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={formData?.estimatedTransportCost}
+                    disabled={!isEnabled("estimatedTransportCost")}
+                    onChange={handleInput}
+                    className={`w-full p-1 border ${
+                      isEnabled("estimatedTransportCost")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  />
+                </div>
+
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+                  <span className="flex justify-end text-sm ">Less VAT</span>
+                </div>
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={formData?.estimatedNight}
+                    disabled={!isEnabled("estimatedNight")}
+                    onChange={handleInput}
+                    className={`w-full p-1 border ${
+                      isEnabled("estimatedNight")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    placeholder="....Days X N......"
+                  />
+                </div>
+
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+                  <span className="flex justify-end text-sm ">WHT</span>
+                </div>
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={formData?.others}
+                    disabled={!isEnabled("others")}
+                    onChange={handleInput}
+                    className={`w-full p-1 border ${
+                      isEnabled("others") ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  />
+                </div>
+
+                <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
+                  <span className="flex justify-end text-sm ">
+                    Net Amount Payable
+                  </span>
+                </div>
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={formData?.totalEstimate}
+                    disabled={!isEnabled("totalEstimate")}
+                    onChange={handleInput}
+                    className={`w-full p-1 border ${
+                      isEnabled("totalEstimate")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Amount in words
-                </label>
-                <input
-                  name="amountInWord"
-                  id="amountInWord"
-                  value={formData?.amountInWord || ""}
-                  onChange={handleInput}
-                  disabled={!isEnabled("amountInWord")}
-                  className={`mt-0 w-full p-1 border ${
-                    isEnabled("amountInWord")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  type="text"
-                  placeholder=""
-                />
+                <h3 className="text-l  text-gray-700 mb-1">Total in words:</h3>
+                <div>
+                  <textarea
+                    name="totalInWord"
+                    id="totalInWord"
+                    value={formData?.totalInWord || ""}
+                    onChange={handleInput}
+                    disabled={!isEnabled("totalInWord")}
+                    className={`mt-1 w-full p-1 border ${
+                      isEnabled("totalInWord")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    rows={2}
+                  ></textarea>
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        <div className="mt-1">
+          <p className="text-l font-semibold text-gray-700  mb-1">
+            CERTIFICATION
+          </p>
+          <p className="text-sm">
+            I Certify that the above ammount is correct and was incurred under
+            the authority quoted, that the service have been duly performed,
+            that the rate price charged is according to regulation/contract;
+            that it is fair and reasonable, that the sum above may be paid from
+            the TETF and decicated account.
+          </p>
+        </div>
 
         {/* Entry Distribution */}
         {(vissibleSections?.includes("entryDistribution") ||
@@ -542,7 +596,6 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                       isEnabled("accountTitle") && isEnabled("accountCodeNo")
                     }
                     onSelect={(selected) => {
-                      console.log("===========", selected);
                       if (selected !== null)
                         setSelectedVoucherAccount(selected);
                       setFormData((prev) => ({
@@ -637,7 +690,6 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </div>
           </div>
         )}
-
         {/* Voucher Approval */}
         {(vissibleSections?.includes("voucherApproval") ||
           mode === "preview") && (
@@ -673,113 +725,57 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Prepared By
-                  </label>
-                  {getSignerProps({ stepNumber: 0 }) ? (
-                    <div
-                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                    >
-                      {getSignerProps({ stepNumber: 0 })?.firstName}{" "}
-                      {getSignerProps({ stepNumber: 0 })?.lastName}
-                    </div>
-                  ) : (
-                    <select
-                      name="preparedById"
-                      id="preparedById"
-                      value={formData?.preparedById || ""}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("preparedById")}
-                      className={`mt-0 w-full p-1 border ${
-                        isEnabled("preparedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Reviewed By
-                  </label>
-                  {getSignerProps({ stepNumber: 1 }) ? (
-                    <div
-                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                    >
-                      {getSignerProps({ stepNumber: 1 })?.firstName}{" "}
-                      {getSignerProps({ stepNumber: 1 })?.lastName}
-                    </div>
-                  ) : (
-                    <select
-                      name="reviewedById"
-                      id="reviewedById"
-                      value={formData?.reviewedById || ""}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("reviewedById")}
-                      className={`mt-0 w-full p-1 border ${
-                        isEnabled("reviewedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Approved By
-                  </label>
-                  {getSignerProps({ stepNumber: 2 }) ? (
-                    <div
-                      className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                    >
-                      {getSignerProps({ stepNumber: 2 })?.firstName}{" "}
-                      {getSignerProps({ stepNumber: 2 })?.lastName}
-                    </div>
-                  ) : (
-                    <select
-                      name="approvedById"
-                      id="approvedById"
-                      value={formData?.approvedById || ""}
-                      onChange={handleInput}
-                      required
-                      disabled={!isEnabled("approvedById")}
-                      className={`mt-0 w-full p-1 border ${
-                        isEnabled("approvedById")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="">Select an option</option>
-                      {employeeOptions?.map((employee) => (
-                        <option key={employee.id} value={employee.value}>
-                          {employee.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                {/** Prepared, Reviewed, Approved By selects */}
+                {[
+                  { name: "preparedById", label: "Prepared By", stepNumber: 2 },
+                  { name: "reviewedById", label: "Reviewed By", stepNumber: 3 },
+                  { name: "approvedById", label: "Approved By", stepNumber: 4 },
+                ].map((role) => (
+                  <div key={role.name}>
+                    <label className="block text-sm font-medium text-gray-600">
+                      {role.label}
+                    </label>
+                    {getSignerProps({ stepNumber: role.stepNumber }) ? (
+                      <div
+                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
+                      >
+                        {
+                          getSignerProps({ stepNumber: role.stepNumber })
+                            ?.firstName
+                        }{" "}
+                        {
+                          getSignerProps({ stepNumber: role.stepNumber })
+                            ?.lastName
+                        }
+                      </div>
+                    ) : (
+                      <select
+                        name={role.name}
+                        id={role.name}
+                        value={(formData as any)?.[role.name] ?? ""}
+                        onChange={handleInput}
+                        required
+                        disabled={!isEnabled(role.name)}
+                        className={`mt-0 w-full p-1 border ${
+                          isEnabled(role.name)
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      >
+                        <option value="">Select an option</option>
+                        {employeeOptions?.map((employee) => (
+                          <option key={employee.id} value={employee.value}>
+                            {employee.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
-
         {/* Audit Unit */}
         {(vissibleSections?.includes("auditApproval") ||
           mode === "preview") && (
@@ -838,35 +834,26 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                     Audit Checker:
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 4 }) ? (
-                      <div
-                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                      >
-                        {getSignerProps({ stepNumber: 4 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 4 })?.lastName}
-                      </div>
-                    ) : (
-                      <select
-                        name="auditCheckedById"
-                        id="auditCheckedById"
-                        value={formData?.auditCheckedById || ""}
-                        onChange={handleInput}
-                        required
-                        disabled={!isEnabled("auditCheckedById")}
-                        className={`mt-0 w-full p-1 border ${
-                          isEnabled("auditCheckedById")
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="">Select an option</option>
-                        {employeeOptions?.map((employee) => (
-                          <option key={employee.id} value={employee.value}>
-                            {employee.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <select
+                      name="auditCheckedById"
+                      id="auditCheckedById"
+                      value={formData?.auditCheckedById || ""}
+                      onChange={handleInput}
+                      required
+                      // disabled={!isEnabled("auditCheckedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("auditCheckedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       name="auditCheckedByDate"
                       id="auditCheckedByDate"
@@ -888,35 +875,26 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                     Audit Reviewer
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 5 }) ? (
-                      <div
-                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                      >
-                        {getSignerProps({ stepNumber: 5 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 5 })?.lastName}
-                      </div>
-                    ) : (
-                      <select
-                        name="auditReviewedById"
-                        id="auditReviewedById"
-                        value={formData?.auditReviewedById || ""}
-                        onChange={handleInput}
-                        required
-                        disabled={!isEnabled("auditReviewedById")}
-                        className={`mt-0 w-full p-1 border ${
-                          isEnabled("auditReviewedById")
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="">Select an option</option>
-                        {employeeOptions?.map((employee) => (
-                          <option key={employee.id} value={employee.value}>
-                            {employee.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <select
+                      name="auditReviewedById"
+                      id="auditReviewedById"
+                      value={formData?.auditReviewedById || ""}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("auditReviewedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("auditReviewedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       name="auditReviewedByDate"
                       id="auditReviewedByDate"
@@ -938,35 +916,26 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                     Audit Remarker
                   </label>
                   <div className="flex gap-1">
-                    {getSignerProps({ stepNumber: 6 }) ? (
-                      <div
-                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                      >
-                        {getSignerProps({ stepNumber: 6 })?.firstName}{" "}
-                        {getSignerProps({ stepNumber: 6 })?.lastName}
-                      </div>
-                    ) : (
-                      <select
-                        name="auditRemarkedById"
-                        id="auditRemarkedById"
-                        value={formData?.auditRemarkedById || ""}
-                        onChange={handleInput}
-                        required
-                        disabled={!isEnabled("auditRemarkedById")}
-                        className={`mt-0 w-full p-1 border ${
-                          isEnabled("auditRemarkedById")
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="">Select an option</option>
-                        {employeeOptions?.map((employee) => (
-                          <option key={employee.id} value={employee.value}>
-                            {employee.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <select
+                      name="auditRemarkedById"
+                      id="auditRemarkedById"
+                      value={formData?.auditRemarkedById || ""}
+                      onChange={handleInput}
+                      required
+                      disabled={!isEnabled("auditRemarkedById")}
+                      className={`mt-0 w-full p-1 border ${
+                        isEnabled("auditRemarkedById")
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select an option</option>
+                      {employeeOptions?.map((employee) => (
+                        <option key={employee.id} value={employee.value}>
+                          {employee.label}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       name="auditApprovedByDate"
                       id="auditApprovedByDate"
@@ -988,7 +957,6 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
           </div>
         )}
         {isDownloading && <div className="mb-40"></div>}
-
         {/* Central Payment Office Approval */}
         {(vissibleSections?.includes("cpoApproval") || mode === "preview") && (
           <div className="mt-2 ">
@@ -1000,23 +968,51 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                 <label className=" text-sm font-medium text-gray-600">
                   Head of Unit [CPO]
                 </label>
-                {getSignerProps({ stepNumber: 7 }) ? (
-                  <div
-                    className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                  >
-                    {getSignerProps({ stepNumber: 7 })?.firstName}{" "}
-                    {getSignerProps({ stepNumber: 7 })?.lastName}
-                  </div>
-                ) : (
+                <select
+                  name="cpoHeadById"
+                  id="cpoHeadById"
+                  value={formData?.cpoHeadById || ""}
+                  onChange={handleInput}
+                  required
+                  disabled={!isEnabled("cpoHeadById")}
+                  className={`mt-0 w-full p-1 border ${
+                    isEnabled("cpoHeadById")
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="">Select an option</option>
+                  {employeeOptions?.map((employee) => (
+                    <option key={employee.id} value={employee.value}>
+                      {employee.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1  mt-1">
+                {[
+                  {
+                    name: "cpoPreparedById",
+                    label: "Payment Initiator",
+                  },
+                  {
+                    name: "cpoReviewedById",
+                    label: "Payment Reviewer",
+                  },
+                  {
+                    name: "cpoApprovedById",
+                    label: "Payment Approver",
+                  },
+                ].map((role) => (
                   <select
-                    name="cpoHeadById"
-                    id="cpoHeadById"
-                    value={formData?.cpoHeadById || ""}
+                    name={role.name}
+                    id={role.name}
+                    value={(formData as any)?.[role.name] || ""}
                     onChange={handleInput}
                     required
-                    disabled={!isEnabled("cpoHeadById")}
+                    disabled={!isEnabled(role.name)}
                     className={`mt-0 w-full p-1 border ${
-                      isEnabled("cpoHeadById")
+                      isEnabled(role.name)
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -1028,72 +1024,11 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
                       </option>
                     ))}
                   </select>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1  mt-1">
-                {[
-                  {
-                    name: "cpoPreparedById",
-                    label: "Payment Initiator",
-                    stepNumber: 8,
-                  },
-                  {
-                    name: "cpoReviewedById",
-                    label: "Payment Reviewer",
-                    stepNumber: 9,
-                  },
-                  {
-                    name: "cpoApprovedById",
-                    label: "Payment Approver",
-                    stepNumber: 10,
-                  },
-                ].map((role) => (
-                  <div key={role.name}>
-                    <label className="block text-sm font-medium text-gray-600">
-                      {role.label}
-                    </label>
-                    {getSignerProps({ stepNumber: role.stepNumber }) ? (
-                      <div
-                        className={`mt-0 w-full p-1 border border-gray-300 rounded-md`}
-                      >
-                        {
-                          getSignerProps({ stepNumber: role.stepNumber })
-                            ?.firstName
-                        }{" "}
-                        {
-                          getSignerProps({ stepNumber: role.stepNumber })
-                            ?.lastName
-                        }
-                      </div>
-                    ) : (
-                      <select
-                        name={role.name}
-                        id={role.name}
-                        value={(formData as any)?.[role.name] || ""}
-                        onChange={handleInput}
-                        required
-                        disabled={!isEnabled(role.name)}
-                        className={`mt-0 w-full p-1 border ${
-                          isEnabled(role.name)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="">Select an option</option>
-                        {employeeOptions?.map((employee) => (
-                          <option key={employee.id} value={employee.value}>
-                            {employee.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
                 ))}
               </div>
             </div>
           </div>
         )}
-
         {(vissibleSections?.includes("additionalInformation") ||
           mode === "preview") && (
           <div className="mt-2">
@@ -1118,20 +1053,39 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             </div>
           </div>
         )}
-
         {(vissibleSections.includes("approvals") || mode === "preview") && (
           <div className="mt-2 ">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {approvers.map((approver, idx) => (
-                <Signer key={idx} {...(getSignerProps(approver) ?? {})} />
-              ))}
+            <div className="mt-4 flex flex-wrap gap-6">
+              {formResponses?.approvers?.map(
+                (
+                  approver: {
+                    firstName: string | undefined;
+                    lastName: string | undefined;
+                    date: string | undefined;
+                    department: string | undefined;
+                    position: string | undefined;
+                    label: string | undefined;
+                  },
+                  idx: React.Key | null | undefined
+                ) => (
+                  <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+                    <Signer
+                      firstName={approver.firstName}
+                      lastName={approver.lastName}
+                      date={approver.date}
+                      department={approver.department}
+                      position={approver.position}
+                      label={approver.label}
+                    />{" "}
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
-
         {/* Action Buttons */}
         {showActionButtons && (
           <FormActions
@@ -1142,9 +1096,21 @@ const PaymentVoucherSemiAuto: React.FC<PaymentVoucherSemiAutoProps> = ({
             responseTypes={responseTypes}
           />
         )}
+        {isApplicationFormOpen && (
+          <ModalWrapper
+            isOpen={isApplicationFormOpen}
+            onClose={() => openApplicationForm(false)}
+            title={"Application Request Form"}
+          >
+            <ParentRequestPreview
+              parentRequestId={parentRequestId}
+              onClose={() => openApplicationForm(false)}
+            />
+          </ModalWrapper>
+        )}
       </div>
     </div>
   );
 };
 
-export default PaymentVoucherSemiAuto;
+export default PaymentVoucherTetfund;

@@ -4,10 +4,11 @@ import StoreReceiptVoucher from "../../Forms/widgets/StoreReceiptVoucher";
 import StoreIssueVoucher from "../../Forms/widgets/StoreIssueVoucher";
 import ProcurementOrder from "../../Forms/widgets/ProcurementOrder";
 import JobMaintenanceRequisition from "../../Forms/widgets/JobMaintenanceRequisition";
-import PaymentVoucherSemiAuto from "../../Forms/widgets/PaymentVoucher-semi-auto";
 import DutyTourExpense from "../../Forms/widgets/DutyTourExpense";
 import ClaimOutOfPocketExpense from "../../Forms/widgets/ClaimOutOfPocketExpenses";
 import RequestForPurchaseOrSpecialAdvance from "../../Forms/widgets/RequestForPurchaseOrSpecialAdvance";
+import PaymentVoucherTetfund from "../../Forms/widgets/PaymentVoucher-Tetfund";
+import PaymentVoucherAuto from "../../Forms/widgets/PaymentVoucher-auto";
 
 export interface FormProps {
   id: string | number;
@@ -28,18 +29,17 @@ const useForm = () => {
   const [forms, setForms] = useState<any[]>([
     {
       id: 1,
-      name: "Payment Voucher",
+      name: "Payment Voucher Auto",
       description: "Employee leave request form with date selection and reason",
       status: "Active",
       createdBy: "Bursary",
       lastUpdated: "2024-01-10",
       workflows: ["Financial Request"],
-      component: (props: any) => <PaymentVoucher {...props} />,
+      component: (props: any) => <PaymentVoucherAuto {...props} />,
       inputLabels: {
         applicantName: "Name",
         applicantAddress: "Address",
         applicantDescription: "Request detail",
-
         paymentDate: "Payment Date",
         paymentParticles: "Particlars (Including References)",
         paymentDetailAmount: "Payment Detail Amount",
@@ -211,14 +211,14 @@ const useForm = () => {
     },
     {
       id: 6,
-      name: "Payment Voucher Semi Auto",
+      name: "Payment Voucher",
       description:
         "Employee finance request form with date selection and reason",
       status: "Active",
       createdBy: "Bursary",
       lastUpdated: "2024-01-10",
       workflows: ["Financial Request"],
-      component: (props: any) => <PaymentVoucherSemiAuto {...props} />,
+      component: (props: any) => <PaymentVoucher {...props} />,
       inputLabels: {
         applicantName: "Name",
         applicantAddress: "Address",
@@ -372,9 +372,97 @@ const useForm = () => {
         outstandingBalance: "Outstanding Balance yet to be retired",
         advanceAmount: "Amount of Advance Required",
         totalInWord: "totalInWord",
+        unitVoucherHeadById: "Voucher Head of Unit",
       },
       assigneeHolders: {},
       formSections: {},
+    },
+    {
+      id: 10,
+      name: "Payment Voucher Tetfund",
+      description:
+        "Employee finance request form with date selection and reason",
+      status: "Active",
+      createdBy: "Bursary",
+      lastUpdated: "2024-01-10",
+      workflows: ["Financial Request"],
+      component: (props: any) => <PaymentVoucherTetfund {...props} />,
+      inputLabels: {
+        applicantName: "Name",
+        applicantAddress: "Address",
+        applicantDescription: "Request detail",
+
+        paymentDate: "Payment Date",
+        paymentParticles: "Particlars (Including References)",
+        paymentDetailAmount: "Payment Detail Amount",
+        amountInWord: "Amount in words",
+        accountTitle: "Account Title",
+        accountCodeNo: "Account Code No.",
+        debitAmount: "Debit Amount",
+        debitDescription: "Debit Description",
+        creditAmount: "Credit Amount",
+        creditDescription: "Credit Description",
+
+        unitVoucherHeadById: "Head of Unit [Voucher]",
+        preparedById: "Voucher Prepared By",
+        reviewedById: "Voucher Reviewed By",
+        approvedById: "Voucher Approved By",
+
+        auditRemarkPass: "Audit Remark Pass",
+        auditCheckedById: "Audit Checked by",
+        auditCheckedByDate: "Audig Checked Date",
+        auditRemarkQuery: "Audit Query",
+        auditPreparedById: "Audit Prepared By",
+        auditPreparedByDate: "Audit Prepared By Date",
+        auditReviewedById: "Audit Reviewed By",
+        auditReviewedByDate: "Audit Reviewed By Date",
+        auditRemarkedById: "Audit Remarked By",
+        auditApprovedByDate: "Audit Remarked By Date",
+
+        cpoHeadById: "CPO Head of Unit",
+        cpoPreparedById: "CPO Creator",
+        cpoReviewedById: "CPO Reviewer",
+        cpoApprovedById: "CPO Approver",
+
+        additionalNotes: "Additional Notes",
+
+        schoolDeanById: "School Dean",
+        departmentHeadById: "Department Head",
+        chiefExecutivedById: "Chief Executive",
+      },
+      assigneeHolders: {
+        schoolDeanId: "School Dean",
+        departmentHeadById: "Head of Department",
+        unitVoucherHeadById: "Head of Unit [Voucher]",
+        preparedById: "Voucher Prepared By",
+        reviewedById: "Voucher Reviewed By",
+        approvedById: "Voucher Approved By",
+        auditCheckedById: "Audit Checked by",
+        auditPreparedById: "Audit Prepared By",
+        auditReviewedById: "Audit Reviewed By",
+        auditRemarkedById: "Audit Approved By",
+        cpoHeadById: "CPO Head of Unit",
+        cpoPreparedById: "CPO Creator",
+        cpoReviewedById: "CPO Reviewer",
+        cpoApprovedById: "CPO Approver",
+        schoolDeanById: "School Dean",
+      },
+      formSections: {
+        showFormTitle: "Voucher Title",
+        showApplicationFormTitle: "Application Title",
+        instruction: "Instruction",
+        applicantInformation: "Applicant Information",
+        paymentDetails: "Payment Details",
+        entryDistribution: "Entry Distribution",
+        voucherApproval: "Voucher Approval",
+        cpoApproval: "Central Payment Office",
+        auditApproval: "Audit Approval",
+        additionalInformation: "Additional Information",
+        audit: "Audit Unit",
+        fundAndManagement: "Fund and Management",
+        approvals: "Approvals",
+        showActionButtons: "Action buttons",
+      },
     },
   ]);
 

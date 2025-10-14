@@ -153,6 +153,8 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
     }
   };
 
+  const positionCategories = ["Teaching Staff", "Non Teaching Staff"];
+
   return (
     isModalOpen && (
       <ModalWrapper
@@ -181,6 +183,29 @@ export const AddEditPositionModal: React.FC<AddEditPositionModalProps> = ({
                       onChange={handleInputChange}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="schoolOrOfficeId"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Category
+                    </label>
+                    <select
+                      name="category"
+                      id="category"
+                      value={currentPosition.category || ""}
+                      onChange={handleInputChange}
+                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    >
+                      <option value="">Select category</option>
+                      {positionCategories.map((category: any) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

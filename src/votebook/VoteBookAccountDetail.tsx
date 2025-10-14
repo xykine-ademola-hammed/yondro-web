@@ -18,6 +18,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
+import MoneyDisplay from "../components/ui/MoneyDisplay";
 
 interface VoteBookAccountDetail {
   id: number;
@@ -525,7 +526,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       Base Allocation
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(account.balances.allocation_base)}
+                      <MoneyDisplay value={account.balances.allocation_base} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
@@ -533,7 +534,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       + Adjustments In
                     </span>
                     <span className="text-sm font-semibold text-green-800">
-                      {formatCurrency(account.balances.sum_adjust_in)}
+                      <MoneyDisplay value={account.balances.sum_adjust_in} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
@@ -541,7 +542,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       - Adjustments Out
                     </span>
                     <span className="text-sm font-semibold text-red-800">
-                      {formatCurrency(account.balances.sum_adjust_out)}
+                      <MoneyDisplay value={account.balances.sum_adjust_out} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
@@ -549,7 +550,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       + Transfers In
                     </span>
                     <span className="text-sm font-semibold text-blue-800">
-                      {formatCurrency(account.balances.sum_transfer_in)}
+                      <MoneyDisplay value={account.balances.sum_transfer_in} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
@@ -557,7 +558,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       - Transfers Out
                     </span>
                     <span className="text-sm font-semibold text-purple-800">
-                      {formatCurrency(account.balances.sum_transfer_out)}
+                      <MoneyDisplay value={account.balances.sum_transfer_in} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
@@ -565,7 +566,7 @@ const VoteBookAccountDetail: React.FC = () => {
                       + Carryover
                     </span>
                     <span className="text-sm font-semibold text-indigo-800">
-                      {formatCurrency(account.balances.carryover)}
+                      <MoneyDisplay value={account.balances.carryover} />
                     </span>
                   </div>
                   <div className="border-t border-gray-200 pt-3">
@@ -574,7 +575,7 @@ const VoteBookAccountDetail: React.FC = () => {
                         - Committed
                       </span>
                       <span className="text-sm font-semibold text-yellow-800">
-                        {formatCurrency(account.balances.committed)}
+                        <MoneyDisplay value={account.balances.committed} />
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg mt-2">
@@ -582,7 +583,7 @@ const VoteBookAccountDetail: React.FC = () => {
                         - Spent
                       </span>
                       <span className="text-sm font-semibold text-red-800">
-                        {formatCurrency(account.balances.spent)}
+                        <MoneyDisplay value={account.balances.spent} />
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg mt-2 border-2 border-green-300">
@@ -590,7 +591,7 @@ const VoteBookAccountDetail: React.FC = () => {
                         Available Balance
                       </span>
                       <span className="text-lg font-bold text-green-800">
-                        {formatCurrency(account.balances.available)}
+                        <MoneyDisplay value={account.balances.available} />
                       </span>
                     </div>
                   </div>

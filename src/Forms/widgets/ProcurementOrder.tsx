@@ -6,6 +6,9 @@ import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
+import DocumentAttachmentForm, {
+  type Document,
+} from "./DocumentAttachmentForm";
 
 /** Interfaces for core objects **/
 interface StoreItem {
@@ -45,6 +48,7 @@ interface ProcurementOrderFormResponses {
   requestor?: Requestor;
   approvers?: Approver[];
   storeItems?: StoreItem[];
+  attachments?: Document[];
 }
 
 interface ProcurementOrderProps {
@@ -381,6 +385,14 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
           </div>
         </div>
 
+        <DocumentAttachmentForm
+          onSubmit={(documents) =>
+            setFormData((prev) => ({ ...prev, attachments: documents }))
+          }
+          mode="new"
+          initialDocuments={formData?.attachments || []}
+        />
+
         <div className="mt-4">
           <h3 className="text-l font-semibold text-gray-700 mb-1">
             Additional Notes
@@ -405,33 +417,41 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
-          <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName || ""}
-            lastName={formData?.requestor?.lastName || user?.lastName || ""}
-            date={
-              formData?.requestor?.date ||
-              moment(new Date()).format("DD/MM/YYYY")
-            }
-            department={
-              formData?.requestor?.department || user?.department?.name || ""
-            }
-            position={
-              formData?.requestor?.position || user?.position?.title || ""
-            }
-            label="Request by"
-          />
-
-          {formData?.approvers?.map((approver, idx) => (
+        {/* Signers row (flex + wrap, nice spacing) */}
+        <div className="mt-4 flex flex-wrap gap-6">
+          {/* Requestor */}
+          <div className="w-[340px] max-w-full flex-shrink-0">
             <Signer
-              key={idx}
-              firstName={approver.firstName}
-              lastName={approver.lastName}
-              date={approver.date ?? ""}
-              department={approver.department ?? ""}
-              position={approver.position ?? ""}
-              label={approver.label ?? ""}
+              firstName={
+                formData?.requestor?.firstName || user?.firstName || ""
+              }
+              lastName={formData?.requestor?.lastName || user?.lastName || ""}
+              date={
+                formData?.requestor?.date ||
+                moment(new Date()).format("DD/MM/YYYY")
+              }
+              department={
+                formData?.requestor?.department || user?.department?.name || ""
+              }
+              position={
+                formData?.requestor?.position || user?.position?.title || ""
+              }
+              label="Request by"
             />
+          </div>
+
+          {/* Approvers */}
+          {(formData?.approvers || []).map((approver, idx) => (
+            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+              <Signer
+                firstName={approver.firstName}
+                lastName={approver.lastName}
+                date={approver.date}
+                department={approver.department}
+                position={approver.position}
+                label={approver.label}
+              />
+            </div>
           ))}
         </div>
 

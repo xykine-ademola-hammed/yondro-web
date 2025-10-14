@@ -16,6 +16,9 @@ import FormActions from "./FormActions";
 import VoucherAccountLookup, {
   type VoteBookAccountLookup,
 } from "../../vouchers/VoucherAccountLookup";
+import ParentRequestPreview from "./ParentRequestPreview";
+import ModalWrapper from "../../components/modal-wrapper";
+import DocumentAttachmentForm from "./DocumentAttachmentForm";
 
 export interface PaymentDetail {
   paymentDate: Date;
@@ -130,7 +133,7 @@ type EmployeeOption = {
 };
 
 /** Props **/
-interface PaymentVoucherProps {
+export interface PaymentVoucherProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
   formResponses: Partial<PaymentVoucherDataType>;
@@ -145,6 +148,7 @@ interface PaymentVoucherProps {
   mode?: "edit" | "preview" | "new" | "in_progress";
   responseTypes: string[];
   completedStages?: CompletedStage[];
+  parentRequestId?: number;
 }
 
 const formatDate = (date: Date | string | undefined) =>
@@ -183,11 +187,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
   completedStages = [],
   loading = false,
   setLoading,
+  parentRequestId,
 }) => {
   const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
   const { userDepartmenttMembers } = useOrganization();
+  const [isApplicationFormOpen, openApplicationForm] = useState(false);
 
   // Type safety for employee options
   const employeeOptions: EmployeeOption[] =
@@ -274,18 +280,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     onCancel();
   };
 
-  // --- TYPE-SAFE SIGNER MAP --- //
-  const approvers: {
-    bottomComment?: string;
-    stepNumber: number;
-  }[] = [
-    { bottomComment: "Approved By", stepNumber: 1 },
-    { bottomComment: "Approved By", stepNumber: 2 },
-    { bottomComment: "Approved By", stepNumber: 3 },
-    { bottomComment: "Approved By", stepNumber: 4 },
-    { bottomComment: "Approved By", stepNumber: 17 },
-  ];
-
   // type for getSignerProps param
   function getSignerProps(approver: {
     stepNumber: number;
@@ -309,9 +303,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
       label: approver.bottomComment,
     };
   }
-
   // --- COMPONENT RENDER --- //
-
   return (
     <div className="">
       <div className="flex justify-end items-end ">
@@ -457,10 +449,32 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                   rows={2}
                   placeholder="Enter Description"
                 ></textarea>
+
+                {/* Instead Here we lookup at the application Request that inititate this form process.
+                Then we can pull the response by navigating to the form response page, 
+                if possible open in a new tab */}
+
+                {parentRequestId && (
+                  <button
+                    onClick={() => openApplicationForm(true)}
+                    rel="noopener noreferrer"
+                    className="inline-flex my-1 items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+                  >
+                    View Application
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
+
+        <DocumentAttachmentForm
+          onSubmit={(documents) =>
+            setFormData((prev) => ({ ...prev, attachments: documents }))
+          }
+          mode="new"
+          initialDocuments={formData?.attachments || []}
+        />
 
         {/* Payment Detail */}
         {(vissibleSections?.includes("paymentDetails") ||
@@ -494,7 +508,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-600">
-                    Particlars (Including References)
+                    Particulars (Including References)
                   </label>
                   <textarea
                     name={`paymentParticles`}
@@ -571,7 +585,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                       isEnabled("accountTitle") && isEnabled("accountCodeNo")
                     }
                     onSelect={(selected) => {
-                      console.log("===========", selected);
                       if (selected !== null)
                         setSelectedVoucherAccount(selected);
                       setFormData((prev) => ({
@@ -709,9 +722,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                 {/** Prepared, Reviewed, Approved By selects */}
                 {[
-                  { name: "preparedById", label: "Prepared By", stepNumber: 6 },
-                  { name: "reviewedById", label: "Reviewed By", stepNumber: 7 },
-                  { name: "approvedById", label: "Approved By", stepNumber: 8 },
+                  { name: "preparedById", label: "Prepared By", stepNumber: 2 },
+                  { name: "reviewedById", label: "Reviewed By", stepNumber: 3 },
+                  { name: "approvedById", label: "Approved By", stepNumber: 4 },
                 ].map((role) => (
                   <div key={role.name}>
                     <label className="block text-sm font-medium text-gray-600">
@@ -1104,11 +1117,31 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {approvers.map((approver, idx) => {
-                const signer = getSignerProps(approver);
-                return <Signer {...(signer ?? {})} key={idx} />;
-              })}
+            <div className="mt-4 flex flex-wrap gap-6">
+              {formResponses?.approvers?.map(
+                (
+                  approver: {
+                    firstName: string | undefined;
+                    lastName: string | undefined;
+                    date: string | undefined;
+                    department: string | undefined;
+                    position: string | undefined;
+                    label: string | undefined;
+                  },
+                  idx: React.Key | null | undefined
+                ) => (
+                  <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+                    <Signer
+                      firstName={approver.firstName}
+                      lastName={approver.lastName}
+                      date={approver.date}
+                      department={approver.department}
+                      position={approver.position}
+                      label={approver.label}
+                    />{" "}
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
@@ -1122,6 +1155,19 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             handleSubmit={handleSubmit}
             responseTypes={responseTypes}
           />
+        )}
+
+        {isApplicationFormOpen && (
+          <ModalWrapper
+            isOpen={isApplicationFormOpen}
+            onClose={() => openApplicationForm(false)}
+            title={"Application Request Form"}
+          >
+            <ParentRequestPreview
+              parentRequestId={parentRequestId}
+              onClose={() => openApplicationForm(false)}
+            />
+          </ModalWrapper>
         )}
       </div>
     </div>

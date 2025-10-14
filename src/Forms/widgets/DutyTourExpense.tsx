@@ -13,7 +13,8 @@ import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { EmployeeOption } from "./PaymentVoucher-semi-auto";
+import type { EmployeeOption } from "./PaymentVoucher-auto";
+import DocumentAttachmentForm from "./DocumentAttachmentForm";
 
 interface Requestor {
   firstName?: string;
@@ -21,6 +22,7 @@ interface Requestor {
   date?: string;
   department?: string;
   position?: string;
+  category?: string;
 }
 
 interface Approver {
@@ -63,6 +65,7 @@ const requiredFields: (keyof DutyTourExpenseForm)[] = [
   "date",
   "location",
   "description",
+  "unitVoucherHeadById",
 ];
 
 const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
@@ -148,6 +151,8 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
     });
     onCancel();
   };
+
+  console.log("=== formData?.requestor?====", formData?.requestor);
 
   return (
     <div>
@@ -261,7 +266,15 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                 </div>
                 <div className="flex flex-col md:flex-row items-start md:items-center">
                   <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
-                    <span className="text-sm ">CONTEDISS/CONPCASS</span>
+                    <span className="text-sm ">
+                      {mode === "new"
+                        ? user?.category === "Teaching Staff"
+                          ? "CONTEDISS"
+                          : "CONPCASS"
+                        : formData?.requestor?.category === "Teaching Staff"
+                        ? "CONTEDISS"
+                        : "CONPCASS"}
+                    </span>
                   </div>
                   <div className="w-full">
                     <input
@@ -374,6 +387,14 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             </div>
           </div>
         </>
+
+        <DocumentAttachmentForm
+          onSubmit={(documents) =>
+            setFormData((prev) => ({ ...prev, attachments: documents }))
+          }
+          mode="new"
+          initialDocuments={formData?.attachments || []}
+        />
 
         <p className="mt-4">PART B </p>
         <div className="border p-2 rounded border-gray-300">
@@ -605,33 +626,40 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
-          <Signer
-            firstName={formData?.requestor?.firstName || user?.firstName || ""}
-            lastName={formData?.requestor?.lastName || user?.lastName || ""}
-            date={
-              formData?.requestor?.date ||
-              moment(new Date()).format("DD/MM/YYYY")
-            }
-            department={
-              formData?.requestor?.department || user?.department?.name || ""
-            }
-            position={
-              formData?.requestor?.position || user?.position?.title || ""
-            }
-            label="Request by"
-          />
-
-          {(formData?.approvers || []).map((approver, idx) => (
+        <div className="mt-4 flex flex-wrap gap-6">
+          {/* Requestor */}
+          <div className="w-[340px] max-w-full flex-shrink-0">
             <Signer
-              key={idx}
-              firstName={approver.firstName}
-              lastName={approver.lastName}
-              date={approver.date}
-              department={approver.department}
-              position={approver.position}
-              label={approver.label}
+              firstName={
+                formData?.requestor?.firstName || user?.firstName || ""
+              }
+              lastName={formData?.requestor?.lastName || user?.lastName || ""}
+              date={
+                formData?.requestor?.date ||
+                moment(new Date()).format("DD/MM/YYYY")
+              }
+              department={
+                formData?.requestor?.department || user?.department?.name || ""
+              }
+              position={
+                formData?.requestor?.position || user?.position?.title || ""
+              }
+              label="Request by"
             />
+          </div>
+
+          {/* Approvers */}
+          {(formData?.approvers || []).map((approver, idx) => (
+            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+              <Signer
+                firstName={approver.firstName}
+                lastName={approver.lastName}
+                date={approver.date}
+                department={approver.department}
+                position={approver.position}
+                label={approver.label}
+              />
+            </div>
           ))}
         </div>
 

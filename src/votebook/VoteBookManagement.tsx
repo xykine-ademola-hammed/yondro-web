@@ -15,6 +15,7 @@ import {
 import BudgetAdjustmentModal from "./BudgetAdjustmentModal";
 import VoteBookAccountForm from "./VoteBookAccountForm";
 import { useNavigate } from "react-router-dom";
+import MoneyDisplay from "../components/ui/MoneyDisplay";
 
 export interface VoteBookAccount {
   id: number;
@@ -224,12 +225,12 @@ const VoteBookManagement: React.FC = () => {
                     Total Allocation
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {formatCurrency(
-                      accounts.reduce(
+                    <MoneyDisplay
+                      value={accounts.reduce(
                         (sum, acc) => sum + acc.balances.allocation,
                         0
-                      )
-                    )}
+                      )}
+                    />
                   </dd>
                 </dl>
               </div>
@@ -249,12 +250,12 @@ const VoteBookManagement: React.FC = () => {
                     Total Committed
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {formatCurrency(
-                      accounts.reduce(
+                    <MoneyDisplay
+                      value={accounts.reduce(
                         (sum, acc) => sum + acc.balances.committed,
                         0
-                      )
-                    )}
+                      )}
+                    />
                   </dd>
                 </dl>
               </div>
@@ -274,12 +275,12 @@ const VoteBookManagement: React.FC = () => {
                     Available
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {formatCurrency(
-                      accounts.reduce(
+                    <MoneyDisplay
+                      value={accounts.reduce(
                         (sum, acc) => sum + acc.balances.available,
                         0
-                      )
-                    )}
+                      )}
+                    />
                   </dd>
                 </dl>
               </div>
@@ -450,20 +451,20 @@ const VoteBookManagement: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                          {formatCurrency(account.balances.allocation)}
+                          <MoneyDisplay value={account.balances.allocation} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                          {formatCurrency(account.balances.committed)}
+                          <MoneyDisplay value={account.balances.committed} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                          {formatCurrency(account.balances.spent)}
+                          <MoneyDisplay value={account.balances.spent} />
                         </td>
                         <td
                           className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${getAvailableBalanceColor(
                             account.balances.available
                           )}`}
                         >
-                          {formatCurrency(account.balances.available)}
+                          <MoneyDisplay value={account.balances.available} />
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -584,10 +585,10 @@ const VoteBookManagement: React.FC = () => {
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
                           <span className="text-xs font-medium text-gray-500">
-                            Allocation:
+                            Allocationing:
                           </span>
                           <p className="text-sm font-medium text-gray-900">
-                            {formatCurrency(account.balances.allocation)}
+                            <MoneyDisplay value={account.balances.allocation} />
                           </p>
                         </div>
                         <div>
@@ -607,7 +608,7 @@ const VoteBookManagement: React.FC = () => {
                             Committed:
                           </span>
                           <p className="text-sm text-gray-900">
-                            {formatCurrency(account.balances.committed)}
+                            <MoneyDisplay value={account.balances.committed} />
                           </p>
                         </div>
                         <div>
@@ -615,7 +616,7 @@ const VoteBookManagement: React.FC = () => {
                             Spent:
                           </span>
                           <p className="text-sm text-gray-900">
-                            {formatCurrency(account.balances.spent)}
+                            <MoneyDisplay value={account.balances.spent} />
                           </p>
                         </div>
                       </div>

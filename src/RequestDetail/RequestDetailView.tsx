@@ -56,6 +56,8 @@ export default function WorkflowDetail2() {
     return Array.from(new Set(allSections));
   }
 
+  console.log("-------selectedRequest-----", selectedRequest);
+
   return (
     <div className="bg-gray-50">
       <main className="sm:p-0 md:p-6">
@@ -85,6 +87,8 @@ export default function WorkflowDetail2() {
               }))}
               onSubmit={() => {}}
               onCancel={() => navigate("/")}
+              parentRequestId={selectedRequest?.parentRequestId}
+              mode="not new"
             />
           ) : (
             <RequestFormWrapper
@@ -104,6 +108,7 @@ export default function WorkflowDetail2() {
                 stageId: stage.stageId,
                 status: stage.status,
               }))}
+              parentRequestId={selectedRequest?.parentRequestId}
             />
           )}
         </div>

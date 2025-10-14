@@ -53,6 +53,7 @@ export interface Position {
   description?: string;
   department?: Department;
   schoolOrOffice?: any;
+  category?: string;
 }
 
 export interface Employee {
@@ -84,6 +85,8 @@ export interface WorkFlow {
   description: string;
   organizationId?: number;
   isActive: boolean;
+  isAutoTrigger: boolean;
+  childWorkflows?: string[];
   stages: WorkFlowStage[];
   createdAt: string;
   formId: string;
@@ -229,7 +232,9 @@ export interface WorkflowRequest {
   currentPositionId?: number; //
   currentStageStep?: number;
   nextStageStep?: number;
+  formId?: number;
   status: "Pending" | "Approved" | "Rejected" | "Under Review";
+  parentRequestId?: number;
 
   // To be used to pull history
   stageCompletedBy?: number[];

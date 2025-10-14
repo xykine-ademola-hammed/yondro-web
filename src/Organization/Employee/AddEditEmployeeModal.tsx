@@ -157,7 +157,6 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      console.log("===========FORMDATA========", formData);
       onSave({ ...formData });
       setFormData({ ...emptyEmployee });
     }

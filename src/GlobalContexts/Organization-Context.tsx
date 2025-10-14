@@ -184,7 +184,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         condition: "equal",
       },
     ],
-    limit: 50,
+    limit: 20,
     offset: 0,
   });
 
@@ -194,6 +194,11 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         {
           key: "organizationId",
           value: user?.organizationId,
+          condition: "equal",
+        },
+        {
+          key: "isActive",
+          value: 1,
           condition: "equal",
         },
       ],
@@ -207,6 +212,16 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
       {
         key: "organizationId",
         value: user?.organizationId || "",
+        condition: "equal",
+      },
+      {
+        key: "isActive",
+        value: 1,
+        condition: "equal",
+      },
+      {
+        key: "isAutoTrigger",
+        value: 0,
         condition: "equal",
       },
     ],

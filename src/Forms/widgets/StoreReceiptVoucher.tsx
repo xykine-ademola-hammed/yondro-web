@@ -5,8 +5,8 @@ import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
-import FileUploadRow from "./FileUploadRow";
 import GenericTable from "./StoreItemTable";
+import DocumentAttachmentForm from "./DocumentAttachmentForm.tsx";
 
 const requiredFields = [
   "voucherNo",
@@ -195,25 +195,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
         [eventName]: eventValue,
       };
       return updatedItems;
-    });
-  };
-
-  const requestor = formData?.requestor || {};
-
-  const handleFileChange = (
-    fieldId: keyof FormResponses,
-    file: File | null
-  ) => {
-    // If file is null, remove property. Else, set the File object.
-    setFormData((prev) => {
-      // We're creating a new object so that the form rerenders
-      if (file) {
-        return { ...prev, [fieldId]: file };
-      } else {
-        // Remove the field (so !formData[fieldId] brings back the input)
-        const { [fieldId]: removed, ...rest } = prev;
-        return { ...rest };
-      }
     });
   };
 
@@ -429,192 +410,49 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
           addRowLabel="Add row"
         />
 
-        {/* <div className="bg-white shadow rounded-lg mb-6 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="pr-40 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Articles
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Denomination Qty.
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Qty. received
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Unit Price
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Amount
-                  </th>
-                  <th className="px-1 py-1 text-left text-xs text-gray-500 border-b border-gray-200">
-                    Ledger Folio
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {storeItems?.map((item, index) => (
-                  <tr
-                    key={item?.id ?? index}
-                    className="divide-x divide-gray-200"
-                  >
-                    <td className="p-0">
-                      <textarea
-                        rows={1}
-                        value={item?.articles ?? ""}
-                        disabled={!isEnabled("articles")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "articles",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm`}
-                      />
-                    </td>
-                    <td className="p-0">
-                      <input
-                        type="text"
-                        value={item?.denominationOfQty ?? ""}
-                        disabled={!isEnabled("denominationOfQty")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "denominationOfQty",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-300 text-sm`}
-                      />
-                    </td>
-                    <td className="p-0">
-                      <input
-                        type="text"
-                        value={item?.qtyReceived ?? ""}
-                        disabled={!isEnabled("qtyReceived")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "qtyReceived",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm`}
-                      />
-                    </td>
-                    <td className="p-0">
-                      <input
-                        type="text"
-                        value={item?.unitPrice ?? ""}
-                        disabled={!isEnabled("unitPrice")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "unitPrice",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm`}
-                      />
-                    </td>
-                    <td className="p-0">
-                      <input
-                        type="text"
-                        value={item?.amount ?? ""}
-                        disabled={!isEnabled("amount")}
-                        onChange={(e) =>
-                          handleStoreItemChange("amount", e.target.value, index)
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm`}
-                      />
-                    </td>
-                    <td className="p-0">
-                      <input
-                        type="text"
-                        value={item?.ledgerFolio ?? ""}
-                        disabled={!isEnabled("ledgerFolio")}
-                        onChange={(e) =>
-                          handleStoreItemChange(
-                            "ledgerFolio",
-                            e.target.value,
-                            index
-                          )
-                        }
-                        className={`w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <DocumentAttachmentForm
+          onSubmit={(documents) =>
+            setFormData((prev) => ({ ...prev, attachments: documents }))
+          }
+          mode="new"
+          initialDocuments={formData?.attachments || []}
+        />
 
-            {(vissibleSections?.includes("addMore") || mode === "preview") && (
-              <button
-                type="button"
-                onClick={addMoreRow}
-                className="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-200"
-              >
-                Add row
-              </button>
-            )}
-          </div>
-        </div> */}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Delivery Note */}
-          <FileUploadRow
-            label="Delivery Note:"
-            fieldId="deliveryUrl"
-            value={formData?.deliveryUrl}
-            disabled={!isEnabled("deliveryUrl")}
-            borderRed={isEnabled("uploads")}
-            handleFileChange={handleFileChange}
-          />
-
-          {/* Invoice */}
-          <FileUploadRow
-            label="Invoice:"
-            fieldId="invoiceUrl"
-            value={formData?.invoiceUrl}
-            disabled={!isEnabled("invoiceUrl")}
-            borderRed={isEnabled("uploads")}
-            handleFileChange={handleFileChange}
-          />
-
-          {/* Award letter */}
-          <FileUploadRow
-            label="Award letter:"
-            fieldId="awardLetter"
-            value={formData?.awardLetter}
-            disabled={!isEnabled("awardLetter")}
-            borderRed={isEnabled("uploads")}
-            handleFileChange={handleFileChange}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-20 ">
-          <Signer
-            firstName={requestor.firstName || user?.firstName || ""}
-            lastName={requestor.lastName || user?.lastName || ""}
-            date={requestor.date || moment(new Date()).format("DD/MM/YYYY")}
-            department={requestor.department || user?.department?.name || ""}
-            position={requestor.position || user?.position?.title || ""}
-            label="Request by"
-          />
-
-          {(formData?.approvers || []).map((approver, idx) => (
+        {/* Signers row (flex + wrap, nice spacing) */}
+        <div className="mt-4 flex flex-wrap gap-6">
+          {/* Requestor */}
+          <div className="w-[340px] max-w-full flex-shrink-0">
             <Signer
-              key={idx}
-              firstName={approver.firstName}
-              lastName={approver.lastName}
-              date={approver.date ?? ""}
-              department={approver.department ?? ""}
-              position={approver.position ?? ""}
-              label={approver.label ?? ""}
+              firstName={
+                formData?.requestor?.firstName || user?.firstName || ""
+              }
+              lastName={formData?.requestor?.lastName || user?.lastName || ""}
+              date={
+                formData?.requestor?.date ||
+                moment(new Date()).format("DD/MM/YYYY")
+              }
+              department={
+                formData?.requestor?.department || user?.department?.name || ""
+              }
+              position={
+                formData?.requestor?.position || user?.position?.title || ""
+              }
+              label="Request by"
             />
+          </div>
+
+          {/* Approvers */}
+          {(formData?.approvers || []).map((approver, idx) => (
+            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+              <Signer
+                firstName={approver.firstName}
+                lastName={approver.lastName}
+                date={approver.date}
+                department={approver.department}
+                position={approver.position}
+                label={approver.label}
+              />
+            </div>
           ))}
         </div>
 

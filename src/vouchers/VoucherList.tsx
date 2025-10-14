@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { voucherAPI } from "../services/api";
-import {
-  Plus,
-  Search,
-  Filter,
-  FileText,
-  Calendar,
-  User,
-  DollarSign,
-} from "lucide-react";
+import { Plus, Search, Filter, FileText, Calendar } from "lucide-react";
 import { useAuth } from "../GlobalContexts/AuthContext";
+import MoneyDisplay from "../components/ui/MoneyDisplay";
 
 interface Voucher {
   id: number;
@@ -116,34 +109,6 @@ const VoucherList: React.FC = () => {
         {config.label}
       </span>
     );
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const priorityConfig = {
-      low: { bg: "bg-gray-100", text: "text-gray-800" },
-      medium: { bg: "bg-blue-100", text: "text-blue-800" },
-      high: { bg: "bg-orange-100", text: "text-orange-800" },
-      urgent: { bg: "bg-red-100", text: "text-red-800" },
-    };
-
-    const config =
-      priorityConfig[priority as keyof typeof priorityConfig] ||
-      priorityConfig.medium;
-
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text} capitalize`}
-      >
-        {priority}
-      </span>
-    );
-  };
-
-  const formatCurrency = (amount: number, currency: string = "USD") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-    }).format(amount);
   };
 
   const formatDate = (date: string) => {
@@ -275,13 +240,7 @@ const VoucherList: React.FC = () => {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Requester
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
+                      Date
                     </th>
                   </tr>
                 </thead>
@@ -311,30 +270,15 @@ const VoucherList: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm font-medium text-gray-900">
-                            {formatCurrency(
-                              voucher.total_amount,
-                              voucher.currency
-                            )}
+                            <MoneyDisplay value={voucher.total_amount} />
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(voucher.status)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getPriorityBadge(voucher.priority)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {voucher.requester.first_name}{" "}
-                            {voucher.requester.last_name}
-                          </span>
-                        </div>
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
@@ -369,7 +313,6 @@ const VoucherList: React.FC = () => {
                       </div>
                       <div className="flex space-x-2">
                         {getStatusBadge(voucher.status)}
-                        {getPriorityBadge(voucher.priority)}
                       </div>
                     </div>
 
@@ -394,24 +337,14 @@ const VoucherList: React.FC = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm font-medium text-gray-900">
-                            {formatCurrency(
-                              voucher.total_amount,
-                              voucher.currency
-                            )}
+                            <MoneyDisplay value={voucher.total_amount} />
                           </span>
                         </div>
                         <div className="flex items-center text-xs text-gray-500">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(voucher.created_at)}
                         </div>
-                      </div>
-
-                      <div className="flex items-center text-xs text-gray-500">
-                        <User className="h-3 w-3 mr-1" />
-                        {voucher.requester.first_name}{" "}
-                        {voucher.requester.last_name}
                       </div>
                     </div>
                   </div>

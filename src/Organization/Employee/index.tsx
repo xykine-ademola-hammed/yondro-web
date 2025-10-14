@@ -27,20 +27,9 @@ export default function AllEmployee() {
 
   // UI state
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
   const [selectedEmployee, setSelectedEmployee] = useState<Employee>({
     ...emptyEmployee,
   });
-
-  // Filter and sort employees
-  const filteredEmployees = [];
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-
-  const totalPages = 10;
 
   const { mutateAsync: createEmployee } = useMutation({
     mutationFn: (body: any) =>
@@ -78,7 +67,7 @@ export default function AllEmployee() {
 
   const onSave = (data: Employee) => {
     if (!data?.id) {
-      // Add new department
+      // Add new employee
       const newEmployee = cleanEmptyFields({
         ...data,
         organizationId: Number(user?.organizationId),
@@ -86,12 +75,7 @@ export default function AllEmployee() {
       });
       createEmployee(newEmployee);
     } else {
-      // // Update existing department
-      // setDepartments(
-      //   departments?.rows.map((dept) =>
-      //     dept.id === currentDepartment.id ? currentDepartment : dept
-      //   )
-      // );
+      updateEmployee(data);
     }
     setIsAddEditModalOpen(false);
     setSelectedEmployee({ ...emptyEmployee });
@@ -121,27 +105,40 @@ export default function AllEmployee() {
     }
   }, [selectedDepartment]);
 
+  // const pagination = employees?.pagination ?? {
+  //   page: 1,
+  //   limit: employeeFilter.limit,
+  //   total: 0,
+  //   totalPages: 1,
+  // };
+
   return (
     <main>
       <div>
-        <div className="flex justify-end mb-1">
-          <button
-            onClick={() => setShowPermissionsModal(true)}
-            type="button"
-            className="inline-flex items-center mr-4 px-2 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
-          >
-            <i className="fas fa-plus mx-2"></i>
-            Manage Employee Permission
-          </button>
+        {/* Actions Bar (mobile-friendly) */}
+        <div className="mb-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            {/* Secondary action first on mobile so primary sits closest to thumb */}
+            <button
+              onClick={() => setShowPermissionsModal(true)}
+              type="button"
+              className="inline-flex w-full sm:w-auto items-center justify-center px-3 py-2 text-sm font-medium rounded-md shadow-sm border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:opacity-90 touch-manipulation"
+              aria-label="Manage Permission"
+            >
+              <i className="fas fa-shield-alt mr-2 text-slate-500" />
+              Manage Permission
+            </button>
 
-          <button
-            onClick={() => setIsAddEditModalOpen(true)}
-            type="button"
-            className="inline-flex items-center px-2 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
-          >
-            <i className="fas fa-plus mx-2"></i>
-            Add Employee
-          </button>
+            <button
+              onClick={() => setIsAddEditModalOpen(true)}
+              type="button"
+              className="inline-flex w-full sm:w-auto items-center justify-center px-3 py-2 text-sm font-semibold rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:opacity-90 touch-manipulation"
+              aria-label="Add Employee"
+            >
+              <i className="fas fa-user-plus mr-2" />
+              Add Employee
+            </button>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
@@ -180,41 +177,110 @@ export default function AllEmployee() {
         </div>
 
         {/* Should be hidden on large screen */}
-        <div className="block md:hidden space-y-4 px-4">
-          {employees.rows?.map((employee) => (
-            <div
-              key={employee.id}
-              className="flex p-4 border rounded-lg shadow-sm bg-white items-start justify-between"
-            >
-              <div className="">
-                <div className="text-base font-medium text-gray-900">
-                  {employee.firstName} {employee.lastName}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  <div>{employee?.department?.name}</div>
-                  <div>{employee?.position?.title}</div>
-                  <div>{employee?.email}</div>
-                  <div>{employee?.phone}</div>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  className="text-blue-600 hover:text-blue-900 cursor-pointer"
-                  title="Edit"
+        {/* Mobile list */}
+        <div className="block md:hidden space-y-3">
+          {employees?.rows?.length ? (
+            employees.rows.map((employee: any) => {
+              const fullName = `${employee?.firstName ?? ""} ${
+                employee?.lastName ?? ""
+              }`.trim();
+
+              return (
+                <div
+                  key={employee.id}
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md"
                 >
-                  <i className="fas fa-edit"></i>
-                </button>
-                <button
-                  type="button"
-                  className="text-red-600 hover:text-red-900 cursor-pointer"
-                  title="Delete"
-                >
-                  <i className="fas fa-trash-alt"></i>
-                </button>
+                  {/* Accent bar */}
+                  <div className="absolute left-0 top-0 h-full w-1 bg-indigo-500/80" />
+
+                  <div className="flex items-start gap-3">
+                    {/* Main */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-[15px] font-semibold text-slate-900">
+                            {fullName || "Unnamed Employee"}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            {employee?.position?.title && (
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                <i className="fas fa-id-badge mr-1.5 text-[10px] text-slate-500" />
+                                {employee.position.title}
+                              </span>
+                            )}
+                            {employee?.department?.name && (
+                              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                                <i className="fas fa-building mr-1.5 text-[10px] text-indigo-600" />
+                                {employee.department.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col flex-shrink-0 gap-1.5">
+                          <button
+                            onClick={() => {
+                              setIsAddEditModalOpen(true);
+                              setSelectedEmployee(employee);
+                            }}
+                            type="button"
+                            aria-label="Edit employee"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            title="Edit"
+                          >
+                            <i className="fas fa-pen" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Delete employee"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-red-600 hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <i className="fas fa-trash-alt" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Contacts */}
+                      <div className="mt-3 space-y-1.5 text-sm">
+                        {employee?.email && (
+                          <a
+                            href={`mailto:${employee.email}`}
+                            className="flex items-center text-slate-600 hover:text-slate-900"
+                          >
+                            <i className="fas fa-envelope mr-2 text-[12px] text-slate-400" />
+                            <span className="truncate">{employee.email}</span>
+                          </a>
+                        )}
+                        {employee?.phone && (
+                          <a
+                            href={`tel:${employee.phone}`}
+                            className="flex items-center text-slate-600 hover:text-slate-900"
+                          >
+                            <i className="fas fa-phone mr-2 text-[12px] text-slate-400" />
+                            <span className="truncate">{employee.phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+                <i className="fas fa-users text-slate-400" />
               </div>
+              <p className="text-sm font-medium text-slate-900">
+                No employees found
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Add your first employee to get started.
+              </p>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Should be hidden on smaller screen */}
@@ -310,6 +376,10 @@ export default function AllEmployee() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
+                            onClick={() => {
+                              setIsAddEditModalOpen(true);
+                              setSelectedEmployee(employee);
+                            }}
                             type="button"
                             className="text-blue-600 hover:text-blue-900 cursor-pointer"
                             title="Edit"
@@ -339,142 +409,6 @@ export default function AllEmployee() {
                 )}
               </tbody>
             </table>
-          </div>
-          {/* Pagination */}
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() =>
-                  setCurrentPage(currentPage > 1 ? currentPage - 1 : 1)
-                }
-                disabled={currentPage === 1}
-                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                  currentPage === 1
-                    ? "text-gray-300 bg-gray-50"
-                    : "text-gray-700 bg-white hover:bg-gray-50"
-                } !rounded-button whitespace-nowrap cursor-pointer`}
-              >
-                Previous
-              </button>
-              <button
-                onClick={() =>
-                  setCurrentPage(
-                    currentPage < totalPages ? currentPage + 1 : totalPages
-                  )
-                }
-                disabled={currentPage === totalPages}
-                className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                  currentPage === totalPages
-                    ? "text-gray-300 bg-gray-50"
-                    : "text-gray-700 bg-white hover:bg-gray-50"
-                } !rounded-button whitespace-nowrap cursor-pointer`}
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing{" "}
-                  <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                  <span className="font-medium">
-                    {Math.min(indexOfLastItem, filteredEmployees.length)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-medium">
-                    {filteredEmployees.length}
-                  </span>{" "}
-                  results
-                </p>
-              </div>
-              <div className="flex items-center">
-                <nav
-                  className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                  aria-label="Pagination"
-                >
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === 1
-                        ? "text-gray-300"
-                        : "text-gray-500 hover:bg-gray-50"
-                    } cursor-pointer`}
-                  >
-                    <span className="sr-only">First</span>
-                    <i className="fas fa-angle-double-left"></i>
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage(currentPage > 1 ? currentPage - 1 : 1)
-                    }
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === 1
-                        ? "text-gray-300"
-                        : "text-gray-500 hover:bg-gray-50"
-                    } cursor-pointer`}
-                  >
-                    <span className="sr-only">Previous</span>
-                    <i className="fas fa-chevron-left"></i>
-                  </button>
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`relative inline-flex items-center px-4 py-2 border ${
-                          currentPage === pageNum
-                            ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                            : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                        } text-sm font-medium cursor-pointer`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() =>
-                      setCurrentPage(
-                        currentPage < totalPages ? currentPage + 1 : totalPages
-                      )
-                    }
-                    disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === totalPages
-                        ? "text-gray-300"
-                        : "text-gray-500 hover:bg-gray-50"
-                    } cursor-pointer`}
-                  >
-                    <span className="sr-only">Next</span>
-                    <i className="fas fa-chevron-right"></i>
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                      currentPage === totalPages
-                        ? "text-gray-300"
-                        : "text-gray-500 hover:bg-gray-50"
-                    } cursor-pointer`}
-                  >
-                    <span className="sr-only">Last</span>
-                    <i className="fas fa-angle-double-right"></i>
-                  </button>
-                </nav>
-              </div>
-            </div>
           </div>
         </div>
       </div>

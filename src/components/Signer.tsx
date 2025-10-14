@@ -1,3 +1,4 @@
+import moment from "moment";
 import React from "react";
 
 interface SignerProps {
@@ -7,7 +8,12 @@ interface SignerProps {
   department?: string;
   date?: string;
   label?: string;
+  className?: string;
 }
+
+const getInitials = (first?: string, last?: string) =>
+  `${(first?.[0] || "").toUpperCase()}${(last?.[0] || "").toUpperCase()}` ||
+  "•";
 
 const Signer: React.FC<SignerProps> = ({
   firstName,
@@ -15,27 +21,47 @@ const Signer: React.FC<SignerProps> = ({
   position,
   department,
   date,
-  label,
+  label = "Signer",
+  className = "",
 }) => {
+  const initials = getInitials(firstName, lastName);
+
   return (
-    <div className="max-w-sm w-full bg-white rounded shadow-md border border-gray-200 p-2 hover:shadow-lg transition-shadow">
-      <div className="flex flex-col items-center text-center">
-        {/* Name */}
-        <h2 className="text-xs font-semibold text-gray-800">
-          {firstName} {lastName}
-        </h2>
+    <div
+      className={[
+        "w-full max-w-sm rounded-xl bg-white",
+        "shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-gray-300",
+        "transition-all duration-200",
+        "p-4",
+        className,
+      ].join(" ")}
+      role="group"
+      aria-label={`${label} card`}
+    >
+      {/* Badge */}
+      <div className="mb-3 flex items-center justify-between">
+        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700 tracking-wide">
+          {label}
+        </span>
+        <span className="rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+          {moment(date).format("DD/MM/YYYY") || "—"}
+        </span>
+      </div>
 
-        {/* Position & Department */}
-        <p className="text-[10px] text-gray-700 mt-1">{position}</p>
-        <p className="text-[10px] text-gray-700">
-          {department} {date}
-        </p>
-
-        {/* Divider */}
-        <div className="w-full border-t border-gray-200 my-1"></div>
-
-        {/* Date */}
-        <p className="text-xs text-gray-500 italic">{label}</p>
+      {/* Identity */}
+      <div className="flex items-center gap-3">
+        <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 ring-1 ring-inset ring-indigo-300/60 flex items-center justify-center">
+          <span className="text-sm font-semibold text-indigo-700">
+            {initials}
+          </span>
+        </div>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold text-gray-900">
+            {[firstName, lastName].filter(Boolean).join(" ") || "—"}
+          </h2>
+          <p className="truncate text-xs text-gray-600">{position || ""}</p>
+          <p className="truncate text-xs text-gray-600">{department || ""}</p>
+        </div>
       </div>
     </div>
   );

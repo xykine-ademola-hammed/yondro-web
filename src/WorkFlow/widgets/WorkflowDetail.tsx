@@ -167,16 +167,6 @@ export default function WorkflowDetail() {
                               <h4 className="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">
                                 {stage.name}
                               </h4>
-
-                              {!stage.assignToRequestor && (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
-                                  <div>Assigned to:</div>
-                                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
-                                    {stage.assignee?.departmentName}{" "}
-                                    {stage.assignee?.positionName}
-                                  </span>
-                                </div>
-                              )}
                             </div>
                             <p className="text-gray-600">{stage.description}</p>
                           </div>

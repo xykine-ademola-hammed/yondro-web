@@ -34,6 +34,7 @@ export interface User {
   role?: UserRole;
   id: number;
   email?: string;
+  category?: string;
   firstName?: string;
   lastName?: string;
   organization?: Organization;

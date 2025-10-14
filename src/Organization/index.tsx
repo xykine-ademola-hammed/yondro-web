@@ -20,7 +20,6 @@ export default function Organization() {
             ? user?.organization?.name
             : JSON.parse(storedUser)?.organization?.name}
         </h1>
-        {/* <p className="text-gray-600">Create and manage workflows.</p> */}
       </div>
 
       <div className="border-b border-gray-200">

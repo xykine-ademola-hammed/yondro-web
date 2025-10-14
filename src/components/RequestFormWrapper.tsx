@@ -5,11 +5,11 @@ import type { WorkFlowStage } from "../WorkFlow/widgets/AddEditStageEditor";
 
 // For generic form response, use 'any' unless a stricter type is available.
 interface RequestFormWrapperProps {
-  loading: boolean;
-  setLoading: (value: boolean) => void;
+  loading?: boolean;
+  setLoading?: (value: boolean) => void;
   formResponses?: any; // replace with actual type if known
-  onSubmit: (data: any, status: string) => void;
-  onCancel: () => void;
+  onSubmit?: (data: any, status: string) => void;
+  onCancel?: () => void;
   selectedWorkFlow?: any;
   mode?: "new" | "edit" | string;
   currentWorkflowStage?: WorkFlowStage;
@@ -19,6 +19,7 @@ interface RequestFormWrapperProps {
     status: string;
     [key: string]: any;
   }>;
+  parentRequestId?: number;
 }
 
 export default function RequestFormWrapper({
@@ -32,7 +33,10 @@ export default function RequestFormWrapper({
   completedStages = [],
   loading,
   setLoading,
+  parentRequestId,
 }: RequestFormWrapperProps) {
+  console.log("---------------------", formResponses);
+
   const [activeTab, setActiveTab] = useState<string>("Form");
   const [activeComponent, setActiveComponent] = useState<React.ReactNode>();
   const { getFormById } = useForm();
@@ -81,6 +85,7 @@ export default function RequestFormWrapper({
               mode,
               loading,
               setLoading,
+              parentRequestId,
             })}
           </div>
         );
@@ -104,6 +109,7 @@ export default function RequestFormWrapper({
                       getStageStatus(stage) === "Approved" ||
                       getStageStatus(stage) === "Submitted" ||
                       getStageStatus(stage) === "Payment" ||
+                      getStageStatus(stage) === "Recommend" ||
                       getStageStatus(stage) === "Procurement"
                         ? "bg-green-500 text-white"
                         : getStageStatus(stage) === "Current"
@@ -130,6 +136,7 @@ export default function RequestFormWrapper({
                       getStageStatus(stage) === "Approved" ||
                       getStageStatus(stage) === "Submitted" ||
                       getStageStatus(stage) === "Payment" ||
+                      getStageStatus(stage) === "Recommend" ||
                       getStageStatus(stage) === "Procurement"
                         ? "text-green-700 font-medium"
                         : getStageStatus(stage) === "Current"

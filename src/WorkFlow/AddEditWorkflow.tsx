@@ -21,7 +21,7 @@ export default function AddEditWorkflow() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { forms } = useForm();
-  const { fetchWorkFlows, workflowFilter } = useOrganization();
+  const { fetchWorkFlows, workflowFilter, workflows } = useOrganization();
 
   const [isOpenStageModal, setIsOpenStageModal] = useState(false);
   const [selectedStage, setSelectedStage] = useState<WorkFlowStage>({
@@ -38,6 +38,7 @@ export default function AddEditWorkflow() {
     createdAt: "",
     formId: "",
     isActive: true,
+    isAutoTrigger: false,
   });
 
   const handleSubmitStage = (stageIndex: number, stageData: WorkFlowStage) => {
@@ -116,6 +117,7 @@ export default function AddEditWorkflow() {
         createdAt: new Date().toISOString(),
         formId: "",
         isActive: true,
+        isAutoTrigger: false,
       });
     }
   }, [workflowId]);
@@ -169,7 +171,7 @@ export default function AddEditWorkflow() {
                 setFormData({ ...formData, formId: e.target.value })
               }
               className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-              required
+              // required
             >
               <option value="">Select form</option>
               {forms.map((form) => (
@@ -194,6 +196,74 @@ export default function AddEditWorkflow() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Describe the workflow purpose and process"
           />
+        </div>
+
+        <div className="flex mb-10 items-center mb-2">
+          <input
+            type="checkbox"
+            id="assignee"
+            checked={formData.isAutoTrigger}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                isAutoTrigger: e.target.checked,
+              }))
+            }
+            className="mr-2"
+          />
+          <label htmlFor="assignToRequestor" className="text-sm text-gray-700">
+            Auto Trigger
+          </label>
+        </div>
+
+        <div className="mt-6">
+          <h3 className="text-l font-semibold text-gray-900">
+            Child workflows
+          </h3>
+          <select
+            multiple
+            value={formData.childWorkflows || []}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map(
+                (option) => option.value
+              );
+              console.log;
+              setFormData({
+                ...formData,
+                childWorkflows: selected,
+              });
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm pr-8"
+            style={{ minHeight: "100px" }}
+          >
+            {workflows.rows.map((workflow) => (
+              <option key={workflow.id} value={workflow.id}>
+                {workflow.name}
+              </option>
+            ))}
+          </select>
+          <div className="mt-2 text-xs text-gray-500">
+            Hold Ctrl (Windows) or Cmd (Mac) to select multiple fields.
+          </div>
+
+          {formData.childWorkflows && formData.childWorkflows.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {formData?.childWorkflows?.map((workflowId) => {
+                const selected = workflows.rows.find(
+                  (workflow) => Number(workflow.id) === Number(workflowId)
+                );
+
+                return (
+                  <span
+                    key={workflowId}
+                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                  >
+                    {selected?.name}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div>
