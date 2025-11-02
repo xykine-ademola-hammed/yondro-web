@@ -172,9 +172,11 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
           </div>
         </div>
       )}
-      {formData?.voucherFormType === "normal" ? (
+      {formData?.voucherFormType === "normal" && (
         <PaymentVoucher {...propHolder} />
-      ) : (
+      )}
+
+      {formData?.voucherFormType === "tetfund" && (
         <PaymentVoucherTetfund {...propHolder} />
       )}
     </div>

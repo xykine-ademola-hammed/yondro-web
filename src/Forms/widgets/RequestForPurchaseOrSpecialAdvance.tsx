@@ -15,6 +15,7 @@ import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import type { EmployeeOption } from "./PaymentVoucher-auto";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 // --- Types ---
 
@@ -24,15 +25,6 @@ interface Requestor {
   date?: string;
   department?: string;
   position?: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  date?: string;
-  department?: string;
-  position?: string;
-  label?: string;
 }
 
 interface RequestForPurchaseOrSpecialAdvanceForm {
@@ -472,7 +464,7 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 
@@ -482,7 +474,6 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
               <Signer
                 firstName={approver.firstName}
                 lastName={approver.lastName}
-                date={approver.date}
                 department={approver.department}
                 position={approver.position}
                 label={approver.label}

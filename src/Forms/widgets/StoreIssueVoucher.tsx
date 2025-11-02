@@ -7,6 +7,7 @@ import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import GenericTable from "./StoreItemTable";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 const requiredFields = [
   "unit",
@@ -39,15 +40,6 @@ interface StoreItem {
   amount: string;
   ledgerFolio: string;
   remarks: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  date?: string;
-  department?: string;
-  position?: string;
-  label?: string;
 }
 
 interface Requestor {
@@ -474,7 +466,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 

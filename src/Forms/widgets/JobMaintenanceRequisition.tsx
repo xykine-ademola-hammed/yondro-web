@@ -13,6 +13,7 @@ import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 interface Requestor {
   firstName?: string;
@@ -20,15 +21,6 @@ interface Requestor {
   date?: string;
   department?: string;
   position?: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  date?: string;
-  department?: string;
-  position?: string;
-  label?: string;
 }
 
 interface JobMaintenanceRequisitionForm {
@@ -322,7 +314,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 

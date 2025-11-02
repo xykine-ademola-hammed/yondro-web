@@ -8,7 +8,7 @@ import React, {
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
-import Signer from "../../components/Signer";
+import Signer, { type LabelKey } from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
@@ -24,13 +24,14 @@ interface Requestor {
   position?: string;
 }
 
-interface Approver {
+export interface Approver {
   firstName: string;
   lastName: string;
   date?: string;
   department?: string;
   position?: string;
-  label?: string;
+  label?: LabelKey;
+  stepNumber?: number;
 }
 
 interface ClaimOutOfPocketExpenseForm {
@@ -424,7 +425,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 
@@ -437,7 +438,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                 date={approver.date}
                 department={approver.department}
                 position={approver.position}
-                label={approver.label}
+                label={approver?.label}
               />
             </div>
           ))}

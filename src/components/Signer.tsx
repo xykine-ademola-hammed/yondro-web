@@ -1,4 +1,3 @@
-import moment from "moment";
 import React from "react";
 
 interface SignerProps {
@@ -7,9 +6,18 @@ interface SignerProps {
   position?: string;
   department?: string;
   date?: string;
-  label?: string;
+  label?: LabelKey;
   className?: string;
 }
+
+const labelMapper = {
+  Recommend: "Recommended by",
+  Approve: "Approved by",
+  Acknolwedge: "Acknowledged by",
+  Request: "Requested by",
+};
+
+export type LabelKey = keyof typeof labelMapper;
 
 const getInitials = (first?: string, last?: string) =>
   `${(first?.[0] || "").toUpperCase()}${(last?.[0] || "").toUpperCase()}` ||
@@ -21,10 +29,12 @@ const Signer: React.FC<SignerProps> = ({
   position,
   department,
   date,
-  label = "Signer",
+  label = "Approve",
   className = "",
 }) => {
   const initials = getInitials(firstName, lastName);
+
+  console.log("======DATE==eee=====", date);
 
   return (
     <div
@@ -41,10 +51,10 @@ const Signer: React.FC<SignerProps> = ({
       {/* Badge */}
       <div className="mb-3 flex items-center justify-between">
         <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700 tracking-wide">
-          {label}
+          {labelMapper[label]}
         </span>
         <span className="rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-          {moment(date).format("DD/MM/YYYY") || "—"}
+          {date}
         </span>
       </div>
 

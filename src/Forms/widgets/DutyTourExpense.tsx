@@ -15,6 +15,7 @@ import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import type { EmployeeOption } from "./PaymentVoucher-auto";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 interface Requestor {
   firstName?: string;
@@ -23,15 +24,6 @@ interface Requestor {
   department?: string;
   position?: string;
   category?: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  date?: string;
-  department?: string;
-  position?: string;
-  label?: string;
 }
 
 interface DutyTourExpenseForm {
@@ -567,7 +559,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
 
             <div>
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
-                <span className="text-sm ">Approve Ammount (in word):</span>
+                <span className="text-sm ">Approve Amount (in word):</span>
               </div>
               <div className="w-full">
                 <textarea
@@ -644,7 +636,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 

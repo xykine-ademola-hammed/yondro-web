@@ -19,6 +19,7 @@ import VoucherAccountLookup, {
 import ParentRequestPreview from "./ParentRequestPreview";
 import ModalWrapper from "../../components/modal-wrapper";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 export interface PaymentDetail {
   paymentDate: Date;
@@ -103,6 +104,7 @@ export interface PaymentVoucherDataType {
   cpoApprovedById?: string | number;
   additionalNotes?: string;
   financeCode?: string;
+  approvers?: Approver[];
   [key: string]: any;
   // legacy fields not used (to match spread/forms usage)
   applicantDetail?: ApplicantDetail;
@@ -258,7 +260,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
         required.push(enableField);
       }
     }
-    return !!required.length;
+    // return !!required.length;
+    return false;
   };
 
   const handleSubmit = (status: string) => {
@@ -1117,19 +1120,31 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
+
+            <div className="w-[340px] max-w-full flex-shrink-0">
+              <Signer
+                firstName={
+                  formData?.requestor?.firstName || user?.firstName || ""
+                }
+                lastName={formData?.requestor?.lastName || user?.lastName || ""}
+                date={
+                  formData?.requestor?.date ||
+                  moment(new Date()).format("DD/MM/YYYY")
+                }
+                department={
+                  formData?.requestor?.department ||
+                  user?.department?.name ||
+                  ""
+                }
+                position={
+                  formData?.requestor?.position || user?.position?.title || ""
+                }
+                label="Request"
+              />
+            </div>
             <div className="mt-4 flex flex-wrap gap-6">
               {formResponses?.approvers?.map(
-                (
-                  approver: {
-                    firstName: string | undefined;
-                    lastName: string | undefined;
-                    date: string | undefined;
-                    department: string | undefined;
-                    position: string | undefined;
-                    label: string | undefined;
-                  },
-                  idx: React.Key | null | undefined
-                ) => (
+                (approver, idx: React.Key | null | undefined) => (
                   <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
                     <Signer
                       firstName={approver.firstName}

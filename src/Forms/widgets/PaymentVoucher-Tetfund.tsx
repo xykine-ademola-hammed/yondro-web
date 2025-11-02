@@ -210,7 +210,8 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
         required.push(enableField);
       }
     }
-    return !!required.length;
+    // return !!required.length;
+    return false;
   };
 
   const handleSubmit = (status: string) => {
@@ -359,14 +360,14 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
                   File Ref No:
                 </label>
                 <input
-                  name="applicantName"
-                  id="applicantName"
-                  value={formData?.applicantName || ""}
+                  name="fileRefNo"
+                  id="fileRefNo"
+                  value={formData?.fileRefNo || ""}
                   onChange={handleInput}
                   type="text"
-                  disabled={!isEnabled("applicantName")}
+                  disabled={!isEnabled("fileRefNo")}
                   className={`mt-0 w-full p-1 border ${
-                    isEnabled("applicantName")
+                    isEnabled("fileRefNo")
                       ? "border-red-500"
                       : "border-gray-300"
                   } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -480,11 +481,11 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
                 <div className="w-full">
                   <input
                     type="text"
-                    value={formData?.estimatedTransportCost}
-                    disabled={!isEnabled("estimatedTransportCost")}
+                    value={formData?.grossTotalBill}
+                    disabled={!isEnabled("grossTotalBill")}
                     onChange={handleInput}
                     className={`w-full p-1 border ${
-                      isEnabled("estimatedTransportCost")
+                      isEnabled("grossTotalBill")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -497,11 +498,11 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
                 <div className="w-full">
                   <input
                     type="text"
-                    value={formData?.estimatedNight}
-                    disabled={!isEnabled("estimatedNight")}
+                    value={formData?.lessVat}
+                    disabled={!isEnabled("lessVat")}
                     onChange={handleInput}
                     className={`w-full p-1 border ${
-                      isEnabled("estimatedNight")
+                      isEnabled("lessVat")
                         ? "border-red-500"
                         : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
@@ -515,11 +516,11 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
                 <div className="w-full">
                   <input
                     type="text"
-                    value={formData?.others}
-                    disabled={!isEnabled("others")}
+                    value={formData?.wht}
+                    disabled={!isEnabled("wht")}
                     onChange={handleInput}
                     className={`w-full p-1 border ${
-                      isEnabled("others") ? "border-red-500" : "border-gray-300"
+                      isEnabled("wht") ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                   />
                 </div>
@@ -1058,19 +1059,32 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Approvals
             </h3>
+
+            <div className="w-[340px] max-w-full flex-shrink-0">
+              <Signer
+                firstName={
+                  formData?.requestor?.firstName || user?.firstName || ""
+                }
+                lastName={formData?.requestor?.lastName || user?.lastName || ""}
+                date={
+                  formData?.requestor?.date ||
+                  moment(new Date()).format("DD/MM/YYYY")
+                }
+                department={
+                  formData?.requestor?.department ||
+                  user?.department?.name ||
+                  ""
+                }
+                position={
+                  formData?.requestor?.position || user?.position?.title || ""
+                }
+                label="Request"
+              />
+            </div>
+
             <div className="mt-4 flex flex-wrap gap-6">
               {formResponses?.approvers?.map(
-                (
-                  approver: {
-                    firstName: string | undefined;
-                    lastName: string | undefined;
-                    date: string | undefined;
-                    department: string | undefined;
-                    position: string | undefined;
-                    label: string | undefined;
-                  },
-                  idx: React.Key | null | undefined
-                ) => (
+                (approver, idx: React.Key | null | undefined) => (
                   <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
                     <Signer
                       firstName={approver.firstName}

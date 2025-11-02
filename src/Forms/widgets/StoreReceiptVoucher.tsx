@@ -7,6 +7,7 @@ import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import GenericTable from "./StoreItemTable";
 import DocumentAttachmentForm from "./DocumentAttachmentForm.tsx";
+import type { Approver } from "./ClaimOutOfPocketExpenses.tsx";
 
 const requiredFields = [
   "voucherNo",
@@ -41,15 +42,6 @@ interface Requestor {
   department?: string;
   position?: string;
   date?: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  department?: string;
-  position?: string;
-  date?: string;
-  label?: string;
 }
 
 interface FormResponses {
@@ -437,7 +429,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 

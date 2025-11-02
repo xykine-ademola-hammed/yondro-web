@@ -111,16 +111,9 @@ const DocumentAttachmentForm: React.FC<DocumentAttachmentFormProps> = ({
   }
 
   return (
-    <div
-      className={[
-        "w-full rounded-xl bg-white",
-        "shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-gray-300",
-        "transition-all duration-200",
-        "p-2",
-      ].join(" ")}
-    >
+    <div className={["w-full rounded-xl bg-white", "p-2"].join(" ")}>
       <div className="flex justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+        <h3 className="text-sm font-semibold text-gray-900">Documents</h3>
         <button
           type="button"
           onClick={addDocument}
@@ -132,7 +125,7 @@ const DocumentAttachmentForm: React.FC<DocumentAttachmentFormProps> = ({
       {documents.map((doc, index) => (
         <div
           key={doc.id || index}
-          className="flex gap-4 items-center bg-white border border-gray-200 rounded-lg shadow-sm p-1"
+          className="flex gap-4 items-center bg-white rounded-lg p-1"
         >
           <input
             type="text"
@@ -146,7 +139,7 @@ const DocumentAttachmentForm: React.FC<DocumentAttachmentFormProps> = ({
             <input
               type="file"
               onChange={(e) => updateFile(index, e)}
-              className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+              className={`w-full p-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
                 doc.file ? "hidden" : ""
               }`}
             />

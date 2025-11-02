@@ -9,6 +9,7 @@ import FormActions from "./FormActions";
 import DocumentAttachmentForm, {
   type Document,
 } from "./DocumentAttachmentForm";
+import type { Approver } from "./ClaimOutOfPocketExpenses";
 
 /** Interfaces for core objects **/
 interface StoreItem {
@@ -23,15 +24,6 @@ interface StoreItem {
   unitPrice?: string;
   amount?: string;
   ledgerFolio?: string;
-}
-
-interface Approver {
-  firstName: string;
-  lastName: string;
-  date?: string;
-  department?: string;
-  position?: string;
-  label?: string;
 }
 
 interface Requestor {
@@ -436,7 +428,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
               position={
                 formData?.requestor?.position || user?.position?.title || ""
               }
-              label="Request by"
+              label="Request"
             />
           </div>
 
