@@ -217,35 +217,6 @@ export default function AddEditWorkflow() {
         </div>
 
         <div className="mt-6">
-          <h3 className="text-l font-semibold text-gray-900">
-            Child workflows
-          </h3>
-          <select
-            multiple
-            value={formData.childWorkflows || []}
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions).map(
-                (option) => option.value
-              );
-              console.log;
-              setFormData({
-                ...formData,
-                childWorkflows: selected,
-              });
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm pr-8"
-            style={{ minHeight: "100px" }}
-          >
-            {workflows.rows.map((workflow) => (
-              <option key={workflow.id} value={workflow.id}>
-                {workflow.name}
-              </option>
-            ))}
-          </select>
-          <div className="mt-2 text-xs text-gray-500">
-            Hold Ctrl (Windows) or Cmd (Mac) to select multiple fields.
-          </div>
-
           {formData.childWorkflows && formData.childWorkflows.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {formData?.childWorkflows?.map((workflowId) => {
@@ -355,6 +326,7 @@ export default function AddEditWorkflow() {
         title={""}
       >
         <AddEditStageEditor
+          formDataStages={formData.stages}
           formId={formData?.formId}
           setIsOpenStageModal={setIsOpenStageModal}
           selectedStageIndex={selectedStageIndex}

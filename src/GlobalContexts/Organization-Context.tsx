@@ -6,7 +6,6 @@ import type {
   PositionData,
   SchoolOfficeData,
   WorkFlowData,
-  WorkflowRequestData,
 } from "../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
@@ -29,8 +28,6 @@ interface OrganizationContextType {
   fetchWorkFlows: (apiFilter: ApiFilter) => Promise<void>;
   workflowFilter: ApiFilter;
   setWorkflowFilter: React.Dispatch<React.SetStateAction<ApiFilter>>;
-  workflowRequests: WorkflowRequestData;
-  fetchWorkflowRequest: (apiFilter: ApiFilter) => Promise<void>;
   workflowReqiestFilter: ApiFilter;
   setWorkflowReqiestFilter: React.Dispatch<React.SetStateAction<ApiFilter>>;
   userDepartmenttMembers: EmployeeData;
@@ -55,6 +52,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth();
+  console.log("---  USER ORG CTX ----", user);
   const [departments, setDepartments] = useState<DepartmentData>({
     rows: [],
     count: 0,
@@ -97,14 +95,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     count: 0,
     hasMore: false,
   });
-
-  const [workflowRequests, setWorkflowRequests] = useState<WorkflowRequestData>(
-    {
-      rows: [],
-      count: 0,
-      hasMore: false,
-    }
-  );
 
   const [departmentFilter, setDepartmentFilter] = useState<ApiFilter>({
     filters: [
@@ -291,22 +281,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     },
   });
 
-  const { mutateAsync: fetchWorkflowRequest } = useMutation({
-    mutationFn: (body: ApiFilter) =>
-      getMutationMethod(
-        "POST",
-        `api/workflowrequest/get-workflow-request-tasks`,
-        body,
-        true
-      ),
-    onSuccess: (data) => {
-      setWorkflowRequests(data);
-    },
-    onError: (error) => {
-      console.error("Failed to fetch workflow requests:", error);
-    },
-  });
-
   const { mutateAsync: fetchDepartmentEmployees } = useMutation({
     mutationFn: (body: ApiFilter) =>
       getMutationMethod("POST", `api/employees/get-employees`, body, true),
@@ -328,10 +302,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("Failed to fetch positions:", error);
     },
   });
-
-  useEffect(() => {
-    fetchWorkflowRequest(workflowReqiestFilter);
-  }, [fetchWorkflowRequest, user?.id]);
 
   useEffect(() => {
     fetchDepartments(departmentFilter);
@@ -370,10 +340,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchWorkFlows,
         workflowFilter,
         setWorkflowFilter,
-        workflowRequests,
         setWorkflowReqiestFilter,
         workflowReqiestFilter,
-        fetchWorkflowRequest,
         userDepartmenttMembers,
         fetchDepartmentEmployees,
         departmentEmployeeFilter,

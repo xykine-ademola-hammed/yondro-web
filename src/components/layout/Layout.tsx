@@ -16,7 +16,6 @@ import {
   UserIcon,
   BookOpen,
   X,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { OrganizationProvider } from "../../GlobalContexts/Organization-Context";
@@ -127,7 +126,7 @@ export function LayoutNew() {
 
               {/* Breadcrumbs + Title */}
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Breadcrumbs pathname={location.pathname} />
+                {/* <Breadcrumbs pathname={location.pathname} /> */}
                 <div className="hidden shrink-0 items-center gap-2 md:flex">
                   {currentItem?.icon && (
                     <currentItem.icon className="h-4 w-4 text-indigo-600" />
@@ -254,43 +253,43 @@ function SidebarUserCard({
   );
 }
 
-function Breadcrumbs({ pathname }: { pathname: string }) {
-  const segments = pathname.split("/").filter(Boolean); // remove empty
-  // Home always first
-  const crumbs = [
-    { label: "Home", to: "/" },
-    ...segments.map((seg, idx) => {
-      const to = "/" + segments.slice(0, idx + 1).join("/");
-      const label = seg
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (m) => m.toUpperCase());
-      return { label, to };
-    }),
-  ];
-  return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-2">
-      {crumbs.map((c, i) => {
-        const isLast = i === crumbs.length - 1;
-        return (
-          <div key={c.to} className="flex items-center">
-            {i !== 0 && (
-              <ChevronRight className="mx-1 h-4 w-4 text-slate-300" />
-            )}
-            {isLast ? (
-              <span className="truncate text-xs font-medium text-slate-700">
-                {c.label}
-              </span>
-            ) : (
-              <Link
-                to={c.to}
-                className="truncate text-xs text-slate-500 hover:text-slate-800"
-              >
-                {c.label}
-              </Link>
-            )}
-          </div>
-        );
-      })}
-    </nav>
-  );
-}
+// function Breadcrumbs({ pathname }: { pathname: string }) {
+//   const segments = pathname.split("/").filter(Boolean); // remove empty
+//   // Home always first
+//   const crumbs = [
+//     { label: "Home", to: "/" },
+//     ...segments.map((seg, idx) => {
+//       const to = "/" + segments.slice(0, idx + 1).join("/");
+//       const label = seg
+//         .replace(/-/g, " ")
+//         .replace(/\b\w/g, (m) => m.toUpperCase());
+//       return { label, to };
+//     }),
+//   ];
+//   return (
+//     <nav aria-label="Breadcrumb" className="flex items-center gap-2">
+//       {crumbs.map((c, i) => {
+//         const isLast = i === crumbs.length - 1;
+//         return (
+//           <div key={c.to} className="flex items-center">
+//             {i !== 0 && (
+//               <ChevronRight className="mx-1 h-4 w-4 text-slate-300" />
+//             )}
+//             {isLast ? (
+//               <span className="truncate text-xs font-medium text-slate-700">
+//                 {c.label}
+//               </span>
+//             ) : (
+//               <Link
+//                 to={c.to}
+//                 className="truncate text-xs text-slate-500 hover:text-slate-800"
+//               >
+//                 {c.label}
+//               </Link>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </nav>
+//   );
+// }

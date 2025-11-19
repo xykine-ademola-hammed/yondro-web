@@ -15,7 +15,7 @@ const requiredFields = [
   "toTheCentralStores",
   "nameOfSupplier",
   "supplierAddress",
-];
+] as const;
 
 const requiredStoreItemFields = [
   "articles",
@@ -24,7 +24,10 @@ const requiredStoreItemFields = [
   "unitPrice",
   "amount",
   "ledgerFolio",
-];
+] as const;
+
+type HeaderKey = (typeof requiredFields)[number];
+type RowKey = (typeof requiredStoreItemFields)[number];
 
 interface StoreItem {
   id: number | string;
@@ -66,7 +69,7 @@ interface StoreReceiptVoucherProps {
   onSubmit: (data: any, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
-  mode?: "edit" | "preview" | "new" | "in_progress";
+  mode?: "new" | "edit" | "preview" | "view";
   responseTypes: string[];
 }
 
@@ -92,26 +95,43 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
   loading,
   setLoading,
 }) => {
+  console.log("========MDOE==========", mode);
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
 
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
-  const [hasErrors, setHasErrors] = useState(false);
   const [formData, setFormData] = useState<FormResponses>(formResponses);
 
-  const handleInputChange = (fieldId: keyof FormResponses, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldId]: value }));
-  };
+  const [hasErrors, setHasErrors] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<HeaderKey, true>>>({});
+  const [rowErrors, setRowErrors] = useState<
+    Record<number | string, Partial<Record<RowKey, true>>>
+  >({});
 
-  const addMoreRow = () => {
-    setStoreItems((prev) => [...prev, { ...emptyItem, id: Date.now() }]);
-  };
+  const inputClass = (name: HeaderKey) =>
+    [
+      "w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm",
+      "border",
+      errors[name] ? "border-red-600 ring-1 ring-red-300" : "border-gray-300",
+    ].join(" ");
 
+  const inputCellClass = (rowId: number | string, field: RowKey) =>
+    [
+      "w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm",
+      "border",
+      rowErrors[rowId]?.[field]
+        ? "border-red-600 ring-1 ring-red-300"
+        : "border-gray-300",
+    ].join(" ");
+
+  const isEnabled = (name: string) => enableInputList.includes(name);
+
+  // -------- lifecycle --------
   useEffect(() => {
     setFormData(formResponses);
     if (formResponses?.storeItems && Array.isArray(formResponses.storeItems)) {
-      setStoreItems(formResponses?.storeItems);
+      setStoreItems(formResponses.storeItems);
     } else {
       setStoreItems([
         { ...emptyItem, id: 1 },
@@ -119,6 +139,9 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
         { ...emptyItem, id: 3 },
       ]);
     }
+    setErrors({});
+    setRowErrors({});
+    setHasErrors(false);
   }, [formResponses]);
 
   useEffect(() => {
@@ -132,47 +155,20 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
     }
   }, [mode]);
 
-  const isEnabled = (name: string) => enableInputList.includes(name);
-
-  const checkIsValid = () => {
-    const required: string[] = [];
-    // Check top-level required fields
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField]) {
-        required.push(enableField);
-      }
-    }
-    for (let item of storeItems) {
-      const allEmpty = requiredStoreItemFields.every(
-        (field) => !item[field as keyof StoreItem]
-      );
-      if (allEmpty) continue;
-      const hasEmpty = requiredStoreItemFields.some(
-        (field) => !item[field as keyof StoreItem]
-      );
-      if (hasEmpty) {
-        required.push("missing field");
-      }
-    }
-    return !!required.length;
-  };
-
-  const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
-      setLoading(true);
-      onSubmit({ ...formData, storeItems }, status);
-      // setFormData({});
-      // setStoreItems([]);
-      setHasErrors(false);
-    } else {
-      setHasErrors(true);
+  // -------- handlers --------
+  const handleInputChange = (fieldId: keyof FormResponses, value: any) => {
+    setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    // clear header error if any
+    if (errors[fieldId as HeaderKey]) {
+      setErrors((prev) => {
+        const { [fieldId as HeaderKey]: _omit, ...rest } = prev;
+        return rest;
+      });
     }
   };
 
-  const handleCancel = () => {
-    setFormData({});
-    setStoreItems([]);
-    onCancel();
+  const addMoreRow = () => {
+    setStoreItems((prev) => [...prev, { ...emptyItem, id: Date.now() }]);
   };
 
   const handleStoreItemChange = (
@@ -182,23 +178,98 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
   ) => {
     setStoreItems((prevItems) => {
       const updatedItems = [...prevItems];
-      updatedItems[index] = {
-        ...updatedItems[index],
-        [eventName]: eventValue,
-      };
+      const updatedRow = { ...updatedItems[index], [eventName]: eventValue };
+      updatedItems[index] = updatedRow;
+
+      // clear row error if any
+      const rid = updatedRow.id ?? index;
+      if (rowErrors[rid]?.[eventName as RowKey]) {
+        setRowErrors((prev) => {
+          const clone = { ...prev };
+          const r = { ...(clone[rid] || {}) };
+          delete r[eventName as RowKey];
+          if (Object.keys(r).length === 0) delete clone[rid];
+          else clone[rid] = r;
+          return clone;
+        });
+      }
       return updatedItems;
     });
   };
 
+  // -------- validation --------
+  const validate = () => {
+    const nextErrors: Partial<Record<HeaderKey, true>> = {};
+    const nextRowErrors: Record<
+      number | string,
+      Partial<Record<RowKey, true>>
+    > = {};
+
+    // Validate enabled header fields
+    requiredFields.forEach((field) => {
+      if (isEnabled(field) && !String(formData?.[field] ?? "").trim()) {
+        nextErrors[field] = true;
+      }
+    });
+
+    // Row rule: each row must be fully empty OR fully filled
+    for (const row of storeItems) {
+      const rid = row.id;
+      const values = requiredStoreItemFields.map((k) =>
+        String(row[k] ?? "").trim()
+      );
+      const allEmpty = values.every((v) => v === "");
+      if (allEmpty) continue;
+      const allFilled = values.every((v) => v !== "");
+      if (!allFilled) {
+        for (const k of requiredStoreItemFields) {
+          if (!String(row[k] ?? "").trim()) {
+            if (!nextRowErrors[rid]) nextRowErrors[rid] = {};
+            nextRowErrors[rid][k] = true;
+          }
+        }
+      }
+    }
+
+    setErrors(nextErrors);
+    setRowErrors(nextRowErrors);
+
+    const invalid =
+      Object.keys(nextErrors).length > 0 ||
+      Object.keys(nextRowErrors).length > 0;
+
+    setHasErrors(invalid);
+    return !invalid;
+  };
+
+  const handleSubmit = (status: string) => {
+    if (validate()) {
+      setLoading(true);
+      onSubmit({ ...formData, storeItems }, status);
+      setHasErrors(false);
+    } else {
+      setHasErrors(true);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({});
+    setStoreItems([]);
+    setErrors({});
+    setRowErrors({});
+    onCancel();
+  };
+
+  // -------- table columns with controlled render (for error styling) --------
   const storeColumns = [
     {
       label: "Articles",
-      field: "articles" as keyof StoreItem,
+      field: "articles" as const,
       renderCell: (
         val: string,
-        _row: any,
-        _idx: number,
-        onChange: any,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
         disabled: boolean
       ) => (
         <textarea
@@ -206,35 +277,110 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
           value={val ?? ""}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm"
+          className={inputCellClass(row.id ?? idx, "articles")}
         />
       ),
-      isDisabled: (_row: any, _idx: number) => !isEnabled("articles"),
+      isDisabled: () => !isEnabled("articles"),
     },
     {
       label: "Denomination Qty.",
-      field: "denominationOfQty" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("denominationOfQty"),
+      field: "denominationOfQty" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "denominationOfQty")}
+        />
+      ),
+      isDisabled: () => !isEnabled("denominationOfQty"),
     },
     {
       label: "Qty. received",
-      field: "qtyReceived" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("qtyReceived"),
+      field: "qtyReceived" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "qtyReceived")}
+        />
+      ),
+      isDisabled: () => !isEnabled("qtyReceived"),
     },
     {
       label: "Unit Price",
-      field: "unitPrice" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("unitPrice"),
+      field: "unitPrice" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "unitPrice")}
+        />
+      ),
+      isDisabled: () => !isEnabled("unitPrice"),
     },
     {
       label: "Amount",
-      field: "amount" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("amount"),
+      field: "amount" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "amount")}
+        />
+      ),
+      isDisabled: () => !isEnabled("amount"),
     },
     {
       label: "Ledger Folio",
-      field: "ledgerFolio" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("ledgerFolio"),
+      field: "ledgerFolio" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: (v: string) => void,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "ledgerFolio")}
+        />
+      ),
+      isDisabled: () => !isEnabled("ledgerFolio"),
     },
   ];
 
@@ -298,11 +444,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                   onChange={(e) =>
                     handleInputChange("voucherNo", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("voucherNo")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("voucherNo")}
                 />
               </div>
             </div>
@@ -318,11 +460,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                     handleInputChange("voucherDate", e.target.value)
                   }
                   disabled={!isEnabled("voucherDate")}
-                  className={`w-full p-1 border ${
-                    isEnabled("voucherDate")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("voucherDate")}
                 />
               </div>
             </div>
@@ -341,11 +479,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                   handleInputChange("toTheCentralStores", e.target.value)
                 }
                 disabled={!isEnabled("toTheCentralStores")}
-                className={`w-full p-1 border ${
-                  isEnabled("toTheCentralStores")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("toTheCentralStores")}
               />
             </div>
           </div>
@@ -361,11 +495,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                 onChange={(e) =>
                   handleInputChange("nameOfSupplier", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("nameOfSupplier")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("nameOfSupplier")}
               />
             </div>
           </div>
@@ -381,11 +511,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                 onChange={(e) =>
                   handleInputChange("supplierAddress", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("supplierAddress")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("supplierAddress")}
               />
             </div>
           </div>
@@ -394,8 +520,8 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
         <GenericTable
           columns={storeColumns}
           rows={storeItems}
-          onCellChange={(field, value, rowIndex, _row) => {
-            handleStoreItemChange(field, value, rowIndex);
+          onCellChange={(field, value, rowIndex) => {
+            handleStoreItemChange(field as keyof StoreItem, value, rowIndex);
           }}
           onAddRow={addMoreRow}
           canAddRow={vissibleSections?.includes("addMore")}
@@ -403,16 +529,16 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
         />
 
         <DocumentAttachmentForm
-          onSubmit={(documents) =>
-            setFormData((prev) => ({ ...prev, attachments: documents }))
-          }
-          mode="new"
+          onSubmit={(documents) => {
+            console.log("+++++++++++++", documents);
+            setFormData((prev) => ({ ...prev, attachments: documents }));
+          }}
+          mode={mode}
           initialDocuments={formData?.attachments || []}
         />
 
-        {/* Signers row (flex + wrap, nice spacing) */}
+        {/* Signers row */}
         <div className="mt-4 flex flex-wrap gap-6">
-          {/* Requestor */}
           <div className="w-[340px] max-w-full flex-shrink-0">
             <Signer
               firstName={
@@ -433,7 +559,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
             />
           </div>
 
-          {/* Approvers */}
           {(formData?.approvers || []).map((approver, idx) => (
             <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
               <Signer
@@ -457,7 +582,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons */}
         {showActionButtons && (
           <FormActions
             loading={loading}

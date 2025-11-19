@@ -162,6 +162,11 @@ function App() {
                     <Route path="new-request" element={<NewRequest />} />
 
                     <Route
+                      path="requests/new-request/:parentRequestId"
+                      element={<NewRequest />}
+                    />
+
+                    <Route
                       path="request-response/:requestId"
                       element={<RequestDetail />}
                     />

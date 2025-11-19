@@ -3,6 +3,11 @@ import ConfirmationModal from "./ConfirmationModal";
 import RequestFormWrapper from "../components/RequestFormWrapper";
 import { useRequestDetailContext } from "./RequestDetailContext";
 import { useAuth } from "../GlobalContexts/AuthContext";
+import CommentsPreview from "../Forms/widgets/CommentsPreview";
+import { useEffect, useState } from "react";
+import type { ApiFilter, WorkflowRequest } from "../common/types";
+import { useMutation } from "@tanstack/react-query";
+import { getMutationMethod } from "../common/api-methods";
 
 export default function WorkflowDetail2() {
   const navigate = useNavigate();
@@ -56,12 +61,54 @@ export default function WorkflowDetail2() {
     return Array.from(new Set(allSections));
   }
 
-  console.log("-------selectedRequest-----", selectedRequest);
+  const [parentRequest, setParentRequest] = useState<WorkflowRequest>();
+
+  const {
+    mutateAsync: getParentApplicationRequest,
+    isIdle,
+    isPending,
+  } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod(
+        "POST",
+        `api/workflowrequest/get-workflow-request-for-processing`,
+        body,
+        true
+      ),
+    onSuccess: (data) => {
+      setParentRequest(data.rows[0]);
+    },
+    onError: (error: any) => {
+      console.error("Failed to fetch workflow requests:", error);
+    },
+  });
+
+  useEffect(() => {
+    if (selectedRequest?.parentRequestId) {
+      getParentApplicationRequest({
+        filters: [
+          {
+            key: "id",
+            value: selectedRequest?.parentRequestId,
+            condition: "equal",
+          },
+        ],
+        limit: 1,
+        offset: 0,
+      });
+    }
+  }, [selectedRequest?.parentRequestId]);
+
+  console.log("------isIdle || isPending---------", isIdle, isPending);
+
+  if (isPending) return null;
 
   return (
     <div className="bg-gray-50">
       <main className="sm:p-0 md:p-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Current Request comments */}
+
           {selectedRequest?.status === "Approved" ? (
             <RequestFormWrapper
               loading={loading}
@@ -87,8 +134,14 @@ export default function WorkflowDetail2() {
               }))}
               onSubmit={() => {}}
               onCancel={() => navigate("/")}
-              parentRequestId={selectedRequest?.parentRequestId}
+              parentRequest={parentRequest}
               mode="not new"
+              commentComp={
+                <CommentsPreview
+                  request={selectedRequest}
+                  parentRequest={parentRequest}
+                />
+              }
             />
           ) : (
             <RequestFormWrapper
@@ -108,7 +161,13 @@ export default function WorkflowDetail2() {
                 stageId: stage.stageId,
                 status: stage.status,
               }))}
-              parentRequestId={selectedRequest?.parentRequestId}
+              parentRequest={parentRequest}
+              commentComp={
+                <CommentsPreview
+                  request={selectedRequest}
+                  parentRequest={parentRequest}
+                />
+              }
             />
           )}
         </div>

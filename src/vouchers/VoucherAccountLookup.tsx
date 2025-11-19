@@ -173,7 +173,7 @@ const VoucherAccountLookup: React.FC<VoucherAccountLookupProps> = ({
           </label>
           <div
             className={`mt-0 w-full p-1 border ${
-              isEnabled ? "border-red-500" : "border-gray-300"
+              !selectedAccount?.name ? "border-red-500" : "border-gray-300"
             } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
           >
             {selectedAccount?.name ?? "-"}
@@ -185,7 +185,7 @@ const VoucherAccountLookup: React.FC<VoucherAccountLookupProps> = ({
           </label>
           <div
             className={`mt-0 w-full p-1 border ${
-              isEnabled ? "border-red-500" : "border-gray-300"
+              !selectedAccount?.code ? "border-red-500" : "border-gray-300"
             } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
           >
             {selectedAccount?.code ?? "-"}

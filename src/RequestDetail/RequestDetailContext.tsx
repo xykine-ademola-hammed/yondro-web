@@ -14,7 +14,6 @@ import type {
   CurrentStageData,
   WorkflowRequest,
 } from "../common/types";
-import { useOrganization } from "../GlobalContexts/Organization-Context";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../GlobalContexts/ToastContext";
 import { useAuth } from "../GlobalContexts/AuthContext";
@@ -66,10 +65,6 @@ export default function RequestDetailContextProvider({
   const [formResponses, setFormResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState("");
-  const {
-    fetchWorkflowRequest: refetchWorkflowRequest,
-    workflowReqiestFilter: refetchFilter,
-  } = useOrganization();
 
   const { mutateAsync: fetchWorkflowRequest } = useMutation({
     mutationFn: (body: ApiFilter) =>
@@ -128,7 +123,6 @@ export default function RequestDetailContextProvider({
     onSuccess: (_data) => {
       setIsConfirmationModalOpen(false);
       navigate(-1);
-      refetchWorkflowRequest(refetchFilter);
       showToast("Response successfully submitted", "success");
     },
     onError: async (error) => {

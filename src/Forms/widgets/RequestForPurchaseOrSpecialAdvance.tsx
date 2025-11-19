@@ -13,11 +13,9 @@ import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { EmployeeOption } from "./PaymentVoucher-auto";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
-
-// --- Types ---
+import type { EmployeeOption } from "./PaymentVoucher-Tetfund";
 
 interface Requestor {
   firstName?: string;
@@ -28,13 +26,33 @@ interface Requestor {
 }
 
 interface RequestForPurchaseOrSpecialAdvanceForm {
+  // always-present / autofilled
   date: string;
+  requestorDeligation?: string;
+
+  // text inputs in this UI
+  officerName?: string;
+  rank?: string;
+  contiss?: string;
+  compNo?: string;
+  purpose?: string;
+  bank?: string;
+  accountNumber?: string;
+  outstandingBalance?: string;
+  advanceAmount?: string;
+  totalInWord?: string;
+
+  // voucher approval (conditional)
+  unitVoucherHeadById?: string;
+
+  // other props kept for compatibility
   location?: string;
   description?: string;
   recommendationNotes?: string;
-  requestorDeligation?: string;
   requestor?: Requestor;
   approvers?: Approver[];
+  attachments?: any[];
+
   // for compatibility with spread
   [key: string]: any;
 }
@@ -44,7 +62,7 @@ interface RequestForPurchaseOrSpecialAdvanceProps {
   setLoading: (value: boolean) => void;
   formResponses: Partial<RequestForPurchaseOrSpecialAdvanceForm>;
   enableInputList?: string[];
-  trigerVoucherCreation?: boolean;
+  triggerVoucherCreation?: boolean;
   vissibleSections?: string[];
   onSubmit: (
     data: RequestForPurchaseOrSpecialAdvanceForm,
@@ -54,14 +72,27 @@ interface RequestForPurchaseOrSpecialAdvanceProps {
   showActionButtons?: boolean;
   mode?: "edit" | "preview" | "new" | "in_progress";
   responseTypes: string[];
+  showApprovers?: boolean;
+  showAddDocument?: boolean;
 }
 
-const requiredFields: (keyof RequestForPurchaseOrSpecialAdvanceForm)[] = [
-  "requestorDeligation",
+const ALWAYS_REQUIRED: (keyof RequestForPurchaseOrSpecialAdvanceForm)[] = [
   "date",
-  "location",
-  "description",
-  "unitVoucherHeadById",
+  "requestorDeligation",
+];
+
+// These are the fields rendered in this component that should be required when enabled/visible:
+const UI_REQUIRED: (keyof RequestForPurchaseOrSpecialAdvanceForm)[] = [
+  "officerName",
+  "rank",
+  "contiss",
+  "compNo",
+  "purpose",
+  "bank",
+  "accountNumber",
+  "outstandingBalance",
+  "advanceAmount",
+  "totalInWord",
 ];
 
 const RequestForPurchaseOrSpecialAdvance: React.FC<
@@ -74,13 +105,17 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
   showActionButtons = false,
   mode = "new",
   responseTypes = [""],
-  trigerVoucherCreation,
+  triggerVoucherCreation,
   loading = false,
   setLoading,
+  showApprovers = true,
+  showAddDocument = true,
 }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasErrors, setHasErrors] = useState<boolean>(false);
 
   const [formData, setFormData] =
@@ -89,9 +124,7 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
       requestorDeligation: getFinanceCode(user),
       ...formResponses,
     });
-
   const { userDepartmenttMembers } = useOrganization();
-
   // Type safety for employee options
   const employeeOptions: EmployeeOption[] =
     (userDepartmenttMembers?.rows?.map((employee: any) => ({
@@ -100,12 +133,17 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
       label: `${employee.firstName} - ${employee.lastName} `,
     })) as EmployeeOption[]) ?? [];
 
-  // Handle text, textarea, and date inputs
   const handleInputChange = (
     fieldId: keyof RequestForPurchaseOrSpecialAdvanceForm,
     value: string
   ) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    // Clear error for this field once user types
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[fieldId as string];
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -117,29 +155,82 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  // Validation: check enabled required fields
-  const checkIsValid = () => {
-    const required = [];
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField])
-        required.push(enableField);
+  /**
+   * Build the set of required fields at submit-time:
+   * - ALWAYS_REQUIRED are always required (auto-filled but validated).
+   * - UI_REQUIRED are required only if enabled (visible/editable).
+   * - Voucher approver is required only if triggerVoucherCreation is true AND it is enabled.
+   */
+  const getRequiredFields =
+    (): (keyof RequestForPurchaseOrSpecialAdvanceForm)[] => {
+      const required: (keyof RequestForPurchaseOrSpecialAdvanceForm)[] = [
+        ...ALWAYS_REQUIRED,
+      ];
+
+      // UI fields -> only if enabled
+      for (const f of UI_REQUIRED) {
+        if (isEnabled(f as string)) required.push(f);
+      }
+
+      // Conditional voucher field
+      if (triggerVoucherCreation && isEnabled("unitVoucherHeadById")) {
+        required.push("unitVoucherHeadById");
+      }
+
+      return required;
+    };
+
+  const validate = () => {
+    const req = getRequiredFields();
+    const nextErrors: Record<string, string> = {};
+
+    for (const field of req) {
+      const value = formData?.[field];
+      if (
+        value === undefined ||
+        value === null ||
+        String(value).trim() === ""
+      ) {
+        // Human-friendly labels
+        const labelMap: Record<string, string> = {
+          date: "Date",
+          requestorDeligation: "Requestor Delegation",
+          officerName: "Name of Officer",
+          rank: "Rank",
+          contiss: "CONTISS",
+          compNo: "COMP No",
+          purpose: "Purpose of Advance",
+          bank: "Bank",
+          accountNumber: "Account number",
+          outstandingBalance: "Outstanding balance yet to be retired",
+          advanceAmount: "Amount of Advance Required",
+          totalInWord: "Total in words",
+          unitVoucherHeadById: "Head of Unit [Voucher]",
+        };
+        nextErrors[field as string] = `${
+          labelMap[field as string] ?? field
+        } is required.`;
+      }
     }
 
-    return !!required.length;
+    console.log("---------NEXT----------", nextErrors);
+
+    setErrors(nextErrors);
+    setHasErrors(Object.keys(nextErrors).length > 0);
+    return nextErrors;
   };
 
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    const v = validate();
+    if (Object.keys(v).length === 0) {
       setLoading(true);
       onSubmit(formData, status);
-      // Reset only non-default fields
-      // setFormData({
-      //   date: moment(new Date()).format("YYYY-MM-DD"),
-      //   requestorDeligation: getFinanceCode(user),
-      // });
       setHasErrors(false);
     } else {
-      setHasErrors(true);
+      // scroll to first error field if you want (optional)
+      document
+        .querySelector('[data-error="true"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -148,8 +239,19 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
       date: moment(new Date()).format("YYYY-MM-DD"),
       requestorDeligation: getFinanceCode(user),
     });
+    setErrors({});
+    setHasErrors(false);
     onCancel();
   };
+
+  // utility to compute field classes (error-aware)
+  const inputClass = (
+    field: keyof RequestForPurchaseOrSpecialAdvanceForm,
+    also = ""
+  ) =>
+    `w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+      errors[field as string] ? "border-red-500" : "border-gray-300"
+    } ${also}`;
 
   return (
     <div>
@@ -192,13 +294,14 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
         {hasErrors && (
           <div className="bg-red-50 p-4 rounded-lg mb-2">
             <p className="text-red-800 text-sm">
-              There are some errors or missing required fields
+              There are some errors or missing required fields.
             </p>
           </div>
         )}
 
         <p className="mt-4"></p>
         <>
+          {/* Name of Officer */}
           <div className="flex flex-col md:flex-row items-start md:items-center">
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
               <span className="text-sm ">Name of Officer:</span>
@@ -211,15 +314,18 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("officerName", e.target.value)
                 }
-                className={`mt-1 w-full p-1 border ${
-                  isEnabled("officerName")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("officerName", "mt-1")}
+                data-error={!!errors.officerName}
               />
+              {errors.officerName && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.officerName}
+                </p>
+              )}
             </div>
           </div>
 
+          {/* Rank / CONTISS / COMP No */}
           <div className="my-1 grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-2">
             <div className="flex flex-col md:flex-row items-start md:items-center">
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -233,10 +339,12 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("rank", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("rank") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("rank")}
+                  data-error={!!errors.rank}
                 />
+                {errors.rank && (
+                  <p className="text-xs text-red-600 mt-1">{errors.rank}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -246,15 +354,17 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
               <div className="w-full">
                 <input
                   type="text"
-                  value={formData?.contiss}
+                  value={formData?.contiss ?? ""}
                   disabled={!isEnabled("contiss")}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("contiss", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("contiss") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("contiss")}
+                  data-error={!!errors.contiss}
                 />
+                {errors.contiss && (
+                  <p className="text-xs text-red-600 mt-1">{errors.contiss}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -264,19 +374,22 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
               <div className="w-full">
                 <input
                   type="text"
-                  value={formData?.compNo}
+                  value={formData?.compNo ?? ""}
                   disabled={!isEnabled("compNo")}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("compNo", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("compNo") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("compNo")}
+                  data-error={!!errors.compNo}
                 />
+                {errors.compNo && (
+                  <p className="text-xs text-red-600 mt-1">{errors.compNo}</p>
+                )}
               </div>
             </div>
           </div>
 
+          {/* Purpose of Advance */}
           <div className="">
             <h3 className="text-sm text-gray-700">Purpose of Advance</h3>
             <div>
@@ -288,14 +401,17 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                   handleInputChange("purpose", e.target.value)
                 }
                 disabled={!isEnabled("purpose")}
-                className={`mt-0 w-full p-1 border ${
-                  isEnabled("purpose") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("purpose")}
                 rows={3}
+                data-error={!!errors.purpose}
               ></textarea>
+              {errors.purpose && (
+                <p className="text-xs text-red-600 mt-1">{errors.purpose}</p>
+              )}
             </div>
           </div>
 
+          {/* Bank / Account number */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
             <div className="flex flex-col md:flex-row items-start md:items-center">
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -309,10 +425,12 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("bank", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("bank") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("bank", "mt-1")}
+                  data-error={!!errors.bank}
                 />
+                {errors.bank && (
+                  <p className="text-xs text-red-600 mt-1">{errors.bank}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -327,16 +445,19 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("accountNumber", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("accountNumber")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("accountNumber", "mt-1")}
+                  data-error={!!errors.accountNumber}
                 />
+                {errors.accountNumber && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.accountNumber}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {/* Outstanding Balance */}
           <div className=" my-1 flex flex-col md:flex-row items-start md:items-center">
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
               <span className="text-sm ">
@@ -346,39 +467,45 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.outstandingBalance}
+                value={formData?.outstandingBalance ?? ""}
                 disabled={!isEnabled("outstandingBalance")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("outstandingBalance", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("outstandingBalance")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("outstandingBalance")}
+                data-error={!!errors.outstandingBalance}
               />
+              {errors.outstandingBalance && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.outstandingBalance}
+                </p>
+              )}
             </div>
           </div>
 
+          {/* Amount of Advance Required */}
           <div className="mb-0 md:mb-0 md:mr-2 min-w-max">
             <span className="text-sm ">Amount of Advance Required:</span>
           </div>
           <div className="w-full">
             <input
               type="text"
-              value={formData?.advanceAmount}
+              value={formData?.advanceAmount ?? ""}
               disabled={!isEnabled("advanceAmount")}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 handleInputChange("advanceAmount", e.target.value)
               }
-              className={`w-full p-1 border ${
-                isEnabled("advanceAmount")
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              className={inputClass("advanceAmount")}
+              data-error={!!errors.advanceAmount}
             />
+            {errors.advanceAmount && (
+              <p className="text-xs text-red-600 mt-1">
+                {errors.advanceAmount}
+              </p>
+            )}
           </div>
 
+          {/* Total in words */}
           <div>
             <h3 className="text-l  text-gray-700 mb-1">Total in words:</h3>
             <div>
@@ -390,25 +517,31 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                   handleInputChange("totalInWord", e.target.value)
                 }
                 disabled={!isEnabled("totalInWord")}
-                className={`mt-1 w-full p-1 border ${
-                  isEnabled("totalInWord")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("totalInWord")}
                 rows={2}
+                data-error={!!errors.totalInWord}
               ></textarea>
+              {errors.totalInWord && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.totalInWord}
+                </p>
+              )}
             </div>
           </div>
 
-          <DocumentAttachmentForm
-            onSubmit={(documents) =>
-              setFormData((prev) => ({ ...prev, attachments: documents }))
-            }
-            mode="new"
-            initialDocuments={formData?.attachments || []}
-          />
+          {/* Attachments */}
+          {showAddDocument && (
+            <DocumentAttachmentForm
+              onSubmit={(documents) =>
+                setFormData((prev) => ({ ...prev, attachments: documents }))
+              }
+              mode="new"
+              initialDocuments={formData?.attachments || []}
+            />
+          )}
 
-          {trigerVoucherCreation && (
+          {/* Voucher Approval (conditional & required only when triggerVoucherCreation is true) */}
+          {triggerVoucherCreation && (
             <div className="mt-2">
               <h3 className="text-l font-semibold text-gray-700 mb-1">
                 Voucher Approval
@@ -425,12 +558,9 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                     onChange={(e) =>
                       handleInputChange("unitVoucherHeadById", e.target.value)
                     }
-                    required
-                    className={`mt-0 w-full p-1 border ${
-                      isEnabled("unitVoucherHeadById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`mt-0 ${inputClass("unitVoucherHeadById")}`}
+                    data-error={!!errors.unitVoucherHeadById}
+                    disabled={!isEnabled("unitVoucherHeadById")}
                   >
                     <option value="">Select an option</option>
                     {employeeOptions?.map((employee) => (
@@ -439,48 +569,57 @@ const RequestForPurchaseOrSpecialAdvance: React.FC<
                       </option>
                     ))}
                   </select>
+                  {errors.unitVoucherHeadById && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.unitVoucherHeadById}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </>
 
-        {/* Signers row (flex + wrap, nice spacing) */}
-        <div className="mt-4 flex flex-wrap gap-6">
-          {/* Requestor */}
-          <div className="w-[340px] max-w-full flex-shrink-0">
-            <Signer
-              firstName={
-                formData?.requestor?.firstName || user?.firstName || ""
-              }
-              lastName={formData?.requestor?.lastName || user?.lastName || ""}
-              date={
-                formData?.requestor?.date ||
-                moment(new Date()).format("DD/MM/YYYY")
-              }
-              department={
-                formData?.requestor?.department || user?.department?.name || ""
-              }
-              position={
-                formData?.requestor?.position || user?.position?.title || ""
-              }
-              label="Request"
-            />
-          </div>
-
-          {/* Approvers */}
-          {(formData?.approvers || []).map((approver, idx) => (
-            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+        {/* Signers row */}
+        {showApprovers && (
+          <div className="mt-4 flex flex-wrap gap-6">
+            {/* Requestor */}
+            <div className="w-[340px] max-w-full flex-shrink-0">
               <Signer
-                firstName={approver.firstName}
-                lastName={approver.lastName}
-                department={approver.department}
-                position={approver.position}
-                label={approver.label}
+                firstName={
+                  formData?.requestor?.firstName || user?.firstName || ""
+                }
+                lastName={formData?.requestor?.lastName || user?.lastName || ""}
+                date={
+                  formData?.requestor?.date ||
+                  moment(new Date()).format("DD/MM/YYYY")
+                }
+                department={
+                  formData?.requestor?.department ||
+                  user?.department?.name ||
+                  ""
+                }
+                position={
+                  formData?.requestor?.position || user?.position?.title || ""
+                }
+                label="Request"
               />
             </div>
-          ))}
-        </div>
+
+            {/* Approvers */}
+            {(formData?.approvers || []).map((approver, idx) => (
+              <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+                <Signer
+                  firstName={approver.firstName}
+                  lastName={approver.lastName}
+                  department={approver.department}
+                  position={approver.position}
+                  label={approver.label}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Action Buttons */}
         {showActionButtons && (

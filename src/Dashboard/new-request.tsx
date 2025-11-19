@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useOrganization } from "../GlobalContexts/Organization-Context";
-import type { WorkFlow } from "../common/types";
+import type { ApiFilter, WorkFlow } from "../common/types";
 import { useAuth } from "../GlobalContexts/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
 import { useToast } from "../GlobalContexts/ToastContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import RequestFormWrapper from "../components/RequestFormWrapper";
 import { appendFormData, containsFiles } from "../common/methods";
 
@@ -18,9 +18,9 @@ export interface FormErrors {
 
 const NewRequest: React.FC = () => {
   const { user } = useAuth();
+  const { parentRequestId } = useParams();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const { workflowReqiestFilter, fetchWorkflowRequest } = useOrganization();
   const [errors, _setErrors] = useState<FormErrors>({});
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,6 @@ const NewRequest: React.FC = () => {
     mutationFn: (body: FormData) =>
       getMutationMethod("POST", `api/workflow-request`, body, true),
     onSuccess: (_data) => {
-      fetchWorkflowRequest(workflowReqiestFilter);
       navigate("/");
       showToast("Workflow request successfully created", "success");
       setLoading(false);
@@ -44,6 +43,45 @@ const NewRequest: React.FC = () => {
       showToast("Workflow request creation unsuccessful", "error");
     },
   });
+
+  const [selectedRequest, setSelectedRequest] = useState<any>({});
+
+  console.log("--------selectedRequest---------", selectedRequest);
+
+  const { mutateAsync: getRequest } = useMutation({
+    mutationFn: (body: ApiFilter) =>
+      getMutationMethod(
+        "POST",
+        `api/workflowrequest/get-request-history`,
+        body,
+        true
+      ),
+    onSuccess: (data) => {
+      setSelectedRequest(data.rows[0]);
+      const foundWorkflow = workflows.rows.find(
+        (workflow) => Number(workflow.id) === Number(data.rows[0]?.workflowId)
+      );
+      setSelectedWorkFlow(foundWorkflow);
+    },
+
+    onError: (err) => console.error("Failed to fetch workflow requests:", err),
+  });
+
+  useEffect(() => {
+    if (parentRequestId) {
+      getRequest({
+        filters: [
+          {
+            key: "id",
+            value: parentRequestId,
+            condition: "equal",
+          },
+        ],
+        limit: 10,
+        offset: 0,
+      });
+    }
+  }, [parentRequestId]);
 
   // const handleEmployeeSelect = (employee: Employee) => {
   //   setSelectedEmployeeId(employee.id);
@@ -197,6 +235,10 @@ const NewRequest: React.FC = () => {
                   mode="new"
                   currentWorkflowStage={selectedWorkFlow?.stages[0]}
                   showActionButtons={true}
+                  formResponses={{
+                    ...selectedRequest?.formResponses,
+                    approvers: [],
+                  }} // Todo remove approvals
                 />
               )}
             </div>

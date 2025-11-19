@@ -59,10 +59,10 @@ const PaymentVoucher = () => {
           </div>
         </div>
 
-        {/* Payment Details */}
+        {/* Payment Voucher Details */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            Payment Details
+            Payment Voucher Details
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>

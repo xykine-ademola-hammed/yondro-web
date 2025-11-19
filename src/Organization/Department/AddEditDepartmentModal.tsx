@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import ModalWrapper from "../../components/modal-wrapper";
 import type { Department } from "../../common/types";
+import { useOrganization } from "../../GlobalContexts/Organization-Context";
 
 interface AddEditDepartmentModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ const AddEditDepartmentModal: React.FC<AddEditDepartmentModalProps> = ({
   setCurrentDepartment,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-
+  const { schoolOffices } = useOrganization();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -171,18 +172,67 @@ const AddEditDepartmentModal: React.FC<AddEditDepartmentModalProps> = ({
                     required
                   />
                 </div>
+
                 <div>
                   <label
-                    htmlFor="location"
+                    htmlFor="schoolOrOfficeId"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Location
+                    School | Office <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="schoolOrOfficeId"
+                    id="schoolOrOfficeId"
+                    value={currentDepartment.schoolOrOfficeId || ""}
+                    onChange={(e) => {
+                      const selectedOption = schoolOffices.rows.find(
+                        (so) => so.id === Number(e.target.value)
+                      );
+                      setCurrentDepartment({
+                        ...currentDepartment,
+                        financeCode: selectedOption?.financeCode,
+                        schoolOrOfficeId: e.target.value,
+                      });
+                    }}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  >
+                    <option value="">Select School or Office</option>
+                    {schoolOffices.rows.map((schoolOrOffice) => (
+                      <option key={schoolOrOffice.id} value={schoolOrOffice.id}>
+                        {schoolOrOffice.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="financeCode"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Finance Code
                   </label>
                   <input
                     type="text"
-                    name="location"
-                    id="location"
-                    value={currentDepartment.location}
+                    name="financeCode"
+                    id="financeCode"
+                    value={currentDepartment.financeCode}
+                    onChange={handleInputChange}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    name="description"
+                    id="description"
+                    value={currentDepartment.description}
                     onChange={handleInputChange}
                     className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                   />

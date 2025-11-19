@@ -2,78 +2,30 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import { generateVoucherCode, getFinanceCode } from "../../common/methods";
-
 import PaymentVoucher, {
   type PaymentVoucherDataType,
   type PaymentVoucherProps,
 } from "./PaymentVoucher";
 import PaymentVoucherTetfund from "./PaymentVoucher-Tetfund";
+import ParentRequestPreview from "./ParentRequestPreview";
+import VoucherPersonnelsAssignment from "./VoucherPersonnelsAssignment";
+import ModalWrapper from "../../components/modal-wrapper";
 
-export interface PaymentDetail {
-  paymentDate: string;
-  paymentParticles: string;
-  Amount: number;
-}
-
-export interface ApplicantDetail {
-  applicantName: string;
-  applicantAddress: string;
-  applicantDescription: string;
-}
-
-export interface EntryDistribution {
-  accountTitle: string;
-  accountCodeNo: string;
-  debitAmount: string;
-  debitDescription: string;
-  creditAmount: string;
-  creditDescription: string;
-}
-
-export interface PersonnelType {
-  id: number;
-  name: string | number;
-  positionName: string;
-  date: string;
-}
-
-export interface VoucherPersonnels {
-  headOfUnit: PersonnelType;
-  preparedBy: PersonnelType;
-  reviewedBy: PersonnelType;
-  approvedBy: PersonnelType;
-  unitHeadBy: PersonnelType;
-}
-
-export interface AuditUnitPersonnels {
-  checkedBy: PersonnelType;
-  preparedBy: PersonnelType;
-  reviewedBy: PersonnelType;
-  approvedBy: PersonnelType;
-}
-
-export interface AuditRemark {
-  pass: string;
-  query: string;
-}
-
-export interface EmployeeOption {
-  id: string | number;
-  value: string | number;
-  label: string;
-}
-
-export interface CompletedStage {
-  step: string | number;
-  updatedAt: string | Date;
-  assignedTo: {
-    firstName?: string;
-    lastName?: string;
-    department?: { name?: string };
-    position?: { title?: string };
-    [key: string]: any;
-  };
-}
+const getApplicantVoucherInfo = (voucherType: string, formResponses: any) => {
+  if (voucherType === "normal") {
+    return {
+      applicantName: formResponses?.officerName || "",
+      applicantAddress: formResponses?.applicantAddress || "",
+      applicantDescription: formResponses?.purpose || "",
+    };
+  } else if (voucherType === "tetfund") {
+    // Fetch tetfund voucher info
+    return {
+      applicantName: formResponses?.officerName || "",
+    };
+  }
+  return null;
+};
 
 const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
   formResponses,
@@ -88,9 +40,10 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
   responseTypes = [""],
   loading = false,
   setLoading,
-  parentRequestId,
+  parentRequest,
 }) => {
   const { user } = useAuth();
+  const [isApplicationFormOpen, openApplicationForm] = useState(false);
   const [formData, setFormData] = useState<PaymentVoucherDataType>({
     voucherNo: formResponses?.voucherNo || generateVoucherCode(),
     departmentCode: formResponses?.departmentCode || "",
@@ -102,16 +55,51 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
     ...formResponses,
   });
 
+  const [applicationVoucherInfo, setApplicationVoucherInfo] =
+    useState<any>(null);
+
   useEffect(() => {
     setFormData((prev) => ({ ...prev, ...formResponses }));
   }, [formResponses]);
 
+  useEffect(() => {
+    if (formData.voucherFormType) {
+      console.log(
+        "====parentRequest FormResponses======",
+        parentRequest?.formResponses
+      );
+      if (formData.voucherFormType === "tetfund") {
+        setApplicationVoucherInfo(
+          getApplicantVoucherInfo("tetfund", parentRequest?.formResponses)
+        );
+      }
+
+      if (formData.voucherFormType === "normal") {
+        setApplicationVoucherInfo(
+          getApplicantVoucherInfo("normal", parentRequest?.formResponses)
+        );
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        formId: 6,
+      }));
+    }
+  }, [formData.voucherFormType, parentRequest]);
+
   const handleSubmit = (data: PaymentVoucherDataType, status: string) => {
-    onSubmit({ ...formData, ...data }, status);
+    onSubmit(
+      {
+        ...formData,
+        ...data,
+        voucherFormType: formData.voucherFormType || data.voucherFormType,
+      },
+      status
+    );
   };
 
   const propHolder = {
-    formResponses,
+    formResponses: { ...applicationVoucherInfo, ...formResponses }, // Keep the arrangement
     enableInputList,
     vissibleSections,
     instruction,
@@ -123,7 +111,8 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
     responseTypes,
     loading,
     setLoading,
-    parentRequestId,
+    parentRequest,
+    showTobe: !formResponses?.preparedById,
   };
 
   return (
@@ -172,12 +161,54 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
           </div>
         </div>
       )}
+
+      {parentRequest && (
+        <div className="my-2 flex  items-center gap-4  border-gray-300 p-1 rounded-md border">
+          <span className="text-sm font-semibold">
+            Financial Request Applicatiion:
+          </span>
+          <button
+            onClick={() => openApplicationForm(true)}
+            className="rounded-lg bg-blue-300 px-4 py-2 text-sm font-semibold text-gray-500 shadow-sm hover:from-indigo-500 hover:to-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+          >
+            View
+          </button>
+        </div>
+      )}
+
+      {!formResponses?.voucherFormType &&
+        parentRequest &&
+        !formResponses?.preparedById && (
+          <div>
+            <ParentRequestPreview
+              parentRequest={parentRequest}
+              onClose={() => {}}
+              showApprovers={false}
+              showAddDocument={false}
+            />
+            <VoucherPersonnelsAssignment {...propHolder} />
+          </div>
+        )}
+
       {formData?.voucherFormType === "normal" && (
         <PaymentVoucher {...propHolder} />
       )}
 
       {formData?.voucherFormType === "tetfund" && (
         <PaymentVoucherTetfund {...propHolder} />
+      )}
+
+      {isApplicationFormOpen && (
+        <ModalWrapper
+          isOpen={isApplicationFormOpen}
+          onClose={() => openApplicationForm(false)}
+          title={"Application Request Form"}
+        >
+          <ParentRequestPreview
+            parentRequest={parentRequest}
+            onClose={() => openApplicationForm(false)}
+          />
+        </ModalWrapper>
       )}
     </div>
   );

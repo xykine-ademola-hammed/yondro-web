@@ -36,6 +36,7 @@ export interface Department {
   description?: string;
   location?: string;
   organizationId?: string;
+  schoolOrOfficeId?: string;
   financeCode?: string;
   units?: Unit[];
   positions: Position[];
@@ -91,6 +92,7 @@ export interface WorkFlow {
   createdAt: string;
   formId: string;
   status?: string;
+  type?: string;
 }
 
 export interface MiniUser {
@@ -310,6 +312,6 @@ export interface WorkFlowData {
 
 export interface WorkflowRequestData {
   rows: WorkflowRequest[];
-  count: number;
-  hasMore: boolean;
+  totalItems: number;
+  totalPages: number;
 }

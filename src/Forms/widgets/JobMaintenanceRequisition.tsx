@@ -31,7 +31,6 @@ interface JobMaintenanceRequisitionForm {
   requestorDeligation?: string;
   requestor?: Requestor;
   approvers?: Approver[];
-  // for compatibility with spread
   [key: string]: any;
 }
 
@@ -48,12 +47,13 @@ interface JobMaintenanceRequisitionProps {
   setLoading: (value: boolean) => void;
 }
 
-const requiredFields: (keyof JobMaintenanceRequisitionForm)[] = [
+const requiredFields = [
   "requestorDeligation",
   "date",
   "location",
   "description",
-];
+] as const;
+type RequiredKey = (typeof requiredFields)[number];
 
 const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
   formResponses,
@@ -69,7 +69,9 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
+
   const [hasErrors, setHasErrors] = useState<boolean>(false);
+  const [errors, setErrors] = useState<Partial<Record<RequiredKey, true>>>({});
 
   const [formData, setFormData] = useState<JobMaintenanceRequisitionForm>({
     date: moment(new Date()).format("YYYY-MM-DD"),
@@ -77,43 +79,61 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
     ...formResponses,
   });
 
-  // Handle text, textarea, and date inputs
-  const handleInputChange = (
-    fieldId: keyof JobMaintenanceRequisitionForm,
-    value: string
-  ) => {
-    setFormData((prev) => ({ ...prev, [fieldId]: value }));
-  };
-
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       ...formResponses,
     }));
+    // reset errors/banner when incoming data changes
+    setErrors({});
+    setHasErrors(false);
   }, [formResponses]);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  // Validation: check enabled required fields
-  const checkIsValid = () => {
-    const required = [];
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField])
-        required.push(enableField);
-    }
+  // Styling helpers: neutral border until error
+  const inputClass = (name: RequiredKey | string) =>
+    [
+      "mt-1 w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm",
+      "border",
+      errors[name as RequiredKey]
+        ? "border-red-600 ring-1 ring-red-300"
+        : "border-gray-300",
+    ].join(" ");
 
-    return !!required.length;
+  // Handle inputs and clear error for that field
+  const handleInputChange = (
+    fieldId: keyof JobMaintenanceRequisitionForm,
+    value: string
+  ) => {
+    setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    if (errors[fieldId as RequiredKey]) {
+      setErrors((prev) => {
+        const { [fieldId as RequiredKey]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  // Validate enabled required fields only
+  const validate = () => {
+    const nextErrors: Partial<Record<RequiredKey, true>> = {};
+    requiredFields.forEach((key) => {
+      if (isEnabled(key)) {
+        const val = String(formData?.[key] ?? "").trim();
+        if (!val) nextErrors[key] = true;
+      }
+    });
+    setErrors(nextErrors);
+    const invalid = Object.keys(nextErrors).length > 0;
+    setHasErrors(invalid);
+    return !invalid;
   };
 
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    if (validate()) {
       setLoading(true);
       onSubmit(formData, status);
-      // Reset only non-default fields
-      // setFormData({
-      //   date: moment(new Date()).format("YYYY-MM-DD"),
-      //   requestorDeligation: getFinanceCode(user),
-      // });
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -125,6 +145,8 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
       date: moment(new Date()).format("YYYY-MM-DD"),
       requestorDeligation: getFinanceCode(user),
     });
+    setErrors({});
+    setHasErrors(false);
     onCancel();
   };
 
@@ -140,7 +162,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
               format: "a4",
               margin: 10,
               scale: 1,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+              hideSelectors: ["[data-export-hide]"],
               onBeforeCapture: () => {},
               onAfterCapture: () => {},
             })
@@ -190,11 +212,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("requestorDeligation", e.target.value)
                 }
-                className={`mt-1 w-full p-1 border ${
-                  isEnabled("requestorDeligation")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("requestorDeligation")}
               />
             </div>
           </div>
@@ -214,11 +232,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("location", e.target.value)
                     }
-                    className={`w-full p-1 border ${
-                      isEnabled("location")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("location")}
                   />
                 </div>
               </div>
@@ -234,9 +248,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("date", e.target.value)
                     }
-                    className={`w-full p-1 border ${
-                      isEnabled("date") ? "border-red-500" : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("date")}
                   />
                 </div>
               </div>
@@ -244,6 +256,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
           </div>
         </div>
 
+        {/* Description */}
         <div className="mt-4">
           <h3 className="text-l font-semibold text-gray-700 mb-1">
             Description of works/defect
@@ -257,15 +270,14 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
                 handleInputChange("description", e.target.value)
               }
               disabled={!isEnabled("description")}
-              className={`mt-1 w-full p-1 border ${
-                isEnabled("description") ? "border-red-500" : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              className={inputClass("description")}
               rows={10}
               placeholder="Enter additional comments"
             ></textarea>
           </div>
         </div>
 
+        {/* Recommendation notes */}
         <h3 className="text-l font-semibold text-gray-700 mb-1">
           Recommendation notes:
         </h3>
@@ -278,11 +290,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
               handleInputChange("recommendationNotes", e.target.value)
             }
             disabled={!isEnabled("recommendationNotes")}
-            className={`mt-1 w-full p-1 border ${
-              isEnabled("recommendationNotes")
-                ? "border-red-500"
-                : "border-gray-300"
-            } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+            className={inputClass("recommendationNotes")}
             rows={4}
             placeholder="Enter additional comments"
           ></textarea>
@@ -296,8 +304,8 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
           initialDocuments={formData?.attachments || []}
         />
 
+        {/* Signers */}
         <div className="mt-4 flex flex-wrap gap-6">
-          {/* Requestor */}
           <div className="w-[340px] max-w-full flex-shrink-0">
             <Signer
               firstName={
@@ -318,7 +326,6 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
             />
           </div>
 
-          {/* Approvers */}
           {(formData?.approvers || []).map((approver, idx) => (
             <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
               <Signer
@@ -333,7 +340,7 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
           ))}
         </div>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         {showActionButtons && (
           <FormActions
             loading={loading}

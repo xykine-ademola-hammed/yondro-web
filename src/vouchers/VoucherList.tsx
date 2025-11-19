@@ -130,15 +130,16 @@ const VoucherList: React.FC = () => {
           </p>
         </div>
         {hasPermission("create_voucher") && (
-          <div className="mt-4 sm:mt-0">
-            <Link
-              to="/vouchers/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Voucher
-            </Link>
-          </div>
+          <></>
+          // <div className="mt-4 sm:mt-0">
+          //   <Link
+          //     to="/vouchers/new"
+          //     className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          //   >
+          //     <Plus className="h-4 w-4 mr-2" />
+          //     New Voucher
+          //   </Link>
+          // </div>
         )}
       </div>
 

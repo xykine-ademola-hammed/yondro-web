@@ -6,18 +6,16 @@ import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
-import DocumentAttachmentForm, {
-  type Document,
-} from "./DocumentAttachmentForm";
+import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
+import type { Document } from "../../components/UploadDocument";
 
 /** Interfaces for core objects **/
 interface StoreItem {
   id?: string | number;
   itemName?: string;
   quantity?: string;
-  // These additional fields show up in initialization,
-  // but are not actually used in this UI's table.
+  // legacy/unused here:
   articles?: string;
   denominationOfQty?: string;
   qtyReceived?: string;
@@ -41,6 +39,7 @@ interface ProcurementOrderFormResponses {
   approvers?: Approver[];
   storeItems?: StoreItem[];
   attachments?: Document[];
+  [key: string]: any;
 }
 
 interface ProcurementOrderProps {
@@ -57,9 +56,7 @@ interface ProcurementOrderProps {
 }
 
 /** Required field names **/
-const requiredFields = ["requestorDeligation"];
-
-/** Component Implementation **/
+const requiredFields = ["requestorDeligation"] as const;
 const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   formResponses,
   enableInputList = [""],
@@ -72,26 +69,67 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   loading = false,
   setLoading,
 }) => {
-  // console.log("====mode=====", mode);
-  // Use HTMLElement for PDF compatibility
   const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
 
-  // useState with proper typing
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
-  const [hasErrors, setHasErrors] = useState<boolean>(false);
   const [formData, setFormData] = useState<ProcurementOrderFormResponses>({
     requestorDeligation: getFinanceCode(user),
     ...formResponses,
   });
 
-  // Unified handler for input changes
+  const [hasErrors, setHasErrors] = useState<boolean>(false);
+  // Field errors: keys like "requestorDeligation" or "row-2-itemName"
+  const [errors, setErrors] = useState<Record<string, true>>({});
+
+  // Helpers
+  const isEnabled = (name: string) => enableInputList.includes(name);
+
+  const inputClass = (name: string) =>
+    [
+      "mt-1 w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm",
+      "border",
+      errors[name] ? "border-red-600 ring-1 ring-red-300" : "border-gray-300",
+    ].join(" ");
+
+  const rowInputClass = (rowIdx: number, field: "itemName" | "quantity") =>
+    inputClass(`row-${rowIdx}-${field}`);
+
+  // Unified handler for input changes (top-level)
   const handleInputChange = (
     fieldId: keyof ProcurementOrderFormResponses | string,
     value: any
   ) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+
+    if (errors[fieldId as string]) {
+      setErrors((prev) => {
+        const { [fieldId as string]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  // Handler for per-row item field changes
+  const handleStoreItemChange = (
+    eventName: keyof StoreItem,
+    eventValue: string,
+    index: number
+  ) => {
+    setStoreItems((prevItems) => {
+      const updated = [...prevItems];
+      updated[index] = { ...updated[index], [eventName]: eventValue };
+      return updated;
+    });
+
+    const errKey = `row-${index}-${eventName}`;
+    if (errors[errKey]) {
+      setErrors((prev) => {
+        const { [errKey]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   // Add a new empty row to storeItems
@@ -106,9 +144,10 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
     ]);
   };
 
-  // When formResponses changes (eg, load), sync state
+  // Sync from props
   useEffect(() => {
     setFormData((prev) => ({ ...prev, ...formResponses }));
+
     if (formResponses?.storeItems && Array.isArray(formResponses.storeItems)) {
       setStoreItems(
         formResponses.storeItems.map((item, idx) => ({
@@ -117,9 +156,17 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
         }))
       );
     } else {
-      setStoreItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
+      setStoreItems([
+        { id: 1, itemName: "", quantity: "" },
+        { id: 2, itemName: "", quantity: "" },
+        { id: 3, itemName: "", quantity: "" },
+      ]);
     }
-    // eslint-disable-next-line
+
+    // clear all errors when incoming data changes
+    setErrors({});
+    setHasErrors(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formResponses]);
 
   // If preview mode, show extra blank rows
@@ -131,40 +178,51 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
         { id: 3, itemName: "", quantity: "" },
         { id: 4, itemName: "", quantity: "" },
       ]);
+      setErrors({});
+      setHasErrors(false);
     }
   }, [mode]);
 
-  // Field enable utility
-  const isEnabled = (name: string) => enableInputList.includes(name);
+  // Validation:
+  // - Only validate required fields that are enabled
+  // - Each row must have both itemName and quantity filled OR both empty
+  const validate = () => {
+    const nextErrors: Record<string, true> = {};
 
-  // Validate required fields and store items
-  const checkIsValid = () => {
-    const required: string[] = [];
-    for (let enableField of enableInputList) {
-      if (
-        requiredFields.includes(enableField) &&
-        !formData?.[enableField as keyof ProcurementOrderFormResponses]
-      )
-        required.push(enableField);
-    }
+    // top-level required
+    requiredFields.forEach((key) => {
+      if (isEnabled(key)) {
+        const val = String(formData?.[key] ?? "").trim();
+        if (!val) nextErrors[key] = true;
+      }
+    });
 
-    for (let item of storeItems) {
-      if (
-        (item.itemName && !item.quantity) ||
-        (!item.itemName && item.quantity)
-      )
-        required.push("quantity");
-    }
-    return !!required.length;
+    // row validation
+    storeItems.forEach((item, idx) => {
+      const name = (item.itemName ?? "").toString().trim();
+      const qty = (item.quantity ?? "").toString().trim();
+
+      const bothEmpty = !name && !qty;
+      const bothFilled = !!name && !!qty;
+
+      if (!bothEmpty && !bothFilled) {
+        // mark only the missing pieces as errors
+        if (!name) nextErrors[`row-${idx}-itemName`] = true;
+        if (!qty) nextErrors[`row-${idx}-quantity`] = true;
+      }
+    });
+
+    setErrors(nextErrors);
+    const invalid = Object.keys(nextErrors).length > 0;
+    setHasErrors(invalid);
+    return !invalid;
   };
 
   // Form submission handlers
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    if (validate()) {
       setLoading(true);
       onSubmit({ ...formData, storeItems }, status);
-      // setFormData({});
-      // setStoreItems([]);
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -174,64 +232,10 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
   const handleCancel = () => {
     setFormData({});
     setStoreItems([]);
+    setErrors({});
+    setHasErrors(false);
     onCancel();
   };
-
-  // Handler for per-row item field changes
-  const handleStoreItemChange = (
-    eventName: keyof StoreItem,
-    eventValue: string,
-    index: number
-  ) => {
-    setStoreItems((prevItems) => {
-      const updatedItems = [...prevItems];
-      updatedItems[index] = {
-        ...updatedItems[index],
-        [eventName]: eventValue,
-      };
-      return updatedItems;
-    });
-  };
-
-  // const responseButtonProps: Record<
-  //   string,
-  //   {
-  //     bgColor: string;
-  //     label: string;
-  //     action: () => void;
-  //   }
-  // > = {
-  //   Reject: {
-  //     bgColor: "green",
-  //     label: "Approve",
-  //     action: () => handleSubmit("Reject"),
-  //   },
-  //   Approve: {
-  //     bgColor: "green",
-  //     label: "Approve",
-  //     action: () => handleSubmit("Approve"),
-  //   },
-  //   Approval: {
-  //     bgColor: "green",
-  //     label: "Approve",
-  //     action: () => handleSubmit("Approve"),
-  //   },
-  //   Acknowledgement: {
-  //     bgColor: "green",
-  //     label: "Acknowledgement",
-  //     action: () => handleSubmit("Approve"),
-  //   },
-  //   Payment: {
-  //     bgColor: "green",
-  //     label: "Approve payment",
-  //     action: () => handleSubmit("Payment"),
-  //   },
-  //   Procurement: {
-  //     bgColor: "blue",
-  //     label: "Approve procurement",
-  //     action: () => handleSubmit("Procurement"),
-  //   },
-  // };
 
   return (
     <div className="">
@@ -293,11 +297,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
               onChange={(e) =>
                 handleInputChange("requestorDeligation", e.target.value)
               }
-              className={`w-full p-1 border ${
-                isEnabled(`requestorDeligation`)
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              className={inputClass("requestorDeligation")}
             />
           </div>
         </div>
@@ -335,11 +335,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
                             index
                           )
                         }
-                        className={`mt-1 w-full p-1 border ${
-                          isEnabled(`itemName`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                        className={rowInputClass(index, "itemName")}
                       />
                     </td>
                     <td className="p-1">
@@ -354,11 +350,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
                             index
                           )
                         }
-                        className={`mt-1 w-full p-1 border ${
-                          isEnabled(`quantity`)
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                        className={rowInputClass(index, "quantity")}
                       />
                     </td>
                   </tr>
@@ -398,11 +390,7 @@ const ProcurementOrder: React.FC<ProcurementOrderProps> = ({
               onChange={(e) =>
                 handleInputChange("additionalNotes", e.target.value)
               }
-              className={`mt-1 w-full p-2 border ${
-                isEnabled("additionalNotes")
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              className={inputClass("additionalNotes")}
               rows={4}
               placeholder=""
             />

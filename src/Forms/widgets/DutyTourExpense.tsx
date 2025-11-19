@@ -13,9 +13,9 @@ import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { EmployeeOption } from "./PaymentVoucher-auto";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
+import type { EmployeeOption } from "./PaymentVoucher-Tetfund";
 
 interface Requestor {
   firstName?: string;
@@ -28,13 +28,40 @@ interface Requestor {
 
 interface DutyTourExpenseForm {
   date: string;
+  requestorDeligation?: string;
+
+  officerName?: string;
+  phone?: string;
+  rank?: string;
+  contedisConpcass?: string;
+
+  purpose?: string;
+  travelLocation?: string;
+  startDate?: string;
+  endDate?: string;
+  travelMode?: string;
+
+  estimatedTransportCost?: string;
+  estimatedNight?: string;
+  others?: string;
+  totalEstimate?: string;
+
+  totalInWord?: string;
+  bank?: string;
+  accountNumber?: string;
+
+  amountApproveFigure?: string;
+  amountApproveWord?: string;
+
+  unitVoucherHeadById?: string;
+
   location?: string;
   description?: string;
   recommendationNotes?: string;
-  requestorDeligation?: string;
   requestor?: Requestor;
   approvers?: Approver[];
-  // for compatibility with spread
+  attachments?: any[];
+
   [key: string]: any;
 }
 
@@ -43,22 +70,67 @@ interface DutyTourExpenseProps {
   setLoading: (value: boolean) => void;
   formResponses: Partial<DutyTourExpenseForm>;
   enableInputList?: string[];
-  trigerVoucherCreation: boolean;
+  triggerVoucherCreation: boolean;
   vissibleSections?: string[];
   onSubmit: (data: DutyTourExpenseForm, status: string) => void;
   onCancel: () => void;
   showActionButtons?: boolean;
   mode?: "edit" | "preview" | "new" | "in_progress";
   responseTypes: string[];
+  showApprovers?: boolean;
+  showAddDocument?: boolean;
 }
 
-const requiredFields: (keyof DutyTourExpenseForm)[] = [
-  "requestorDeligation",
+const ALWAYS_REQUIRED: (keyof DutyTourExpenseForm)[] = [
   "date",
-  "location",
-  "description",
-  "unitVoucherHeadById",
+  "requestorDeligation",
 ];
+
+// All UI fields in this form become required when enabled/visible
+const UI_REQUIRED: (keyof DutyTourExpenseForm)[] = [
+  "officerName",
+  "phone",
+  "rank",
+  "contedisConpcass",
+  "purpose",
+  "travelLocation",
+  "startDate",
+  "endDate",
+  "travelMode",
+  "estimatedTransportCost",
+  "estimatedNight",
+  "others",
+  "totalEstimate",
+  "totalInWord",
+  "bank",
+  "accountNumber",
+  "amountApproveFigure",
+  "amountApproveWord",
+];
+
+const labelMap: Record<string, string> = {
+  date: "Date",
+  requestorDeligation: "Requestor Delegation",
+  officerName: "Name of Officer",
+  phone: "Phone number",
+  rank: "Rank",
+  contedisConpcass: "CONTEDISS / CONPCASS",
+  purpose: "Purpose of Tour",
+  travelLocation: "Place(s) of travel",
+  startDate: "Start date",
+  endDate: "End date",
+  travelMode: "Transport mode",
+  estimatedTransportCost: "Estimated Transport Cost",
+  estimatedNight: "Estimated Night Allowance",
+  others: "Other(s) (If applicable) Specify",
+  totalEstimate: "Total",
+  totalInWord: "Total in words",
+  bank: "Bank",
+  accountNumber: "Account number",
+  amountApproveFigure: "Approved amount (figure)",
+  amountApproveWord: "Approved amount (word)",
+  unitVoucherHeadById: "Head of Unit [Voucher]",
+};
 
 const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
   formResponses,
@@ -68,13 +140,16 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
   showActionButtons = false,
   mode = "new",
   responseTypes = [""],
-  trigerVoucherCreation,
+  triggerVoucherCreation,
   loading,
   setLoading,
+  showApprovers = true,
+  showAddDocument = true,
 }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasErrors, setHasErrors] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<DutyTourExpenseForm>({
@@ -84,8 +159,6 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
   });
 
   const { userDepartmenttMembers } = useOrganization();
-
-  // Type safety for employee options
   const employeeOptions: EmployeeOption[] =
     (userDepartmenttMembers?.rows?.map((employee: any) => ({
       id: employee.id,
@@ -93,12 +166,17 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
       label: `${employee.firstName} - ${employee.lastName} `,
     })) as EmployeeOption[]) ?? [];
 
-  // Handle text, textarea, and date inputs
   const handleInputChange = (
     fieldId: keyof DutyTourExpenseForm,
     value: string
   ) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    setErrors((prev) => {
+      if (!prev[fieldId as string]) return prev;
+      const next = { ...prev };
+      delete next[fieldId as string];
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -110,29 +188,49 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  // Validation: check enabled required fields
-  const checkIsValid = () => {
-    const required = [];
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField])
-        required.push(enableField);
+  const getRequiredFields = (): (keyof DutyTourExpenseForm)[] => {
+    const req: (keyof DutyTourExpenseForm)[] = [...ALWAYS_REQUIRED];
+    for (const f of UI_REQUIRED) if (isEnabled(f as string)) req.push(f);
+    if (triggerVoucherCreation && isEnabled("unitVoucherHeadById")) {
+      req.push("unitVoucherHeadById");
+    }
+    return req;
+  };
+
+  const validate = () => {
+    const req = getRequiredFields();
+    const next: Record<string, string> = {};
+
+    for (const f of req) {
+      const v = formData?.[f];
+      if (v === undefined || v === null || String(v).trim() === "") {
+        next[f as string] = `${labelMap[f as string] ?? f} is required.`;
+      }
     }
 
-    return !!required.length;
+    // extra: if both dates are present, ensure end >= start (optional)
+    if (
+      !next.startDate &&
+      !next.endDate &&
+      formData.startDate &&
+      formData.endDate
+    ) {
+      if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        next.endDate = "End date cannot be earlier than Start date.";
+      }
+    }
+
+    setErrors(next);
+    setHasErrors(Object.keys(next).length > 0);
+    return next;
   };
 
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    const v = validate();
+    if (Object.keys(v).length === 0) {
       setLoading(true);
       onSubmit(formData, status);
-      // Reset only non-default fields
-      // setFormData({
-      //   date: moment(new Date()).format("YYYY-MM-DD"),
-      //   requestorDeligation: getFinanceCode(user),
-      // });
       setHasErrors(false);
-    } else {
-      setHasErrors(true);
     }
   };
 
@@ -141,10 +239,15 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
       date: moment(new Date()).format("YYYY-MM-DD"),
       requestorDeligation: getFinanceCode(user),
     });
+    setErrors({});
+    setHasErrors(false);
     onCancel();
   };
 
-  console.log("=== formData?.requestor?====", formData?.requestor);
+  const inputClass = (field: keyof DutyTourExpenseForm, extra = "") =>
+    `w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+      errors[field as string] ? "border-red-500" : "border-gray-300"
+    } ${extra}`;
 
   return (
     <div>
@@ -158,7 +261,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
               format: "a4",
               margin: 10,
               scale: 1,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+              hideSelectors: ["[data-export-hide]"],
               onBeforeCapture: () => {},
               onAfterCapture: () => {},
             })
@@ -187,7 +290,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
         {hasErrors && (
           <div className="bg-red-50 p-4 rounded-lg mb-2">
             <p className="text-red-800 text-sm">
-              There are some errors or missing required fields
+              There are some errors or missing required fields.
             </p>
           </div>
         )}
@@ -196,6 +299,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
         <>
           <div className="">
             <div className="mb-1 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-4">
+              {/* Officer name */}
               <div className="flex flex-col md:flex-row items-start md:items-center">
                 <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-sm ">Name of Officer:</span>
@@ -208,14 +312,17 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("officerName", e.target.value)
                     }
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("officerName")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("officerName", "mt-1")}
+                    data-error={!!errors.officerName}
                   />
+                  {errors.officerName && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.officerName}
+                    </p>
+                  )}
                 </div>
               </div>
+              {/* Phone */}
               <div className="flex flex-col md:flex-row items-start md:items-center">
                 <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-sm ">Phone number:</span>
@@ -228,16 +335,19 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("phone", e.target.value)
                     }
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("phone") ? "border-red-500" : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("phone", "mt-1")}
+                    data-error={!!errors.phone}
                   />
+                  {errors.phone && (
+                    <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-5">
+                {/* Rank */}
                 <div className="flex flex-col md:flex-row items-start md:items-center">
                   <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                     <span className="text-sm ">Rank:</span>
@@ -250,12 +360,15 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange("rank", e.target.value)
                       }
-                      className={`w-full p-1 border ${
-                        isEnabled("rank") ? "border-red-500" : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                      className={inputClass("rank")}
+                      data-error={!!errors.rank}
                     />
+                    {errors.rank && (
+                      <p className="text-xs text-red-600 mt-1">{errors.rank}</p>
+                    )}
                   </div>
                 </div>
+                {/* CONTEDISS/CONPCASS */}
                 <div className="flex flex-col md:flex-row items-start md:items-center">
                   <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                     <span className="text-sm ">
@@ -271,23 +384,26 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   <div className="w-full">
                     <input
                       type="text"
-                      value={formData?.contedisConpcass}
+                      value={formData?.contedisConpcass ?? ""}
                       disabled={!isEnabled("contedisConpcass")}
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange("contedisConpcass", e.target.value)
                       }
-                      className={`w-full p-1 border ${
-                        isEnabled("contedisConpcass")
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                      className={inputClass("contedisConpcass")}
+                      data-error={!!errors.contedisConpcass}
                     />
+                    {errors.contedisConpcass && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {errors.contedisConpcass}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Purpose */}
           <div className="">
             <h3 className="text-sm text-gray-700">Purpose of Tour</h3>
             <div>
@@ -299,14 +415,17 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   handleInputChange("purpose", e.target.value)
                 }
                 disabled={!isEnabled("purpose")}
-                className={`mt-0 w-full p-1 border ${
-                  isEnabled("purpose") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("purpose")}
                 rows={3}
+                data-error={!!errors.purpose}
               ></textarea>
+              {errors.purpose && (
+                <p className="text-xs text-red-600 mt-1">{errors.purpose}</p>
+              )}
             </div>
           </div>
 
+          {/* Travel location */}
           <div className=" flex flex-col md:flex-row items-start md:items-center">
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
               <span className="text-sm ">Place(s) of travel:</span>
@@ -314,20 +433,23 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.travelLocation}
+                value={formData?.travelLocation ?? ""}
                 disabled={!isEnabled("travelLocation")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("travelLocation", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("travelLocation")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("travelLocation")}
+                data-error={!!errors.travelLocation}
               />
+              {errors.travelLocation && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.travelLocation}
+                </p>
+              )}
             </div>
           </div>
 
+          {/* Period of tour */}
           <div className=" my-1 flex flex-col md:flex-row items-start md:items-center">
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
               <span className="text-sm ">Period of Tour:</span>
@@ -335,30 +457,34 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="flex gap-1 w-full">
               <input
                 type="date"
-                value={formData?.startDate}
+                value={formData?.startDate ?? ""}
                 disabled={!isEnabled("startDate")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("startDate", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("startDate") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("startDate")}
+                data-error={!!errors.startDate}
               />
               <span>To</span>
               <input
                 type="date"
-                value={formData?.endDate}
+                value={formData?.endDate ?? ""}
                 disabled={!isEnabled("endDate")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("endDate", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("endDate") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("endDate")}
+                data-error={!!errors.endDate}
               />
             </div>
+            {(errors.startDate || errors.endDate) && (
+              <p className="text-xs text-red-600 mt-1">
+                {errors.startDate || errors.endDate}
+              </p>
+            )}
           </div>
 
+          {/* Transport mode */}
           <div className=" flex flex-col md:flex-row items-start md:items-center">
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
               <span className="text-sm ">Tranport mode specify:</span>
@@ -366,28 +492,34 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.travelMode}
+                value={formData?.travelMode ?? ""}
                 disabled={!isEnabled("travelMode")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("travelMode", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("travelMode") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("travelMode")}
                 placeholder="Road, Air, Sea, Rail"
+                data-error={!!errors.travelMode}
               />
+              {errors.travelMode && (
+                <p className="text-xs text-red-600 mt-1">{errors.travelMode}</p>
+              )}
             </div>
           </div>
         </>
 
-        <DocumentAttachmentForm
-          onSubmit={(documents) =>
-            setFormData((prev) => ({ ...prev, attachments: documents }))
-          }
-          mode="new"
-          initialDocuments={formData?.attachments || []}
-        />
+        {/* Attachments */}
+        {showAddDocument && (
+          <DocumentAttachmentForm
+            onSubmit={(documents) =>
+              setFormData((prev) => ({ ...prev, attachments: documents }))
+            }
+            mode="new"
+            initialDocuments={formData?.attachments || []}
+          />
+        )}
 
+        {/* PART B */}
         <p className="mt-4">PART B </p>
         <div className="border p-2 rounded border-gray-300">
           <div className=" grid grid-cols-2 gap-1">
@@ -397,17 +529,19 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.estimatedTransportCost}
+                value={formData?.estimatedTransportCost ?? ""}
                 disabled={!isEnabled("estimatedTransportCost")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("estimatedTransportCost", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("estimatedTransportCost")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("estimatedTransportCost")}
+                data-error={!!errors.estimatedTransportCost}
               />
+              {errors.estimatedTransportCost && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.estimatedTransportCost}
+                </p>
+              )}
             </div>
 
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -416,18 +550,20 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.estimatedNight}
+                value={formData?.estimatedNight ?? ""}
                 disabled={!isEnabled("estimatedNight")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("estimatedNight", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("estimatedNight")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("estimatedNight")}
                 placeholder="....Days X N......"
+                data-error={!!errors.estimatedNight}
               />
+              {errors.estimatedNight && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.estimatedNight}
+                </p>
+              )}
             </div>
 
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -438,15 +574,17 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.others}
+                value={formData?.others ?? ""}
                 disabled={!isEnabled("others")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("others", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("others") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("others")}
+                data-error={!!errors.others}
               />
+              {errors.others && (
+                <p className="text-xs text-red-600 mt-1">{errors.others}</p>
+              )}
             </div>
 
             <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -455,17 +593,19 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
             <div className="w-full">
               <input
                 type="text"
-                value={formData?.totalEstimate}
+                value={formData?.totalEstimate ?? ""}
                 disabled={!isEnabled("totalEstimate")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleInputChange("totalEstimate", e.target.value)
                 }
-                className={`w-full p-1 border ${
-                  isEnabled("totalEstimate")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("totalEstimate")}
+                data-error={!!errors.totalEstimate}
               />
+              {errors.totalEstimate && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.totalEstimate}
+                </p>
+              )}
             </div>
           </div>
 
@@ -480,13 +620,15 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   handleInputChange("totalInWord", e.target.value)
                 }
                 disabled={!isEnabled("totalInWord")}
-                className={`mt-1 w-full p-1 border ${
-                  isEnabled("totalInWord")
-                    ? "border-red-500"
-                    : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("totalInWord")}
                 rows={2}
+                data-error={!!errors.totalInWord}
               ></textarea>
+              {errors.totalInWord && (
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.totalInWord}
+                </p>
+              )}
             </div>
           </div>
 
@@ -503,10 +645,12 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("bank", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("bank") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("bank", "mt-1")}
+                  data-error={!!errors.bank}
                 />
+                {errors.bank && (
+                  <p className="text-xs text-red-600 mt-1">{errors.bank}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -521,45 +665,50 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("accountNumber", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("accountNumber")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("accountNumber", "mt-1")}
+                  data-error={!!errors.accountNumber}
                 />
+                {errors.accountNumber && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.accountNumber}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
+        {/* PART C */}
         <p className="mt-4">PART C </p>
         <div className="border p-2 rounded border-gray-300">
           <h3 className="text-sm">Provost Approval for Expenditure </h3>
           <div>
             <div className="flex gap-2">
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
-                <span className="text-sm ">Sum of ammount (in figure):</span>
+                <span className="text-sm ">Sum of amount (in figure):</span>
               </div>
               <div className="w-full">
                 <input
                   type="text"
-                  value={formData?.amountApproveFigure}
+                  value={formData?.amountApproveFigure ?? ""}
                   disabled={!isEnabled("amountApproveFigure")}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("amountApproveFigure", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("amountApproveFigure")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("amountApproveFigure")}
+                  data-error={!!errors.amountApproveFigure}
                 />
+                {errors.amountApproveFigure && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.amountApproveFigure}
+                  </p>
+                )}
               </div>
             </div>
 
             <div>
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
-                <span className="text-sm ">Approve Amount (in word):</span>
+                <span className="text-sm ">Approved Amount (in word):</span>
               </div>
               <div className="w-full">
                 <textarea
@@ -570,19 +719,22 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                     handleInputChange("amountApproveWord", e.target.value)
                   }
                   disabled={!isEnabled("amountApproveWord")}
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("amountApproveWord")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("amountApproveWord")}
                   rows={2}
+                  data-error={!!errors.amountApproveWord}
                 ></textarea>
+                {errors.amountApproveWord && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.amountApproveWord}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {trigerVoucherCreation && (
+        {/* Voucher Approval — required only when triggerVoucherCreation is true */}
+        {triggerVoucherCreation && (
           <div className="mt-2">
             <h3 className="text-l font-semibold text-gray-700 mb-1">
               Voucher Approval
@@ -599,12 +751,9 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                   onChange={(e) =>
                     handleInputChange("unitVoucherHeadById", e.target.value)
                   }
-                  required
-                  className={`mt-0 w-full p-1 border ${
-                    isEnabled("unitVoucherHeadById")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={inputClass("unitVoucherHeadById")}
+                  data-error={!!errors.unitVoucherHeadById}
+                  disabled={!isEnabled("unitVoucherHeadById")}
                 >
                   <option value="">Select an option</option>
                   {employeeOptions?.map((employee) => (
@@ -613,47 +762,55 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                     </option>
                   ))}
                 </select>
+                {errors.unitVoucherHeadById && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.unitVoucherHeadById}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         )}
-
-        <div className="mt-4 flex flex-wrap gap-6">
-          {/* Requestor */}
-          <div className="w-[340px] max-w-full flex-shrink-0">
-            <Signer
-              firstName={
-                formData?.requestor?.firstName || user?.firstName || ""
-              }
-              lastName={formData?.requestor?.lastName || user?.lastName || ""}
-              date={
-                formData?.requestor?.date ||
-                moment(new Date()).format("DD/MM/YYYY")
-              }
-              department={
-                formData?.requestor?.department || user?.department?.name || ""
-              }
-              position={
-                formData?.requestor?.position || user?.position?.title || ""
-              }
-              label="Request"
-            />
-          </div>
-
-          {/* Approvers */}
-          {(formData?.approvers || []).map((approver, idx) => (
-            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+        {showApprovers && (
+          <div className="mt-4 flex flex-wrap gap-6">
+            {/* Requestor */}
+            <div className="w-[340px] max-w-full flex-shrink-0">
               <Signer
-                firstName={approver.firstName}
-                lastName={approver.lastName}
-                date={approver.date}
-                department={approver.department}
-                position={approver.position}
-                label={approver.label}
+                firstName={
+                  formData?.requestor?.firstName || user?.firstName || ""
+                }
+                lastName={formData?.requestor?.lastName || user?.lastName || ""}
+                date={
+                  formData?.requestor?.date ||
+                  moment(new Date()).format("DD/MM/YYYY")
+                }
+                department={
+                  formData?.requestor?.department ||
+                  user?.department?.name ||
+                  ""
+                }
+                position={
+                  formData?.requestor?.position || user?.position?.title || ""
+                }
+                label="Request"
               />
             </div>
-          ))}
-        </div>
+
+            {/* Approvers */}
+            {(formData?.approvers || []).map((approver, idx) => (
+              <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+                <Signer
+                  firstName={approver.firstName}
+                  lastName={approver.lastName}
+                  date={approver.date}
+                  department={approver.department}
+                  position={approver.position}
+                  label={approver.label}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Action Buttons */}
         {showActionButtons && (

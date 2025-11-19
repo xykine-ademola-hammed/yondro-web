@@ -1,33 +1,21 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
-import React, { useEffect, useMemo, useState } from "react";
-import type { ApiFilter, WorkflowRequestData } from "../common/types";
+import React, { useEffect, useState } from "react";
+import { type WorkFlow, type WorkflowRequestData } from "../common/types";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../GlobalContexts/AuthContext";
 import { getMutationMethod } from "../common/api-methods";
 import { useMutation } from "@tanstack/react-query";
+import DepartmentTypeahead, { type Department } from "./DepartmentTypeahead";
+import RequestTypeSelector from "./RequestTypeSelector";
+import EmployeeTypeahead, { type Employee } from "./EmployeeTypeahead";
 
-const departments = [
-  "Engineering",
-  "Marketing",
-  "Sales",
-  "Human Resources",
-  "Finance",
-  "Research & Development",
-];
-const requestTypes = [
-  "Position Transfer",
-  "Salary Adjustment",
-  "Promotion",
-  "New Position Requisition",
-];
-const statuses = ["Pending", "Approved", "Rejected", "Under Review"];
+export const statuses = ["Pending", "Completed", "Rejected", "Paid"];
 
 const statusTone: Record<string, string> = {
-  Approved: "bg-green-50 text-green-700 ring-green-200",
+  Completed: "bg-green-50 text-green-700 ring-green-200",
   Rejected: "bg-red-50 text-red-700 ring-red-200",
-  "Under Review": "bg-blue-50 text-blue-700 ring-blue-200",
+  Paid: "bg-blue-50 text-blue-700 ring-blue-200",
   Pending: "bg-yellow-50 text-yellow-800 ring-yellow-200",
   default: "bg-gray-50 text-gray-700 ring-gray-200",
 };
@@ -43,70 +31,52 @@ function StatusBadge({ status }: { status?: string }) {
   );
 }
 
-function ProgressBar({
-  current = 0,
-  total = 0,
-}: {
-  current?: number;
-  total?: number;
-}) {
-  const pct =
-    total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-full rounded-full bg-gray-200">
-        <div
-          className="h-2 rounded-full bg-indigo-600 transition-[width] duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-gray-500 w-12 text-right">{pct}%</span>
-    </div>
-  );
-}
+// function ProgressBar({
+//   current = 0,
+//   total = 0,
+// }: {
+//   current?: number;
+//   total?: number;
+// }) {
+//   const pct =
+//     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+//   return (
+//     <div className="flex items-center gap-2">
+//       <div className="h-2 w-full rounded-full bg-gray-200">
+//         <div
+//           className="h-2 rounded-full bg-indigo-600 transition-[width] duration-300"
+//           style={{ width: `${pct}%` }}
+//         />
+//       </div>
+//       <span className="text-xs text-gray-500 w-12 text-right">{pct}%</span>
+//     </div>
+//   );
+// }
 
 const RequestList: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedType, setSelectedType] = useState<WorkFlow | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null);
+
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
+
+  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [workflowRequests, setWorkflowRequests] = useState<WorkflowRequestData>(
     {
       rows: [],
-      count: 0,
-      hasMore: false,
+      totalItems: 0,
+      totalPages: 0,
     }
-  );
-
-  const [filter, setFilter] = useState<ApiFilter>({
-    filters: [
-      {
-        key: "organizationId",
-        value: user?.organizationId || "",
-        condition: "equal",
-      },
-      { key: "stages.assignedToId", value: user?.id, condition: "equal" },
-    ],
-    limit: 10,
-    offset: 0,
-  });
-
-  const page = useMemo(
-    () => Math.floor((filter.offset || 0) / (filter.limit || 1)) + 1,
-    [filter]
-  );
-  const totalPages = useMemo(
-    () =>
-      Math.max(
-        1,
-        Math.ceil((workflowRequests.count || 0) / (filter.limit || 1))
-      ),
-    [workflowRequests.count, filter.limit]
   );
 
   const {
@@ -114,7 +84,7 @@ const RequestList: React.FC = () => {
     isPending,
     isError,
   } = useMutation({
-    mutationFn: (body: ApiFilter) =>
+    mutationFn: (body: any) =>
       getMutationMethod(
         "POST",
         `api/workflowrequest/get-request-history`,
@@ -126,50 +96,34 @@ const RequestList: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchWorkflowRequest(filter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.offset, filter.limit]); // keep server fetch tied to pagination/limit
-
-  const filteredRows = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return (workflowRequests.rows || []).filter((r: any) => {
-      const matchesTerm =
-        !term ||
-        String(r.id).toLowerCase().includes(term) ||
-        `${r?.requestor?.firstName || ""} ${r?.requestor?.lastName || ""}`
-          .toLowerCase()
-          .includes(term) ||
-        (r?.workflow?.name || "").toLowerCase().includes(term);
-
-      const matchesType = !selectedType || r?.workflow?.name === selectedType;
-      const matchesStatus = !selectedStatus || r?.status === selectedStatus;
-      const matchesDept =
-        !selectedDepartment ||
-        (r?.requestor?.department?.name || "") === selectedDepartment;
-
-      return matchesTerm && matchesType && matchesStatus && matchesDept;
+    fetchWorkflowRequest({
+      departmentId: selectedDepartment?.id,
+      employeeId: selectedEmployee?.id,
+      status: selectedStatus ? selectedStatus : undefined,
+      formId: selectedType?.formId,
+      limit,
+      offset: page - 1,
     });
   }, [
-    workflowRequests.rows,
-    searchTerm,
-    selectedType,
+    page,
+    limit,
     selectedStatus,
+    selectedType,
+    selectedEmployee,
     selectedDepartment,
-  ]);
+  ]); // keep server fetch tied to pagination/limit
 
   const clearFilters = () => {
-    setSearchTerm("");
-    setSelectedType("");
-    setSelectedStatus("");
-    setSelectedDepartment("");
+    setSelectedType(null);
+    setSelectedStatus(undefined);
+    setSelectedDepartment(null);
+    setSelectedEmployee(null);
+    setLimit(10);
+    setPage(1);
   };
 
   const goToPage = (p: number) => {
-    const clamped = Math.max(1, Math.min(totalPages, p));
-    setFilter((prev) => ({
-      ...prev,
-      offset: (clamped - 1) * (prev.limit || 10),
-    }));
+    setPage(p);
   };
 
   return (
@@ -200,20 +154,16 @@ const RequestList: React.FC = () => {
         <div className="hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:block">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex flex-1 flex-col gap-4 sm:flex-row">
-              <div className="relative mt-4 justify-center items-center w-full sm:max-w-md">
-                <i className="fas fa-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by ID, employee, or type…"
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 py-2 text-sm text-slate-700 outline-none ring-blue-500 focus:border-blue-500 focus:ring-2"
-                />
-              </div>
-              <Select
-                label="Type"
+              <EmployeeTypeahead
+                label="Employee"
+                value={selectedEmployee}
+                onChange={(selected) => setSelectedEmployee(selected)}
+                placeholder="Search department"
+              />
+
+              <RequestTypeSelector
                 value={selectedType}
                 onChange={setSelectedType}
-                options={requestTypes}
               />
               <Select
                 label="Status"
@@ -221,11 +171,11 @@ const RequestList: React.FC = () => {
                 onChange={setSelectedStatus}
                 options={statuses}
               />
-              <Select
-                label="Department"
+              <DepartmentTypeahead
+                label="Employee Department"
                 value={selectedDepartment}
                 onChange={setSelectedDepartment}
-                options={departments}
+                placeholder="Search department"
               />
             </div>
             <div className="flex gap-2">
@@ -242,35 +192,27 @@ const RequestList: React.FC = () => {
         {/* Mobile Filters Panel */}
         {mobileFiltersOpen && (
           <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:hidden">
-            <div className="mb-3">
-              <div className="relative">
-                <i className="fas fa-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search requests…"
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 py-2 text-sm text-slate-700 outline-none ring-blue-500 focus:border-blue-500 focus:ring-2"
-                />
-              </div>
-            </div>
+            <EmployeeTypeahead
+              label="Employee"
+              value={selectedEmployee}
+              onChange={(selected) => setSelectedEmployee(selected)}
+              placeholder="Search department"
+            />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select
-                label="Type"
+              <RequestTypeSelector
                 value={selectedType}
                 onChange={setSelectedType}
-                options={requestTypes}
               />
               <Select
                 label="Status"
-                value={selectedStatus}
+                value={selectedStatus ?? ""}
                 onChange={setSelectedStatus}
                 options={statuses}
               />
-              <Select
-                label="Department"
+              <DepartmentTypeahead
                 value={selectedDepartment}
                 onChange={setSelectedDepartment}
-                options={departments}
+                placeholder=""
               />
             </div>
             <div className="mt-3 flex gap-2">
@@ -303,7 +245,7 @@ const RequestList: React.FC = () => {
             Failed to load requests. Please try again.
           </div>
         )}
-        {!isPending && filteredRows.length === 0 && (
+        {workflowRequests?.rows?.length === 0 && (
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
               <i className="fas fa-inbox text-slate-400" />
@@ -317,9 +259,11 @@ const RequestList: React.FC = () => {
 
         {/* Mobile Cards */}
         <div className="mt-4 space-y-4 md:hidden">
-          {filteredRows.map((r: any) => {
-            const total = r?.workflow?.stages?.length ?? 0;
-            const current = r?.stages?.length ?? 0;
+          {workflowRequests?.rows?.map((r: any) => {
+            // const total = r?.workflow?.stages?.length ?? 0;
+            // const current = r?.stages?.[0]?.step
+            //   ? Number(r?.stages?.[0]?.step) + 1
+            //   : 0;
             return (
               <div
                 key={r.id}
@@ -345,6 +289,7 @@ const RequestList: React.FC = () => {
                     {moment(r?.createdAt).format("YYYY/MM/DD")}
                   </div>
                 </div>
+                {/* <>
                 {total > 0 && (
                   <div className="mt-3">
                     <div className="mb-1 flex items-center justify-between">
@@ -358,6 +303,8 @@ const RequestList: React.FC = () => {
                     <ProgressBar current={current} total={total} />
                   </div>
                 )}
+                </> */}
+
                 <div className="mt-4 flex gap-2">
                   <button
                     onClick={() => navigate(`request-response/${r.id}/view`)}
@@ -373,7 +320,7 @@ const RequestList: React.FC = () => {
         </div>
 
         {/* Desktop Table */}
-        {filteredRows.length > 0 && (
+        {workflowRequests?.rows?.length > 0 && (
           <div className="mt-6 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
             <div className="max-h-[70vh] overflow-auto">
               <table className="min-w-full text-left text-sm">
@@ -382,14 +329,16 @@ const RequestList: React.FC = () => {
                     <Th>Request</Th>
                     <Th>Employee</Th>
                     <Th>Status</Th>
-                    <Th>Progress</Th>
+                    {/* <Th>Progress</Th> */}
                     <Th className="text-right">Actions</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {filteredRows.map((r: any) => {
-                    const total = r?.workflow?.stages?.length ?? 0;
-                    const current = r?.stages?.length ?? 0;
+                  {workflowRequests?.rows?.map((r: any) => {
+                    // const total = r?.workflow?.stages?.length ?? 0;
+                    // const current = r?.stages?.[0]?.step
+                    //   ? Number(r?.stages?.[0]?.step) + 1
+                    //   : 0;
                     return (
                       <tr key={r.id} className="hover:bg-slate-50">
                         <Td>
@@ -409,9 +358,9 @@ const RequestList: React.FC = () => {
                         <Td className="whitespace-nowrap">
                           <StatusBadge status={r?.status} />
                         </Td>
-                        <Td className="w-64">
+                        {/* <Td className="w-64">
                           <ProgressBar current={current} total={total} />
-                        </Td>
+                        </Td> */}
                         <Td className="whitespace-nowrap text-right">
                           <button
                             onClick={() =>
@@ -435,33 +384,27 @@ const RequestList: React.FC = () => {
         {/* Footer / Pagination */}
         <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-sm text-slate-600">
-            Showing <span className="font-medium">{filteredRows.length}</span>{" "}
-            of <span className="font-medium">{workflowRequests.count}</span>{" "}
+            Showing{" "}
+            <span className="font-medium">
+              {workflowRequests?.rows?.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium">{workflowRequests.totalItems}</span>{" "}
             requests
           </p>
           <div className="inline-flex items-center gap-1">
             <PageBtn
-              onClick={() => goToPage(1)}
-              disabled={page === 1}
-              icon="fa-angles-left"
-            />
-            <PageBtn
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}
-              icon="fa-chevron-left"
+              icon=" fa-chevron-left"
             />
             <span className="mx-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700">
-              Page {page} of {totalPages}
+              Page {page} of {workflowRequests.totalPages}
             </span>
             <PageBtn
               onClick={() => goToPage(page + 1)}
-              disabled={page === totalPages}
-              icon="fa-chevron-right"
-            />
-            <PageBtn
-              onClick={() => goToPage(totalPages)}
-              disabled={page === totalPages}
-              icon="fa-angles-right"
+              disabled={page === workflowRequests.totalPages}
+              icon=" fa-chevron-right"
             />
           </div>
         </div>
@@ -501,14 +444,14 @@ function SkeletonRow() {
   );
 }
 
-function Select({
+export function Select({
   label,
   value,
   onChange,
   options,
 }: {
-  label: string;
-  value: string;
+  label?: string;
+  value?: string;
   onChange: (v: string) => void;
   options: string[];
 }) {

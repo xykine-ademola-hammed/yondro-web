@@ -13,8 +13,8 @@ import { getFinanceCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
-import type { EmployeeOption } from "./PaymentVoucher-auto";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
+import type { EmployeeOption } from "./PaymentVoucher-Tetfund";
 
 interface Requestor {
   firstName?: string;
@@ -36,13 +36,26 @@ export interface Approver {
 
 interface ClaimOutOfPocketExpenseForm {
   date: string;
+  requestorDeligation?: string;
+
+  officerName?: string; // From:
+  department?: string;
+  amount?: string;
+  amountInWord?: string;
+  purpose?: string;
+  noReceiptAttestation?: string;
+  bank?: string;
+  accountNumber?: string;
+
+  unitVoucherHeadById?: string; // conditional
+
   location?: string;
   description?: string;
   recommendationNotes?: string;
-  requestorDeligation?: string;
   requestor?: Requestor;
   approvers?: Approver[];
-  // for compatibility with spread
+  attachments?: any[];
+
   [key: string]: any;
 }
 
@@ -50,7 +63,7 @@ interface ClaimOutOfPocketExpenseProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
   formResponses: Partial<ClaimOutOfPocketExpenseForm>;
-  trigerVoucherCreation: boolean;
+  triggerVoucherCreation: boolean;
   enableInputList?: string[];
   vissibleSections?: string[];
   onSubmit: (data: ClaimOutOfPocketExpenseForm, status: string) => void;
@@ -58,19 +71,44 @@ interface ClaimOutOfPocketExpenseProps {
   showActionButtons?: boolean;
   mode?: "edit" | "preview" | "new" | "in_progress";
   responseTypes: string[];
+  showApprovers?: boolean;
+  showAddDocument?: boolean;
 }
 
-const requiredFields: (keyof ClaimOutOfPocketExpenseForm)[] = [
-  "requestorDeligation",
+const ALWAYS_REQUIRED: (keyof ClaimOutOfPocketExpenseForm)[] = [
   "date",
-  "location",
-  "description",
-  "unitVoucherHeadById",
+  "requestorDeligation",
 ];
+
+const UI_REQUIRED: (keyof ClaimOutOfPocketExpenseForm)[] = [
+  "officerName",
+  "department",
+  "amount",
+  "amountInWord",
+  "purpose",
+  // "noReceiptAttestation",
+  "bank",
+  "accountNumber",
+];
+
+const humanLabel: Record<string, string> = {
+  date: "Date",
+  requestorDeligation: "Requestor Delegation",
+  officerName: "From",
+  department: "Department",
+  amount: "Amount",
+  amountInWord: "Amount in word",
+  purpose: "Purpose",
+  noReceiptAttestation:
+    "No-receipt attestation (full name if receipts are not available)",
+  bank: "Bank",
+  accountNumber: "Account number",
+  unitVoucherHeadById: "Head of Unit [Voucher]",
+};
 
 const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
   formResponses,
-  trigerVoucherCreation,
+  triggerVoucherCreation,
   enableInputList = [""],
   onSubmit,
   onCancel,
@@ -79,13 +117,14 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
   responseTypes = [""],
   loading,
   setLoading,
+  showApprovers = true,
+  showAddDocument = true,
 }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
 
   const { userDepartmenttMembers } = useOrganization();
-  // Type safety for employee options
   const employeeOptions: EmployeeOption[] =
     (userDepartmenttMembers?.rows?.map((employee: any) => ({
       id: employee.id,
@@ -93,6 +132,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
       label: `${employee.firstName} - ${employee.lastName} `,
     })) as EmployeeOption[]) ?? [];
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasErrors, setHasErrors] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<ClaimOutOfPocketExpenseForm>({
@@ -101,12 +141,17 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
     ...formResponses,
   });
 
-  // Handle text, textarea, and date inputs
   const handleInputChange = (
     fieldId: keyof ClaimOutOfPocketExpenseForm,
     value: string
   ) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    setErrors((prev) => {
+      if (!prev[fieldId as string]) return prev;
+      const next = { ...prev };
+      delete next[fieldId as string];
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -118,24 +163,39 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  // Validation: check enabled required fields
-  const checkIsValid = () => {
-    const required = [];
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField])
-        required.push(enableField);
+  const getRequiredFields = (): (keyof ClaimOutOfPocketExpenseForm)[] => {
+    const req: (keyof ClaimOutOfPocketExpenseForm)[] = [...ALWAYS_REQUIRED];
+    for (const f of UI_REQUIRED) if (isEnabled(f as string)) req.push(f);
+    if (triggerVoucherCreation && isEnabled("unitVoucherHeadById")) {
+      req.push("unitVoucherHeadById");
     }
+    return req;
+  };
 
-    return !!required.length;
+  const validate = () => {
+    const req = getRequiredFields();
+    const next: Record<string, string> = {};
+    for (const f of req) {
+      const v = formData?.[f];
+      if (v === undefined || v === null || String(v).trim() === "") {
+        next[f as string] = `${humanLabel[f as string] ?? f} is required.`;
+      }
+    }
+    setErrors(next);
+    setHasErrors(Object.keys(next).length > 0);
+    return next;
   };
 
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    if (status === "Reject") {
+      onSubmit(formData, status);
+      return;
+    }
+    const v = validate();
+    if (Object.keys(v).length === 0) {
       setLoading(true);
       onSubmit(formData, status);
       setHasErrors(false);
-    } else {
-      setHasErrors(true);
     }
   };
 
@@ -144,8 +204,15 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
       date: moment(new Date()).format("YYYY-MM-DD"),
       requestorDeligation: getFinanceCode(user),
     });
+    setErrors({});
+    setHasErrors(false);
     onCancel();
   };
+
+  const inputClass = (field: keyof ClaimOutOfPocketExpenseForm, extra = "") =>
+    `w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+      errors[field as string] ? "border-red-500" : "border-gray-300"
+    } ${extra}`;
 
   return (
     <div>
@@ -159,7 +226,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
               format: "a4",
               margin: 10,
               scale: 1,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+              hideSelectors: ["[data-export-hide]"],
               onBeforeCapture: () => {},
               onAfterCapture: () => {},
             })
@@ -188,7 +255,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
         {hasErrors && (
           <div className="bg-red-50 p-4 rounded-lg mb-2">
             <p className="text-red-800 text-sm">
-              There are some errors or missing required fields
+              There are some errors or missing required fields.
             </p>
           </div>
         )}
@@ -197,6 +264,7 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
         <>
           <div className="">
             <div className="mb-1 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-4">
+              {/* From (officerName) */}
               <div className="flex flex-col md:flex-row items-start md:items-center">
                 <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-sm ">From:</span>
@@ -209,14 +277,18 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("officerName", e.target.value)
                     }
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("officerName")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("officerName", "mt-1")}
+                    data-error={!!errors.officerName}
                   />
+                  {errors.officerName && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.officerName}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {/* Department */}
               <div className="flex flex-col md:flex-row items-start md:items-center">
                 <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                   <span className="text-sm ">Department:</span>
@@ -229,16 +301,19 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       handleInputChange("department", e.target.value)
                     }
-                    className={`mt-1 w-full p-1 border ${
-                      isEnabled("department")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                    className={inputClass("department", "mt-1")}
+                    data-error={!!errors.department}
                   />
+                  {errors.department && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.department}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
+            {/* Amount */}
             <div className="mb-1 flex flex-col md:flex-row items-start md:items-center">
               <div className=" md:mb-0 md:mr-2 min-w-max">
                 <span className="text-sm ">Amount:</span>
@@ -251,12 +326,16 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("amount", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("amount") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("amount")}
+                  data-error={!!errors.amount}
                 />
+                {errors.amount && (
+                  <p className="text-xs text-red-600 mt-1">{errors.amount}</p>
+                )}
               </div>
             </div>
+
+            {/* Amount in word */}
             <div className="flex flex-col md:flex-row items-start md:items-center">
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
                 <span className="text-sm ">Amount in word</span>
@@ -264,21 +343,24 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
               <div className="w-full">
                 <input
                   type="text"
-                  value={formData?.amountInWord}
+                  value={formData?.amountInWord ?? ""}
                   disabled={!isEnabled("amountInWord")}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("amountInWord", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("amountInWord")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("amountInWord")}
+                  data-error={!!errors.amountInWord}
                 />
+                {errors.amountInWord && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.amountInWord}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {/* Purpose */}
           <div className="">
             <h3 className="text-sm text-gray-700">Purpose as follows:</h3>
             <div>
@@ -290,14 +372,17 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                   handleInputChange("purpose", e.target.value)
                 }
                 disabled={!isEnabled("purpose")}
-                className={`mt-0 w-full p-1 border ${
-                  isEnabled("purpose") ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                className={inputClass("purpose")}
                 rows={3}
+                data-error={!!errors.purpose}
               ></textarea>
+              {errors.purpose && (
+                <p className="text-xs text-red-600 mt-1">{errors.purpose}</p>
+              )}
             </div>
           </div>
 
+          {/* No receipt attestation */}
           <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
             <span className="text-sm ">
               If receipts are not available, the officer claiming the refund
@@ -307,19 +392,22 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
           <div className="w-full">
             <input
               type="text"
-              value={formData?.noReceiptAttestation}
+              value={formData?.noReceiptAttestation ?? ""}
               disabled={!isEnabled("noReceiptAttestation")}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 handleInputChange("noReceiptAttestation", e.target.value)
               }
-              className={`w-full p-1 border ${
-                isEnabled("noReceiptAttestation")
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+              className={inputClass("noReceiptAttestation")}
+              data-error={!!errors.noReceiptAttestation}
             />
+            {errors.noReceiptAttestation && (
+              <p className="text-xs text-red-600 mt-1">
+                {errors.noReceiptAttestation}
+              </p>
+            )}
           </div>
 
+          {/* Bank / Account number */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
             <div className="flex flex-col md:flex-row items-start md:items-center">
               <div className="mb-1 md:mb-0 md:mr-2 min-w-max">
@@ -333,10 +421,12 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("bank", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("bank") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("bank", "mt-1")}
+                  data-error={!!errors.bank}
                 />
+                {errors.bank && (
+                  <p className="text-xs text-red-600 mt-1">{errors.bank}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -351,25 +441,30 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleInputChange("accountNumber", e.target.value)
                   }
-                  className={`mt-1 w-full p-1 border ${
-                    isEnabled("accountNumber")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                  className={inputClass("accountNumber", "mt-1")}
+                  data-error={!!errors.accountNumber}
                 />
+                {errors.accountNumber && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.accountNumber}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
-          <DocumentAttachmentForm
-            onSubmit={(documents) =>
-              setFormData((prev) => ({ ...prev, attachments: documents }))
-            }
-            mode="new"
-            initialDocuments={formData?.attachments || []}
-          />
+          {showAddDocument && (
+            <DocumentAttachmentForm
+              onSubmit={(documents) =>
+                setFormData((prev) => ({ ...prev, attachments: documents }))
+              }
+              mode="new"
+              initialDocuments={formData?.attachments || []}
+            />
+          )}
 
-          {trigerVoucherCreation && (
+          {/* Voucher Approval (only required when triggerVoucherCreation is true) */}
+          {triggerVoucherCreation && (
             <div className="mt-2">
               <h3 className="text-l font-semibold text-gray-700 mb-1">
                 Voucher Approval
@@ -386,12 +481,9 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                     onChange={(e) =>
                       handleInputChange("unitVoucherHeadById", e.target.value)
                     }
-                    required
-                    className={`mt-0 w-full p-1 border ${
-                      isEnabled("unitVoucherHeadById")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={inputClass("unitVoucherHeadById")}
+                    data-error={!!errors.unitVoucherHeadById}
+                    disabled={!isEnabled("unitVoucherHeadById")}
                   >
                     <option value="">Select an option</option>
                     {employeeOptions?.map((employee) => (
@@ -400,51 +492,57 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
                       </option>
                     ))}
                   </select>
+                  {errors.unitVoucherHeadById && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.unitVoucherHeadById}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </>
 
-        {/* Signers row (flex + wrap, nice spacing) */}
-        <div className="mt-4 flex flex-wrap gap-6">
-          {/* Requestor */}
-          <div className="w-[340px] max-w-full flex-shrink-0">
-            <Signer
-              firstName={
-                formData?.requestor?.firstName || user?.firstName || ""
-              }
-              lastName={formData?.requestor?.lastName || user?.lastName || ""}
-              date={
-                formData?.requestor?.date ||
-                moment(new Date()).format("DD/MM/YYYY")
-              }
-              department={
-                formData?.requestor?.department || user?.department?.name || ""
-              }
-              position={
-                formData?.requestor?.position || user?.position?.title || ""
-              }
-              label="Request"
-            />
-          </div>
-
-          {/* Approvers */}
-          {(formData?.approvers || []).map((approver, idx) => (
-            <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+        {/* Signers row */}
+        {showApprovers && (
+          <div className="mt-4 flex flex-wrap gap-6">
+            <div className="w-[340px] max-w-full flex-shrink-0">
               <Signer
-                firstName={approver.firstName}
-                lastName={approver.lastName}
-                date={approver.date}
-                department={approver.department}
-                position={approver.position}
-                label={approver?.label}
+                firstName={
+                  formData?.requestor?.firstName || user?.firstName || ""
+                }
+                lastName={formData?.requestor?.lastName || user?.lastName || ""}
+                date={
+                  formData?.requestor?.date ||
+                  moment(new Date()).format("DD/MM/YYYY")
+                }
+                department={
+                  formData?.requestor?.department ||
+                  user?.department?.name ||
+                  ""
+                }
+                position={
+                  formData?.requestor?.position || user?.position?.title || ""
+                }
+                label="Request"
               />
             </div>
-          ))}
-        </div>
 
-        {/* Action Buttons */}
+            {(formData?.approvers || []).map((approver, idx) => (
+              <div key={idx} className="w-[340px] max-w-full flex-shrink-0">
+                <Signer
+                  firstName={approver.firstName}
+                  lastName={approver.lastName}
+                  date={approver.date}
+                  department={approver.department}
+                  position={approver.position}
+                  label={approver?.label}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         {showActionButtons && Array.isArray(responseTypes) && (
           <FormActions
             loading={loading}

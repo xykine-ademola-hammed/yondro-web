@@ -33,9 +33,6 @@ const Signer: React.FC<SignerProps> = ({
   className = "",
 }) => {
   const initials = getInitials(firstName, lastName);
-
-  console.log("======DATE==eee=====", date);
-
   return (
     <div
       className={[

@@ -16,7 +16,7 @@ const requiredFields = [
   "department",
   "issueAuthoriseBy",
   "designation",
-];
+] as const;
 
 const requiredStoreItemFields = [
   "articles",
@@ -27,9 +27,11 @@ const requiredStoreItemFields = [
   "amount",
   "ledgerFolio",
   "remarks",
-];
+] as const;
 
 // --- Types ---
+type StoreItemKey = (typeof requiredStoreItemFields)[number];
+
 interface StoreItem {
   id?: string | number;
   articles: string;
@@ -107,10 +109,42 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
   const [formData, setFormData] =
     useState<StoreIssueVoucherForm>(formResponses);
+
+  // field-level errors for header fields
+  const [errors, setErrors] = useState<Record<string, string | true>>({});
+  // row/field-level errors for table
+  const [rowErrors, setRowErrors] = useState<
+    Record<number | string, Partial<Record<StoreItemKey, true>>>
+  >({});
+
   const [hasErrors, setHasErrors] = useState(false);
 
+  // ---------- helpers for styling (no red unless error) ----------
+  const inputClass = (name: string) =>
+    [
+      "w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs",
+      "border",
+      errors[name] ? "border-red-600 ring-1 ring-red-300" : "border-gray-300",
+    ].join(" ");
+
+  const inputCellClass = (rowId: number | string, field: StoreItemKey) =>
+    [
+      "w-full p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm",
+      "border",
+      rowErrors[rowId]?.[field]
+        ? "border-red-600 ring-1 ring-red-300"
+        : "border-gray-300",
+    ].join(" ");
+
+  // ---------- change handlers ----------
   const handleInputChange = (fieldId: string, value: any) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
+    // clear error on change
+    setErrors((prev) => {
+      if (!prev[fieldId]) return prev;
+      const { [fieldId]: _omit, ...rest } = prev;
+      return rest;
+    });
   };
 
   const addMoreRow = () => {
@@ -137,40 +171,64 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
         { ...emptyItem, id: 3 },
       ]);
     }
+    // reset errors on incoming data change
+    setErrors({});
+    setRowErrors({});
+    setHasErrors(false);
   }, [formResponses]);
 
   const isEnabled = (name: string) => enableInputList.includes(name);
 
-  const checkIsValid = () => {
-    const required: string[] = [];
-    // Check top-level required fields
-    for (let enableField of enableInputList) {
-      if (requiredFields.includes(enableField) && !formData?.[enableField]) {
-        required.push(enableField);
+  // ---------- validation ----------
+  const validate = () => {
+    const nextErrors: Record<string, string | true> = {};
+    const nextRowErrors: Record<
+      number | string,
+      Partial<Record<StoreItemKey, true>>
+    > = {};
+
+    // header/summary required fields (only for enabled fields)
+    for (const field of requiredFields) {
+      if (isEnabled(field) && !String(formData?.[field] ?? "").trim()) {
+        nextErrors[field] = true;
       }
     }
 
-    for (let item of storeItems) {
-      const allEmpty = requiredStoreItemFields.every(
-        (field) => !item[field as keyof StoreItem]
+    // table rows rule: each row must be fully empty OR fully filled
+    for (const row of storeItems) {
+      const rid = row.id ?? Math.random();
+      const values = requiredStoreItemFields.map((f) =>
+        String(row[f] ?? "").trim()
       );
-      if (allEmpty) continue;
-      const hasEmpty = requiredStoreItemFields.some(
-        (field) => !item[field as keyof StoreItem]
-      );
-      if (hasEmpty) {
-        required.push("missing field");
+      const allEmpty = values.every((v) => v === "");
+      if (allEmpty) continue; // fine, ignore
+      const allFilled = values.every((v) => v !== "");
+      if (!allFilled) {
+        // mark each missing field as error
+        for (const f of requiredStoreItemFields) {
+          if (!String(row[f] ?? "").trim()) {
+            if (!nextRowErrors[rid]) nextRowErrors[rid] = {};
+            nextRowErrors[rid][f] = true;
+          }
+        }
       }
     }
-    return !!required.length;
+
+    setErrors(nextErrors);
+    setRowErrors(nextRowErrors);
+
+    const hasAnyErrors =
+      Object.keys(nextErrors).length > 0 ||
+      Object.keys(nextRowErrors).length > 0;
+
+    setHasErrors(hasAnyErrors);
+    return !hasAnyErrors;
   };
 
   const handleSubmit = (status: string) => {
-    if (!checkIsValid()) {
+    if (validate()) {
       setLoading(true);
       onSubmit({ ...formData, storeItems }, status);
-      // setFormData({});
-      // setStoreItems([]);
       setHasErrors(false);
     } else {
       setHasErrors(true);
@@ -180,6 +238,8 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
   const handleCancel = () => {
     setFormData({});
     setStoreItems([]);
+    setErrors({});
+    setRowErrors({});
     onCancel();
   };
 
@@ -190,22 +250,37 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
   ) => {
     setStoreItems((prevItems) => {
       const updatedItems = [...prevItems];
-      updatedItems[index] = {
-        ...updatedItems[index],
-        [eventName]: eventValue,
-      };
+      const row = { ...updatedItems[index], [eventName]: eventValue };
+      updatedItems[index] = row;
+
+      // clear row cell error on change
+      const rid = row.id ?? index;
+      if (rowErrors[rid]?.[eventName as StoreItemKey]) {
+        setRowErrors((prev) => {
+          const clone = { ...prev };
+          const r = { ...(clone[rid] || {}) };
+          delete r[eventName as StoreItemKey];
+          if (Object.keys(r).length === 0) {
+            delete clone[rid];
+          } else {
+            clone[rid] = r;
+          }
+          return clone;
+        });
+      }
       return updatedItems;
     });
   };
 
+  // ---------- table columns with controlled inputs (so we can style errors) ----------
   const storeColumns = [
     {
       label: "Articles",
-      field: "articles" as keyof StoreItem,
+      field: "articles" as const,
       renderCell: (
         val: string,
-        _row: any,
-        _idx: number,
+        row: StoreItem,
+        idx: number,
         onChange: any,
         disabled: boolean
       ) => (
@@ -214,45 +289,150 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
           value={val ?? ""}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-1 border-0 focus:ring-2 focus:ring-blue-500 text-sm"
+          className={inputCellClass(row.id ?? idx, "articles")}
         />
       ),
-      isDisabled: (_row: any, _idx: number) => !isEnabled("articles"),
+      isDisabled: () => !isEnabled("articles"),
     },
     {
       label: "Denomination Qty.",
-      field: "denominationOfQty" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("denominationOfQty"),
+      field: "denominationOfQty" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "denominationOfQty")}
+        />
+      ),
+      isDisabled: () => !isEnabled("denominationOfQty"),
     },
     {
       label: "Qty. demanded",
-      field: "qtyDemanded" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("qtyDemanded"),
+      field: "qtyDemanded" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "qtyDemanded")}
+        />
+      ),
+      isDisabled: () => !isEnabled("qtyDemanded"),
     },
     {
       label: "Qty. issued",
-      field: "qtyIssued" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("qtyIssued"),
+      field: "qtyIssued" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "qtyIssued")}
+        />
+      ),
+      isDisabled: () => !isEnabled("qtyIssued"),
     },
     {
       label: "Rate",
-      field: "rate" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("rate"),
+      field: "rate" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "rate")}
+        />
+      ),
+      isDisabled: () => !isEnabled("rate"),
     },
     {
       label: "Amount",
-      field: "amount" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("amount"),
+      field: "amount" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "amount")}
+        />
+      ),
+      isDisabled: () => !isEnabled("amount"),
     },
     {
       label: "Ledger Folio",
-      field: "ledgerFolio" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("ledgerFolio"),
+      field: "ledgerFolio" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "ledgerFolio")}
+        />
+      ),
+      isDisabled: () => !isEnabled("ledgerFolio"),
     },
     {
       label: "Remarks",
-      field: "remarks" as keyof StoreItem,
-      isDisabled: (_row: any, _idx: number) => !isEnabled("remarks"),
+      field: "remarks" as const,
+      renderCell: (
+        val: string,
+        row: StoreItem,
+        idx: number,
+        onChange: any,
+        disabled: boolean
+      ) => (
+        <input
+          type="text"
+          value={val ?? ""}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCellClass(row.id ?? idx, "remarks")}
+        />
+      ),
+      isDisabled: () => !isEnabled("remarks"),
     },
   ];
 
@@ -268,7 +448,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
               format: "a4",
               margin: 24,
               scale: 2,
-              hideSelectors: ["[data-export-hide]"], // hide buttons during capture
+              hideSelectors: ["[data-export-hide]"],
               onBeforeCapture: () => {},
               onAfterCapture: () => {},
             })
@@ -316,9 +496,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                   value={formData?.unit ?? ""}
                   disabled={!isEnabled("unit")}
                   onChange={(e) => handleInputChange("unit", e.target.value)}
-                  className={`w-full p-1 border ${
-                    isEnabled("unit") ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                  className={inputClass("unit")}
                 />
               </div>
             </div>
@@ -336,11 +514,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                     onChange={(e) =>
                       handleInputChange("applicationDate", e.target.value)
                     }
-                    className={`w-full p-1 border ${
-                      isEnabled("applicationDate")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                    className={inputClass("applicationDate")}
                   />
                 </div>
               </div>
@@ -354,9 +528,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                     value={formData?.sivNo ?? ""}
                     disabled={!isEnabled("sivNo")}
                     onChange={(e) => handleInputChange("sivNo", e.target.value)}
-                    className={`w-full p-1 border ${
-                      isEnabled("sivNo") ? "border-red-500" : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                    className={inputClass("sivNo")}
                   />
                 </div>
               </div>
@@ -374,11 +546,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                   onChange={(e) =>
                     handleInputChange("department", e.target.value)
                   }
-                  className={`w-full p-1 border ${
-                    isEnabled("department")
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                  className={inputClass("department")}
                 />
               </div>
             </div>
@@ -396,11 +564,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                     onChange={(e) =>
                       handleInputChange("issueAuthoriseBy", e.target.value)
                     }
-                    className={`w-full p-1 border ${
-                      isEnabled("issueAuthoriseBy")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                    className={inputClass("issueAuthoriseBy")}
                   />
                 </div>
               </div>
@@ -416,11 +580,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
                     onChange={(e) =>
                       handleInputChange("designation", e.target.value)
                     }
-                    className={`w-full p-1 border ${
-                      isEnabled("designation")
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs`}
+                    className={inputClass("designation")}
                   />
                 </div>
               </div>
