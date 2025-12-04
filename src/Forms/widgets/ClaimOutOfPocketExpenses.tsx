@@ -15,6 +15,7 @@ import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { EmployeeOption } from "./PaymentVoucher-Tetfund";
+import { isShowOrganizationDetail } from "../../common/constant";
 
 interface Requestor {
   firstName?: string;
@@ -241,10 +242,15 @@ const ClaimOutOfPocketExpense: React.FC<ClaimOutOfPocketExpenseProps> = ({
         className="bg-white rounded-lg sm:p-2 w-full max-w-4xl"
       >
         <div className="flex gap-4 mb-4 sm:mb-0">
-          <img src={spedLogo} alt="Company Logo" className="h-24" />
+          {isShowOrganizationDetail && (
+            <img src={spedLogo} alt="Company Logo" className="h-24" />
+          )}
+
           <div>
             <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-600">
-              {user?.organization?.name}
+              {isShowOrganizationDetail
+                ? user?.organization?.name
+                : "Organization Name"}
             </h2>
             <h1 className="text-xl sm:text-2xl  text-center text-gray-500">
               Claim Form for Out-of-Pocket Expenses

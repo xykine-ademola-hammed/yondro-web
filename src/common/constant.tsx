@@ -4,3 +4,5 @@ export const genericPositions = [
     name: "Requestor Select",
   },
 ];
+
+export const isShowOrganizationDetail = false;

@@ -16,6 +16,7 @@ import {
   UserIcon,
   BookOpen,
   X,
+  BellIcon,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { OrganizationProvider } from "../../GlobalContexts/Organization-Context";
@@ -139,12 +140,16 @@ export function LayoutNew() {
 
               {/* Right area (quick actions placeholder) */}
               <div className="hidden items-center gap-3 md:flex">
-                <Link
-                  to="/new-request"
-                  className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                <button
+                  type="button"
+                  className="relative flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors w-full text-sm h-9 px-4"
                 >
-                  Create Request
-                </Link>
+                  <BellIcon className="h-5 w-5" />
+
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-semibold h-4 w-4 flex items-center justify-center rounded-full">
+                    {0}
+                  </span>
+                </button>
               </div>
             </div>
           </header>

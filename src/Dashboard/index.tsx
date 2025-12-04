@@ -11,6 +11,10 @@ import EmployeeTypeahead from "../Request/EmployeeTypeahead";
 import RequestTypeSelector from "../Request/RequestTypeSelector";
 import DepartmentTypeahead from "../Request/DepartmentTypeahead";
 import { Select, statuses } from "../Request";
+import { MailPlus, MessageCircleMore } from "lucide-react";
+import { SendEmailModal, type EmailReceiver } from "../common/SendEmail";
+import ChatComponentModal from "../common/ChatComponentModal";
+import { useAuth } from "../GlobalContexts/AuthContext";
 
 export interface PendingInboxRow {
   stageId: number;
@@ -27,6 +31,8 @@ export interface PendingInboxRow {
   requestFormId: number;
   requestWorkflowId: number;
   departmentName?: string;
+
+  messageCount?: number;
 
   workflowId: number;
   workflowFormId: number;
@@ -49,6 +55,7 @@ export interface PendingInboxResult {
 }
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<WorkFlow | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(
@@ -64,6 +71,9 @@ const Dashboard: React.FC = () => {
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const [selectedRequest, setSelectedRequest] =
+    useState<PendingInboxRow | null>(null);
 
   const [myPendingRequest, setPendingRequest] =
     useState<PendingInboxResult | null>(null);
@@ -108,6 +118,9 @@ const Dashboard: React.FC = () => {
     setLimit(10);
     setPage(1);
   };
+
+  const [openEmailModal, setOpenEmailModal] = useState(false);
+  const [openChatModal, setOpenChatModal] = useState(false);
 
   return (
     <div className="">
@@ -281,14 +294,40 @@ const Dashboard: React.FC = () => {
                         {request.departmentName}
                       </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          if (request?.messageCount) {
+                            setOpenChatModal(true);
+                          } else {
+                            setOpenEmailModal(true);
+                          }
+                        }}
+                        className="relative flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors w-full text-sm h-9 px-4"
+                      >
+                        {request?.messageCount ? (
+                          <MessageCircleMore className="h-4 w-4" />
+                        ) : (
+                          <MailPlus className="h-5 w-5" />
+                        )}
+
+                        {/* Notification Badge */}
+                        {request?.messageCount && (
+                          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-semibold h-4 w-4 flex items-center justify-center rounded-full">
+                            {request?.messageCount}
+                          </span>
+                        )}
+                      </button>
+
                       <button
                         id={`approve-${request.requestId}`}
                         onClick={() =>
                           navigate(`request-response/${request.requestId}`)
                         }
                         // onClick={() => handleDetailClick(request)}
-                        className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm w-full sm:w-auto"
+                        className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors w-full text-sm"
                       >
                         View
                       </button>
@@ -300,6 +339,38 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {openEmailModal && selectedRequest?.workflowName && (
+        <SendEmailModal
+          entityType="REQUEST"
+          entityId={selectedRequest?.requestId}
+          defaultSubject={selectedRequest?.workflowName}
+          onClose={() => setOpenEmailModal(false)}
+          onSuccess={() => {}}
+          onError={() => {}}
+        />
+      )}
+
+      {openChatModal && (
+        <ChatComponentModal
+          isOpen={openChatModal}
+          onClose={() => setOpenChatModal(false)}
+          entityId={selectedRequest?.requestId}
+          currentUserId={user?.id}
+          title={selectedRequest?.workflowName}
+          isSending={false}
+          onSend={() => {
+            fetchWorkflowInstanceStages({
+              departmentId: selectedDepartment?.id,
+              employeeId: selectedEmployee?.id,
+              status: selectedStatus ? selectedStatus : undefined,
+              formId: selectedType?.formId,
+              limit,
+              offset: page - 1,
+            });
+          }}
+        />
+      )}
 
       {/* Floating button only on mobile */}
       <div className="sm:hidden fixed bottom-5 right-5 z-50">

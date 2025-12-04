@@ -99,7 +99,13 @@ const PaymentVoucherAuto: React.FC<PaymentVoucherProps> = ({
   };
 
   const propHolder = {
-    formResponses: { ...applicationVoucherInfo, ...formResponses }, // Keep the arrangement
+    formResponses: {
+      ...applicationVoucherInfo,
+      vatPercent: 7.5,
+      whtPercent: 5,
+      stampDutyPercent: 1,
+      ...formResponses,
+    }, // Keep the arrangement
     enableInputList,
     vissibleSections,
     instruction,

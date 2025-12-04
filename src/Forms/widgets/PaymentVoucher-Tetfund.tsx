@@ -17,6 +17,7 @@ import VoucherApprovalAssignment from "./widgets/VoucherApprovalAssignment.tsx";
 import EntriDistribution from "./widgets/EntryDistribution.tsx";
 import CertificationStatement from "./widgets/CertificationStatement.tsx";
 import VoucherPaymentDetail from "./widgets/VoucherPaymentDetail.tsx";
+import { isShowOrganizationDetail } from "../../common/constant.tsx";
 
 export interface PaymentDetail {
   paymentDate: string;
@@ -156,17 +157,16 @@ export const calculatePaymentDetail = (
   formData: PaymentVoucherDataType,
   grossTotalBill: string
 ) => {
-  const stampDutyPercent = 1;
-
-  const vatPercent = 7.5;
-
-  const stampDuty = ((Number(grossTotalBill) * stampDutyPercent) / 100).toFixed(
-    2
-  );
+  const stampDuty = (
+    (Number(grossTotalBill) * formData.stampDutyPercent) /
+    100
+  ).toFixed(2);
 
   const lessStampDuty = Number(grossTotalBill) - Number(stampDuty);
 
-  const vat = ((Number(lessStampDuty) * vatPercent) / 107.5).toFixed(2);
+  const vat = ((Number(lessStampDuty) * formData.vatPercent) / 107.5).toFixed(
+    2
+  );
 
   const lessVat = lessStampDuty - Number(vat);
 
@@ -188,8 +188,6 @@ export const calculatePaymentDetail = (
     stampDuty,
     wht,
     lessStampDuty,
-    stampDutyPercent,
-    vatPercent,
     totalEstimate,
   };
 };
@@ -208,8 +206,6 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
   loading = false,
   setLoading,
 }) => {
-  console.log("---enableInputList-----", enableInputList);
-
   const componentRef = useRef<HTMLDivElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
@@ -254,7 +250,7 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    if (name === "grossTotalBill") {
+    if (["grossTotalBill"].includes(name)) {
       const paymentDetailCalculations = calculatePaymentDetail(formData, value);
       setFormData((prev) => ({
         ...prev,
@@ -272,6 +268,7 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
   };
 
   useEffect(() => {
+    console.log("====TRIGGERED=======");
     if (formData.totalEstimate) {
       const paymentDetailCalculations = calculatePaymentDetail(
         formData,
@@ -282,7 +279,7 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
         ...paymentDetailCalculations,
       }));
     }
-  }, [formData.whtPercent]);
+  }, [formData.whtPercent, formData.stampDutyPercent, formData.vatPercent]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, ...formResponses }));
@@ -475,7 +472,10 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
           </div>
         </div>
         <p className="my-4 font-semibold text-center text-gray-500">
-          NAME OF INSTITUTION: {user?.organization?.name}
+          NAME OF INSTITUTION:{" "}
+          {isShowOrganizationDetail
+            ? user?.organization?.name
+            : "Organization Name"}
         </p>
 
         {hasErrors && (

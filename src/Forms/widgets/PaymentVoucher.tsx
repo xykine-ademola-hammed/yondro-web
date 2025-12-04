@@ -18,6 +18,7 @@ import VoucherApprovalAssignment from "./widgets/VoucherApprovalAssignment";
 import EntriDistribution from "./widgets/EntryDistribution";
 import VoucherPaymentDetail from "./widgets/VoucherPaymentDetail";
 import { calculatePaymentDetail } from "./PaymentVoucher-Tetfund";
+import { isShowOrganizationDetail } from "../../common/constant";
 
 /** Types copied from your snippet **/
 export interface PaymentDetail {
@@ -171,8 +172,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     departmentEmployeeFilter,
   } = useOrganization();
 
-  console.log("-----------userDepartmenttMembers", userDepartmenttMembers);
-
   const employeeOptions: EmployeeOption[] =
     (userDepartmenttMembers?.rows?.map((employee: any) => ({
       id: employee.id,
@@ -248,7 +247,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
         ...paymentDetailCalculations,
       }));
     }
-  }, [formData.whtPercent]);
+  }, [formData.whtPercent, formData.stampDutyPercent, formData.vatPercent]);
 
   useEffect(() => {
     fetchDepartmentEmployees(departmentEmployeeFilter);
@@ -391,8 +390,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     };
   }
 
-  console.log("========MODE =========", mode);
-
   // --- RENDER --- //
   return (
     <div className="">
@@ -427,11 +424,17 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
       >
         <div className="flex flex-col sm:flex-row items-start mt-2">
           <div className="mb-4 sm:mb-0">
-            <img src={spedLogo} alt="Company Logo" className="h-24" />
+            <img
+              src={isShowOrganizationDetail ? spedLogo : "Logo"}
+              alt="Company Logo"
+              className="h-24"
+            />
           </div>
           <div>
             <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-600">
-              {user?.organization?.name}
+              {isShowOrganizationDetail
+                ? user?.organization?.name
+                : "Organization Name"}
             </h2>
             <h1 className="text-xl sm:text-2xl font-semibold text-center text-gray-500">
               PAYMENT VOUCHER

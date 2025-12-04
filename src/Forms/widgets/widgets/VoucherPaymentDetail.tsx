@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { PaymentVoucherDataType } from "../PaymentVoucher";
+import NumberInput from "../../../components/ui/NumberInput";
 
 type Errors = Record<string, string | undefined>;
 
@@ -22,6 +23,34 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
   handleInput,
   setFormData,
 }) => {
+  const [stampDutyEnabled, setStampDutyEnabled] = useState(
+    Number(formData.stampDutyPercent) !== 0
+  );
+  const [vatEnabled, setVatEnabled] = useState(
+    Number(formData.vatPercent) !== 0
+  );
+  const [whtEnabled, setWhtEnabled] = useState(
+    Number(formData.whtPercent) !== 0
+  );
+
+  const handleStampDutyCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setStampDutyEnabled(enabled);
+    setFormData((prev) => ({ ...prev, stampDutyPercent: enabled ? 1 : 0 }));
+  };
+
+  const handleVatCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setVatEnabled(enabled);
+    setFormData((prev) => ({ ...prev, vatPercent: enabled ? 7.5 : 0 }));
+  };
+
+  const handleWhtCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setWhtEnabled(enabled);
+    setFormData((prev) => ({ ...prev, whtPercent: enabled ? 5 : 0 }));
+  };
+
   return (
     <div className="mt-2">
       <div className="flex w-full justify-between items-center">
@@ -79,16 +108,15 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
         {/* --- Fee Breakdown Grid --- */}
         <div className="grid grid-cols-2 gap-1">
           {/* Gross Total Bill */}
-          <div className="flex justify-end min-w-max">
+          <div className="flex justify-end items-center min-w-max">
             <span className="text-sm">Gross Total Bill</span>
           </div>
           <div>
-            <input
-              type="text"
+            <NumberInput
               name="grossTotalBill"
-              value={formData?.grossTotalBill ?? ""}
-              disabled={!isEnabled("grossTotalBill")}
+              value={formData.grossTotalBill}
               onChange={handleInput}
+              disabled={!isEnabled("grossTotalBill")}
               className={inputClass("grossTotalBill")}
             />
             {errors.grossTotalBill && (
@@ -99,35 +127,55 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
           </div>
 
           {/* Stamp Duty */}
-          <div className="flex justify-end min-w-max">
+          <div className="flex justify-end items-center gap-3 min-w-max">
             <span className="text-sm">Stamp Duty (1%)</span>
           </div>
           <div>
-            <input
-              type="text"
-              name="stampDuty"
-              value={formData?.stampDuty ?? ""}
-              onChange={handleInput}
-              className={inputClass("stampDuty")}
-              disabled
-            />
+            <div className="flex items-center gap-1">
+              <NumberInput
+                name="stampDuty"
+                value={formData?.stampDuty ?? ""}
+                onChange={handleInput}
+                className={inputClass("stampDuty")}
+                disabled
+              />
+
+              <input
+                type="checkbox"
+                checked={stampDutyEnabled}
+                disabled={!formData.grossTotalBill}
+                onChange={handleStampDutyCheckbox}
+                className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+
             {errors.stampDuty && (
               <p className="text-xs text-red-600 mt-1">{errors.stampDuty}</p>
             )}
           </div>
 
           {/* VAT */}
-          <div className="flex justify-end min-w-max">
+          <div className="flex justify-end items-center gap-3 min-w-max">
             <span className="text-sm">VAT (7.5%)</span>
           </div>
           <div>
-            <input
-              type="text"
-              name="lessVat"
-              value={formData?.vat ?? ""}
-              disabled
-              className={inputClass("lessVat")}
-            />
+            <div className="flex items-center gap-1">
+              <NumberInput
+                name="lessVat"
+                value={formData?.vat ?? ""}
+                disabled
+                onChange={handleInput}
+                className={inputClass("lessVat")}
+              />
+              <input
+                type="checkbox"
+                checked={vatEnabled}
+                disabled={!formData.grossTotalBill}
+                onChange={handleVatCheckbox}
+                className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+
             {errors.lessVat && (
               <p className="text-xs text-red-600 mt-1">{errors.lessVat}</p>
             )}
@@ -135,7 +183,9 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
 
           {/* WHT */}
           <div className="flex justify-end items-center gap-3">
-            <span className="text-sm">WHT</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm">WHT</span>
+            </div>
 
             {/* WHT 5% */}
             <button
@@ -143,9 +193,9 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
               onClick={() =>
                 setFormData((prev) => ({ ...prev, whtPercent: 5 }))
               }
-              disabled={!isEnabled("wht")}
+              disabled={!isEnabled("wht") || !whtEnabled}
               className={`px-1 py-1 rounded-lg border text-sm font-medium transition border-gray-200 ${
-                formData.whtPercent === 5
+                formData.whtPercent === 5 && whtEnabled
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-400"
               }`}
@@ -159,9 +209,9 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
               onClick={() =>
                 setFormData((prev) => ({ ...prev, whtPercent: 10 }))
               }
-              disabled={!isEnabled("wht")}
+              disabled={!isEnabled("wht") || !whtEnabled}
               className={`px-1 py-1 rounded-lg border text-sm font-medium transition border-gray-200 ${
-                formData.whtPercent === 10
+                formData.whtPercent === 10 && whtEnabled
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-400"
               }`}
@@ -171,13 +221,23 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
           </div>
 
           <div>
-            <input
-              type="text"
-              name="wht"
-              value={formData?.wht ?? ""}
-              disabled
-              className={inputClass("wht")}
-            />
+            <div className="flex items-center gap-1">
+              <NumberInput
+                name="wht"
+                value={formData?.wht ?? ""}
+                disabled
+                onChange={handleInput}
+                className={inputClass("wht")}
+              />
+              <input
+                type="checkbox"
+                checked={whtEnabled}
+                disabled={!formData.grossTotalBill}
+                onChange={handleWhtCheckbox}
+                className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+
             {errors.wht && (
               <p className="text-xs text-red-600 mt-1">{errors.wht}</p>
             )}
@@ -188,12 +248,12 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
             <span className="text-sm">Net Amount Payable</span>
           </div>
           <div>
-            <input
-              type="text"
+            <NumberInput
               name="totalEstimate"
               value={formData?.totalEstimate ?? ""}
               disabled
               className={inputClass("totalEstimate")}
+              onChange={() => {}}
             />
             {errors.totalEstimate && (
               <p className="text-xs text-red-600 mt-1">
