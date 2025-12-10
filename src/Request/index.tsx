@@ -1,14 +1,18 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 
 import React, { useEffect, useState } from "react";
-import { type WorkFlow, type WorkflowRequestData } from "../common/types";
+import {
+  type Employee,
+  type WorkFlow,
+  type WorkflowRequestData,
+} from "../common/types";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import { getMutationMethod } from "../common/api-methods";
 import { useMutation } from "@tanstack/react-query";
 import DepartmentTypeahead, { type Department } from "./DepartmentTypeahead";
 import RequestTypeSelector from "./RequestTypeSelector";
-import EmployeeTypeahead, { type Employee } from "./EmployeeTypeahead";
+import EmployeeTypeahead from "./EmployeeTypeahead";
 
 export const statuses = ["Pending", "Completed", "Rejected", "Paid"];
 

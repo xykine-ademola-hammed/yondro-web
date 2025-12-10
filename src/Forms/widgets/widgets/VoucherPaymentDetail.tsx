@@ -23,6 +23,7 @@ const VoucherPaymentDetail: React.FC<VoucherPaymentDetailProps> = ({
   handleInput,
   setFormData,
 }) => {
+  console.log("VoucherPaymentDetail - formData:", formData);
   const [stampDutyEnabled, setStampDutyEnabled] = useState(
     Number(formData.stampDutyPercent) !== 0
   );

@@ -1,29 +1,30 @@
 import { useState } from "react";
-import VoucherList from "../vouchers/VoucherList";
-import VoteBookManagement from "../votebook/VoteBookManagement";
-import BudgetAdjustmentList from "../budget-adjustments/BudgetAdjustmentList";
-import NcoaCodesList from "../ncoa/NcoaCodesList";
-import FiscalYearManagement from "../FiscalYear/FiscalYearManagement";
+import VoucherList from "./vouchers/VoucherList";
+import VoteBookManagement from "./votebook/VoteBookManagement";
+import FiscalYearManagement from "./FiscalYear/FiscalYearManagement";
 import ResponsiveTabs from "../components/ui/ResponsiveTabs";
+import BudgetAdjustmentList from "./budget-adjustments/BudgetAdjustmentList";
+import NcoaCodesList from "./ncoa/NcoaCodesList";
 
-export default function BursaryManagement() {
+export default function FinanceManagement() {
   const [activeTab, setActiveTab] = useState("Vote Book");
 
   const tabNames = [
-    "Vote Book",
     "Vouchers",
+    "Cashbook",
+    "Vote Book",
     "Budget Adjustments",
-    "NCOA Codes",
     "Fiscal Years",
+    "NCOA Codes",
   ];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Busary Management
+          Finance Management
         </h1>
-        <p className="text-gray-600">Manage the bursary unit activities.</p>
+        <p className="text-gray-600">Manage the finance unit activities.</p>
       </div>
 
       <ResponsiveTabs

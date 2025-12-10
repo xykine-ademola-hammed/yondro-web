@@ -16,6 +16,7 @@ import { ToastProvider } from "./GlobalContexts/ToastContext";
 import { LayoutNew } from "./components/layout/Layout";
 import SessionExpiryWarning from "./components/SessionExpiryWarning";
 import PageNotFound from "./components/PageNotFound";
+import { PaymentPool } from "./Payments";
 
 // Lazily load heavier pages to speed up initial paint
 const Home = lazy(() => import("./LandingPage"));
@@ -28,30 +29,32 @@ const Workflow = lazy(() => import("./WorkFlow"));
 const WorkflowDetail = lazy(() => import("./WorkFlow/widgets/WorkflowDetail"));
 const AddEditWorkflow = lazy(() => import("./WorkFlow/AddEditWorkflow"));
 const Forms = lazy(() => import("./Forms"));
-const Bursary = lazy(() => import("./Bursary"));
+const Finance = lazy(() => import("./Finance"));
 // const FormEditor = lazy(() => import("./Forms/widgets/FormCreatorEditor"));
 const Organization = lazy(() => import("./Organization"));
 const SuperAdmin = lazy(() => import("./SuperAdmin"));
 const ResetPassword = lazy(() => import("./components/ResetPassword"));
 const ForgotPassword = lazy(() => import("./components/ForgotPassword"));
-const VoucherList = lazy(() => import("./vouchers/VoucherList"));
-const VoucherCreate = lazy(() => import("./vouchers/VoucherCreate"));
-const VoucherDetail = lazy(() => import("./vouchers/VoucherDetail"));
+const VoucherList = lazy(() => import("./Finance/vouchers/VoucherList"));
+const VoucherCreate = lazy(() => import("./Finance/vouchers/VoucherCreate"));
+const VoucherDetail = lazy(() => import("./Finance/vouchers/VoucherDetail"));
 const ApprovalQueue = lazy(() => import("./approvals/ApprovalQueue"));
-const VoteBookManagement = lazy(() => import("./votebook/VoteBookManagement"));
+const VoteBookManagement = lazy(
+  () => import("./Finance/votebook/VoteBookManagement")
+);
 const VoteBookAccountDetail = lazy(
-  () => import("./votebook/VoteBookAccountDetail")
+  () => import("./Finance/votebook/VoteBookAccountDetail")
 );
 const BudgetAdjustmentList = lazy(
-  () => import("./budget-adjustments/BudgetAdjustmentList")
+  () => import("./Finance//budget-adjustments/BudgetAdjustmentList")
 );
-const NcoaCodesList = lazy(() => import("./ncoa/NcoaCodesList"));
+const NcoaCodesList = lazy(() => import("./Finance/ncoa/NcoaCodesList"));
 const Reports = lazy(() => import("./reports/Reports"));
 const PermissionManagement = lazy(
   () => import("./Permission/PermissionManagement")
 );
 const FiscalYearManagement = lazy(
-  () => import("./FiscalYear/FiscalYearManagement")
+  () => import("./Finance/FiscalYear/FiscalYearManagement")
 );
 
 // Simple, accessible, non-blocking loader for Suspense and auth bootstrap
@@ -161,6 +164,8 @@ function App() {
 
                     <Route path="new-request" element={<NewRequest />} />
 
+                    <Route path="process-payments" element={<PaymentPool />} />
+
                     <Route
                       path="requests/new-request/:parentRequestId"
                       element={<NewRequest />}
@@ -177,7 +182,7 @@ function App() {
 
                     <Route path="admin" element={<SuperAdmin />} />
 
-                    <Route path="bursary" element={<Bursary />} />
+                    <Route path="finance" element={<Finance />} />
                     <Route path="requests" element={<RequestList />} />
                     <Route path="workflows" element={<Workflow />} />
                     <Route

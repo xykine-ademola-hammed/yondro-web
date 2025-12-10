@@ -32,7 +32,7 @@ const useForm = () => {
       name: "Payment Voucher Auto",
       description: "Employee leave request form with date selection and reason",
       status: "Active",
-      createdBy: "Bursary",
+      createdBy: "Finance",
       lastUpdated: "2024-01-10",
       workflows: ["Financial Request"],
       component: (props: any) => <PaymentVoucherAuto {...props} />,
@@ -215,7 +215,7 @@ const useForm = () => {
       description:
         "Employee finance request form with date selection and reason",
       status: "Active",
-      createdBy: "Bursary",
+      createdBy: "Finance",
       lastUpdated: "2024-01-10",
       workflows: ["Financial Request"],
       component: (props: any) => <PaymentVoucher {...props} />,
@@ -383,7 +383,7 @@ const useForm = () => {
       description:
         "Employee finance request form with date selection and reason",
       status: "Active",
-      createdBy: "Bursary",
+      createdBy: "Finance",
       lastUpdated: "2024-01-10",
       workflows: ["Financial Request"],
       component: (props: any) => <PaymentVoucherTetfund {...props} />,

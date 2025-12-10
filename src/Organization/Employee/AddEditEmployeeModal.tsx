@@ -11,15 +11,21 @@ import type {
 } from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
+import EmployeeTypeahead from "../../Request/EmployeeTypeahead";
 
 interface AddEditEmployeeModalProps {
+  title?: string;
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Employee) => void;
   employee: Employee | null;
   modalMode: "add" | "edit";
+  includeRole?: boolean;
+  isSearchable?: boolean;
+  setSelectedEmployee?: (data: Employee | null) => void;
 }
 
+// Make sure Employee type has isContractor?: boolean; in ../../common/types
 export const emptyEmployee: Employee = {
   firstName: "",
   middleName: "",
@@ -33,14 +39,20 @@ export const emptyEmployee: Employee = {
   departmentId: undefined,
   positionId: undefined,
   role: undefined,
+  // NEW
+  isContractor: false,
 };
 
 const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
+  title = "",
   isOpen,
   onClose,
   onSave,
   modalMode,
   employee,
+  includeRole = true,
+  isSearchable = false,
+  setSelectedEmployee,
 }) => {
   const { schoolOffices } = useOrganization();
   const [departments, setDepartments] = useState<Department[]>();
@@ -74,7 +86,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
       [name]: value,
     }));
 
-    if (errors[name as string] && String(value).trim() !== "") {
+    if (errors[name as string] && String(value ?? "").trim() !== "") {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
@@ -86,7 +98,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFieldValue(name as keyof Employee, value);
+    setFieldValue(name as keyof Employee, value as any);
   };
 
   useEffect(() => {
@@ -107,7 +119,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
 
   useEffect(() => {
     if (formData.departmentId) {
-      setFieldValue("unitId", undefined);
+      setFieldValue("unitId" as keyof Employee, undefined as any);
       const selectedDepartment = departments?.find(
         (dept) => Number(dept.id) === Number(formData.departmentId)
       );
@@ -121,15 +133,15 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
 
   useEffect(() => {
     if (formData.schoolOrOfficeId) {
-      setFieldValue("departmentId", undefined);
-      setFieldValue("unitId", undefined);
+      setFieldValue("departmentId" as keyof Employee, undefined as any);
+      setFieldValue("unitId" as keyof Employee, undefined as any);
       const selectedSchoolOrOffice = schoolOffices.rows.find(
         (office) => Number(office.id) === Number(formData.schoolOrOfficeId)
       );
 
       if (selectedSchoolOrOffice?.departments !== undefined) {
-        setDepartments(selectedSchoolOrOffice?.departments);
-        setPositions(selectedSchoolOrOffice?.positions);
+        setDepartments(selectedSchoolOrOffice.departments);
+        setPositions(selectedSchoolOrOffice.positions);
       }
     } else {
       setUnits([]);
@@ -138,6 +150,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
   }, [formData.schoolOrOfficeId]);
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log("-----1---------");
     e.preventDefault();
     const newErrors: { [key: string]: string } = {};
 
@@ -152,11 +165,16 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     }
     if (!formData?.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData?.positionId) newErrors.position = "Position is required";
-    if (!formData?.role) newErrors.role = "Role is required";
+    if (includeRole && !formData?.role) newErrors.role = "Role is required";
 
+    console.log("-----2---------");
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length === 0) {
+    console.log("-----3---------", newErrors);
+
+    if (formData.isContractor || Object.keys(newErrors).length === 0) {
+      console.log("-----4---------");
+      console.log(formData);
       onSave({ ...formData });
       setFormData({ ...emptyEmployee });
     }
@@ -166,8 +184,23 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
     <ModalWrapper
       isOpen={isOpen}
       onClose={onClose}
-      title={modalMode === "add" ? "Add New Employee" : "Edit Employee"}
+      title={
+        title || (modalMode === "add" ? "Add New Employee" : "Edit Employee")
+      }
     >
+      {isSearchable && (
+        <EmployeeTypeahead
+          label="Search Employee"
+          value={employee}
+          onChange={(selected) => {
+            setSelectedEmployee?.(selected);
+            setFormData({ ...emptyEmployee });
+            onClose();
+          }}
+          placeholder="Search department"
+        />
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="bg-white rounded-lg mb-6">
           <div className="mt-3">
@@ -290,134 +323,212 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label
-                  htmlFor="schoolOrOfficeId"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  School | Office <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="schoolOrOfficeId"
-                  id="schoolOrOfficeId"
-                  value={formData.schoolOrOfficeId || ""}
-                  onChange={handleInputChange}
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                >
-                  <option value="">Select School or Office</option>
-                  {schoolOffices.rows.map((schoolOrOffice) => (
-                    <option key={schoolOrOffice.id} value={schoolOrOffice.id}>
-                      {schoolOrOffice.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="departmentId"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Department
-                </label>
-                <select
-                  name="departmentId"
-                  id="departmentId"
-                  value={formData.departmentId || ""}
-                  onChange={handleInputChange}
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                >
-                  <option value="">Select Department</option>
-                  {departments?.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {units.length > 0 ? (
+            {/* Contractor toggle */}
+            <div className="mb-4">
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={!!formData.isContractor}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFieldValue(
+                      "isContractor" as keyof Employee,
+                      checked as any
+                    );
+
+                    if (checked) {
+                      // Clear org-related fields when switching to contractor
+                      setFieldValue(
+                        "schoolOrOfficeId" as keyof Employee,
+                        undefined as any
+                      );
+                      setFieldValue(
+                        "departmentId" as keyof Employee,
+                        undefined as any
+                      );
+                      setFieldValue(
+                        "unitId" as keyof Employee,
+                        undefined as any
+                      );
+                      setUnits([]);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>Contractor</span>
+              </label>
+            </div>
+
+            {/* School/Office, Department, Unit, Position */}
+            {!formData.isContractor && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label
-                    htmlFor="unitId"
+                    htmlFor="schoolOrOfficeId"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Unit
+                    School | Office <span className="text-red-500">*</span>
                   </label>
                   <select
-                    name="unitId"
-                    id="unitId"
-                    value={formData.unitId || ""}
+                    name="schoolOrOfficeId"
+                    id="schoolOrOfficeId"
+                    value={formData.schoolOrOfficeId || ""}
                     onChange={handleInputChange}
                     className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                   >
-                    <option value="">Select Unit</option>
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name}
+                    <option value="">Select School or Office</option>
+                    {schoolOffices.rows.map((schoolOrOffice) => (
+                      <option key={schoolOrOffice.id} value={schoolOrOffice.id}>
+                        {schoolOrOffice.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              ) : (
-                <div></div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="positionId"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Position/Title <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="positionId"
-                  id="positionId"
-                  value={formData.positionId || ""}
-                  onChange={handleInputChange}
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">Select Position</option>
-                  {positions?.map((position) => (
-                    <option key={position.id} value={position.id}>
-                      {position.title}
-                    </option>
-                  ))}
-                </select>
-                {errors.position && (
-                  <p className="mt-1 text-sm text-red-600">{errors.position}</p>
+                <div>
+                  <label
+                    htmlFor="departmentId"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Department
+                  </label>
+                  <select
+                    name="departmentId"
+                    id="departmentId"
+                    value={formData.departmentId || ""}
+                    onChange={handleInputChange}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  >
+                    <option value="">Select Department</option>
+                    {departments?.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {units.length > 0 ? (
+                  <div>
+                    <label
+                      htmlFor="unitId"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Unit
+                    </label>
+                    <select
+                      name="unitId"
+                      id="unitId"
+                      value={formData.unitId || ""}
+                      onChange={handleInputChange}
+                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    >
+                      <option value="">Select Unit</option>
+                      {units.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div></div>
                 )}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div>
-                <label
-                  htmlFor="role"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Role <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role || ""}
-                  onChange={handleInputChange}
-                  className={`block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${
-                    errors.position ? "border-red-300" : ""
-                  }`}
-                >
-                  <option value="">Select Role</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Employee">Employee</option>
-                </select>
-                {errors?.role && (
-                  <p className="mt-1 text-sm text-red-600">{errors.role}</p>
-                )}
+                <div>
+                  <label
+                    htmlFor="positionId"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Position/Title <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="positionId"
+                    id="positionId"
+                    value={formData.positionId || ""}
+                    onChange={handleInputChange}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="">Select Position</option>
+                    {positions?.map((position) => (
+                      <option key={position.id} value={position.id}>
+                        {position.title}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.position && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.position}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* If contractor, still show Position/Title selection */}
+            {!formData.isContractor && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label
+                    htmlFor="positionId"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Position/Title <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="positionId"
+                    id="positionId"
+                    value={formData.positionId || ""}
+                    onChange={handleInputChange}
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="">Select Position</option>
+                    {positions?.map((position) => (
+                      <option key={position.id} value={position.id}>
+                        {position.title}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.position && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.position}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {includeRole && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label
+                    htmlFor="role"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={formData.role || ""}
+                    onChange={handleInputChange}
+                    className={`block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${
+                      errors.position ? "border-red-300" : ""
+                    }`}
+                  >
+                    <option value="">Select Role</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Employee">Employee</option>
+                  </select>
+                  {errors?.role && (
+                    <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
           {/* Action Buttons */}
           <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 rounded-lg">
             <button
@@ -436,7 +547,7 @@ const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
               className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
             >
               <FaUserPlus className="mr-2" />
-              {modalMode === "add" ? "Add Employee" : "Save Employee"}
+              Submit
             </button>
           </div>
         </div>

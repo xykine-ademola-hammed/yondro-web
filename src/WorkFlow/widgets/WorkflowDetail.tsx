@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import AddEditWorkflowModal from "../AddEditWorkflowModal";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import FormViewModal from "../../Forms/FormPreviewModal";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { type StageData, type WorkFlow } from "../../common/types";
 
 export default function WorkflowDetail() {
+  const navigate = useNavigate();
   const params = useParams<{ workflowId?: string }>();
   const { workflowId } = params;
   const { workflows } = useOrganization();
@@ -40,24 +41,24 @@ export default function WorkflowDetail() {
   return (
     workflow && (
       <div className="min-h-screen bg-gray-50">
-        <main className="p-6">
+        <main className="p-2">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center space-x-4 mb-6">
               <Link
                 to="/workflows"
-                className="w-8 h-8 flex items-center justify-center bg-white rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                className="w-12 h-8 flex items-center justify-center bg-white rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
               >
                 <i className="fas fa-arrow-left text-gray-600"></i>
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900">
                   {workflow?.name}
                 </h1>
                 <p className="text-gray-600">{workflow?.description}</p>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
                     <div className="flex items-center space-x-2">
@@ -78,7 +79,9 @@ export default function WorkflowDetail() {
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-4 sm:mt-0">
                     <button
-                      onClick={() => setIsEditModalOpen(true)}
+                      onClick={() =>
+                        navigate("/workflows/add-edit/" + workflow.id)
+                      }
                       className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm whitespace-nowrap cursor-pointer"
                       type="button"
                     >

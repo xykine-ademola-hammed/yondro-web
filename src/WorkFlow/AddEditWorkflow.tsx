@@ -90,9 +90,28 @@ export default function AddEditWorkflow() {
     },
   });
 
+  const { mutateAsync: updateWorkflow } = useMutation({
+    mutationFn: (body: WorkFlow) =>
+      getMutationMethod("PUT", `api/workflow/${workflowId}`, body, true),
+    onSuccess: (_data) => {
+      fetchWorkFlows(workflowFilter);
+      showToast("Workflow successfully created", "success");
+      navigate(-1);
+    },
+    onError: async (error) => {
+      console.log(error?.message);
+      showToast("Workflow creation unsuccessful", "error");
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createWorkflow({ ...formData, organizationId: user?.organizationId });
+    if (formData.id) {
+      // Update existing workflow
+      updateWorkflow(formData);
+    } else {
+      createWorkflow({ ...formData, organizationId: user?.organizationId });
+    }
   };
 
   const handleCancel = () => {
@@ -121,6 +140,8 @@ export default function AddEditWorkflow() {
       });
     }
   }, [workflowId]);
+
+  console.log("----formData------", formData);
 
   return (
     <div>

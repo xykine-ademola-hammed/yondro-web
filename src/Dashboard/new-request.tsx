@@ -25,7 +25,6 @@ const NewRequest: React.FC = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   // const [employeeSearch, setEmployeeSearch] = useState("");
-  const [selectedEmployeeId, _setSelectedEmployeeId] = useState<number>();
   const [selectedWorkFlow, setSelectedWorkFlow] = useState<WorkFlow>();
 
   const { workflows } = useOrganization();
@@ -45,9 +44,6 @@ const NewRequest: React.FC = () => {
   });
 
   const [selectedRequest, setSelectedRequest] = useState<any>({});
-
-  console.log("--------selectedRequest---------", selectedRequest);
-
   const { mutateAsync: getRequest } = useMutation({
     mutationFn: (body: ApiFilter) =>
       getMutationMethod(
@@ -83,15 +79,6 @@ const NewRequest: React.FC = () => {
     }
   }, [parentRequestId]);
 
-  // const handleEmployeeSelect = (employee: Employee) => {
-  //   setSelectedEmployeeId(employee.id);
-  //   setEmployeeSearch(`${employee.firstName} ${employee.lastName}`);
-  //   setShowEmployeeDropdown(false);
-  //   if (errors.employee) {
-  //     setErrors((prev) => ({ ...prev, employee: undefined }));
-  //   }
-  // };
-
   const handleSubmit = async (formResponses: any) => {
     console.log("Form Responses", formResponses);
     let payload: any;
@@ -100,13 +87,13 @@ const NewRequest: React.FC = () => {
       const formData = new FormData();
       if (selectedWorkFlow?.id)
         formData.append("workflowId", selectedWorkFlow.id.toString());
-      formData.append("requestorId", String(selectedEmployeeId ?? user?.id));
+      formData.append("requestorId", String(user?.id));
       appendFormData(formData, formResponses);
       payload = formData;
     } else {
       payload = {
         workflowId: selectedWorkFlow?.id,
-        requestorId: selectedEmployeeId ?? user?.id,
+        requestorId: user?.id,
         ...formResponses,
       };
     }

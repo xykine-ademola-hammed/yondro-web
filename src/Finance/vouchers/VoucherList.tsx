@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { voucherAPI } from "../services/api";
+import { voucherAPI } from "../../services/api";
 import { Plus, Search, Filter, FileText, Calendar } from "lucide-react";
-import { useAuth } from "../GlobalContexts/AuthContext";
-import MoneyDisplay from "../components/ui/MoneyDisplay";
+import { useAuth } from "../../GlobalContexts/AuthContext";
+import MoneyDisplay from "../../components/ui/MoneyDisplay";
 
 interface Voucher {
   id: number;

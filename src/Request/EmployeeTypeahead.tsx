@@ -1,13 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
-
-export type Employee = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-};
+import type { Employee } from "../common/types";
 
 type EmployeeTypeaheadProps = {
   label?: string;
@@ -19,7 +13,7 @@ type EmployeeTypeaheadProps = {
 };
 
 export default function EmployeeTypeahead({
-  label = "Employee",
+  label = "Search Employee",
   value,
   onChange,
   placeholder = "Search employees...",
@@ -57,8 +51,6 @@ export default function EmployeeTypeahead({
 
     return () => clearTimeout(t);
   }, [query]);
-
-  console.log("=======employees====employees", employees);
 
   // Close dropdown on outside click
   useEffect(() => {

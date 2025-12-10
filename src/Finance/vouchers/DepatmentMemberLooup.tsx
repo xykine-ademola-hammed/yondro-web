@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Check, User } from "lucide-react";
-import { useAuth } from "../GlobalContexts/AuthContext";
-import type { ApiFilter } from "../common/types";
+import { useAuth } from "../../GlobalContexts/AuthContext";
+import type { ApiFilter } from "../../common/types";
 import { useMutation } from "@tanstack/react-query";
-import { getMutationMethod } from "../common/api-methods";
+import { getMutationMethod } from "../../common/api-methods";
 
 interface User {
   id: number;

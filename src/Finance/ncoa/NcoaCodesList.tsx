@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { ncoaAPI } from "../services/api";
 import {
   Search,
   Filter,
@@ -9,7 +8,8 @@ import {
   Building,
   Eye,
 } from "lucide-react";
-import { useAuth } from "../GlobalContexts/AuthContext";
+import { useAuth } from "../../GlobalContexts/AuthContext";
+import { ncoaAPI } from "../../services/api";
 
 interface NcoaCode {
   id: number;

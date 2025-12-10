@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fiscalYearAPI } from "../services/api";
+import { fiscalYearAPI } from "../../services/api";
 import {
   Calendar,
   Plus,
@@ -12,7 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import FiscalYearForm from "./FiscalYearForm";
-import { useAuth } from "../GlobalContexts/AuthContext";
+import { useAuth } from "../../GlobalContexts/AuthContext";
 
 interface FiscalYear {
   id: number;

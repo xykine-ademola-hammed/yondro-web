@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import type { PendingInboxRow } from "../Dashboard";
 
 const AppContext = createContext({} as { [key: string]: any });
 
@@ -13,6 +14,9 @@ export default function AppContextProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const [selectedRequestPaymentPool, setSelectedRequestPaymentPool] = useState<
+    PendingInboxRow[]
+  >([]);
   const navigationItems = [
     {
       id: "home",
@@ -52,6 +56,17 @@ export default function AppContextProvider({
     return navigationItems.find((item) => item.id === id);
   };
 
+  const addToPaymentPool = (pool: PendingInboxRow) => {
+    setSelectedRequestPaymentPool((prevPool) => [...prevPool, pool]);
+  };
+
+  const onRemoveItem = (entityId: number) => {
+    const updatedItems = selectedRequestPaymentPool.filter(
+      (pool) => pool.requestId !== entityId
+    );
+    setSelectedRequestPaymentPool(updatedItems);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -59,6 +74,13 @@ export default function AppContextProvider({
         setSelectNavItem,
         navigationItems,
         getNavigationItem,
+        addToPaymentPool,
+        onRemoveItem,
+        selectedRequestPaymentPool,
+        selectedRequestPoolIds: selectedRequestPaymentPool.map(
+          (item) => item.requestId
+        ),
+        setSelectedRequestPaymentPool,
       }}
     >
       {children}

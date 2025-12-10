@@ -3,14 +3,14 @@ import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
-import { generateVoucherCode } from "../../common/methods";
+import { cleanEmptyFields, generateVoucherCode } from "../../common/methods";
 import spedLogo from "../../assets/spedLogo.png";
 import Signer from "../../components/Signer";
 import FormActions from "./FormActions";
-import { type VoteBookAccountLookup } from "../../vouchers/VoucherAccountLookup";
+import { type VoteBookAccountLookup } from "../../Finance/vouchers/VoucherAccountLookup";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
-import type { WorkflowRequest } from "../../common/types";
+import type { Employee } from "../../common/types";
 import FinancialCodeModal, { getFinanceCode } from "./FinancialCodeModal";
 import CentralPaymentOfficeApprovalAssignments from "./widgets/CentralPaymentOfficeApprovalAssginments";
 import AuditUnitAssignments from "./widgets/AuditUnitAssignments";
@@ -19,6 +19,11 @@ import EntriDistribution from "./widgets/EntryDistribution";
 import VoucherPaymentDetail from "./widgets/VoucherPaymentDetail";
 import { calculatePaymentDetail } from "./PaymentVoucher-Tetfund";
 import { isShowOrganizationDetail } from "../../common/constant";
+import AddEditEmployeeModal from "../../Organization/Employee/AddEditEmployeeModal";
+import { useMutation } from "@tanstack/react-query";
+import { getMutationMethod } from "../../common/api-methods";
+import { useToast } from "../../GlobalContexts/ToastContext";
+import { authService } from "../../services/authService";
 
 /** Types copied from your snippet **/
 export interface PaymentDetail {
@@ -141,8 +146,7 @@ export interface PaymentVoucherProps {
   mode?: "edit" | "preview" | "new" | "in_progress" | "view";
   responseTypes: string[];
   completedStages?: CompletedStage[];
-  parentRequest?: WorkflowRequest;
-  parentRequestId?: number;
+  parentRequest?: any;
 }
 
 const formatDate = (date: Date | string | undefined) =>
@@ -163,6 +167,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
   loading = false,
   setLoading,
 }) => {
+  const { showToast } = useToast();
   const componentRef = useRef<HTMLElement>(null);
   const downloadPdf = useDownloadPdf();
   const { user } = useAuth();
@@ -183,6 +188,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
   const [hasErrors, setHasErrors] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [modalName, setMoadalName] = useState<string>("");
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
   const [selectedVoucherAccount, setSelectedVoucherAccount] =
     useState<VoteBookAccountLookup | null>(null);
 
@@ -192,7 +200,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     applicationDate:
       (formResponses?.applicationDate as string) ||
       moment().format("YYYY-MM-DD"),
-    financeCode: getFinanceCode(user),
     whtPercent: 5,
     ...formResponses,
   });
@@ -221,6 +228,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     const { name, value } = e.target;
     if (name === "grossTotalBill") {
       const paymentDetailCalculations = calculatePaymentDetail(formData, value);
+      console.log("=======================", paymentDetailCalculations);
       setFormData((prev) => ({
         ...prev,
         ...paymentDetailCalculations,
@@ -235,6 +243,17 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
       return next;
     });
   };
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      setFormData((prev) => ({
+        ...prev,
+        financeCode: getFinanceCode(selectedEmployee),
+        applicant: selectedEmployee,
+        applicantName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
+      }));
+    }
+  }, [selectedEmployee]);
 
   useEffect(() => {
     if (formData.totalEstimate) {
@@ -348,7 +367,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
   const handleSubmit = (status: string) => {
     const nextErrors = validate();
     setErrors(nextErrors);
-    console.log("========203255.61=======", nextErrors);
     const hasErr = Object.keys(nextErrors).length > 0;
     setHasErrors(hasErr);
 
@@ -389,6 +407,54 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
       label: approver.bottomComment,
     };
   }
+
+  const { mutateAsync: updateEmployee } = useMutation({
+    mutationFn: (body: any) =>
+      getMutationMethod("PUT", `api/employee/${body.id}`, body, true),
+    onSuccess: async (data) => {
+      setSelectedEmployee(data.data);
+      showToast("Employee successfully updated", "success");
+    },
+    onError: async (error) => {
+      console.log(error?.message);
+      showToast("Employee updated unsuccessful", "error");
+    },
+  });
+
+  const { mutateAsync: createEmployee } = useMutation({
+    mutationFn: (body: any) =>
+      getMutationMethod("POST", `api/employees`, body, true),
+    onSuccess: async (data) => {
+      setSelectedEmployee(data.data);
+      showToast("Employee successfully created", "success");
+      const result = await authService.requestReset(data?.data?.email);
+      if (result.success) {
+        showToast(
+          "Email successfully sent to employee to reset password",
+          "success"
+        );
+      }
+    },
+    onError: async (error) => {
+      console.log(error?.message);
+      showToast("Employee creation unsuccessful", "error");
+    },
+  });
+
+  const onSaveEmployee = (data: Employee) => {
+    if (!data?.id) {
+      // Add new employee
+      const newEmployee = cleanEmptyFields({
+        ...data,
+        organizationId: Number(user?.organizationId),
+        password: data.email.split("@")[0],
+      });
+      createEmployee(newEmployee);
+    } else {
+      updateEmployee(data);
+    }
+    setMoadalName("");
+  };
 
   // --- RENDER --- //
   return (
@@ -459,14 +525,14 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             </p>
             <p className="text-sm font-semibold">
               Department Code: {formData?.financeCode}{" "}
-              {mode === "new" && (
+              {/* {mode === "new" && (
                 <span
                   onClick={() => setMoadalName("FinancialCodeModal")}
                   className="font-normal text-blue-600 underline cursor-pointer"
                 >
                   Add/Edit
                 </span>
-              )}
+              )} */}
             </p>
             <p className="text-sm font-semibold">
               Date:{" "}
@@ -486,9 +552,19 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
         {/* Applicant Information */}
         {isVisible("applicantInformation") && (
           <div className="border-gray-300 pt-4 mt-1">
-            <h3 className="text-l font-semibold text-gray-700 mb-1">
-              Applicant Information
-            </h3>
+            <div className="flex justify-between items-end gap-2">
+              <h3 className="text-l font-semibold text-gray-700 mb-1">
+                Applicant Information
+              </h3>
+
+              <span
+                onClick={() => setMoadalName("ApplicantDetail")}
+                className="font-normal text-blue-600 underline cursor-pointer"
+              >
+                Add/Edit
+              </span>
+            </div>
+
             <div className="p-1 border rounded-lg border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-600">
@@ -497,10 +573,15 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 <input
                   name="applicantName"
                   id="applicantName"
-                  value={formData?.applicantName ?? ""}
-                  onChange={handleInput}
+                  value={
+                    formData?.applicant
+                      ? `${formData?.applicant?.firstName} ${formData?.applicant?.lastName}`
+                      : ""
+                  }
+                  onChange={() => setMoadalName("ApplicantDetail")}
+                  onClick={() => setMoadalName("ApplicantDetail")}
                   type="text"
-                  disabled={!isEnabled("applicantName")}
+                  // disabled
                   className={inputClass("applicantName")}
                 />
                 {errors.applicantName && (
@@ -718,6 +799,18 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
           selectedCode={formData?.financeCode || ""}
         />
       )}
+
+      <AddEditEmployeeModal
+        modalMode={selectedEmployee?.id ? "edit" : "add"}
+        isOpen={modalName === "ApplicantDetail"}
+        onClose={() => setMoadalName("")}
+        onSave={onSaveEmployee}
+        employee={selectedEmployee}
+        includeRole={false}
+        setSelectedEmployee={setSelectedEmployee}
+        isSearchable={true}
+        title="Search or Add or Edit Employee"
+      />
     </div>
   );
 };

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Check, User } from "lucide-react";
-import type { ApiFilter, Employee } from "../common/types";
-import { getMutationMethod } from "../common/api-methods";
+import type { ApiFilter, Employee } from "../../common/types";
+import { getMutationMethod } from "../../common/api-methods";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "../GlobalContexts/AuthContext";
+import { useAuth } from "../../GlobalContexts/AuthContext";
 
 interface EmployeeTypeaheadProps {
   onSelect: (user: Employee) => void;

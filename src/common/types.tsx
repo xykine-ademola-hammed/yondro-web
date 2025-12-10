@@ -78,6 +78,7 @@ export interface Employee {
   positionId?: number;
   role?: string;
   permissions?: string[];
+  isContractor?: boolean;
 }
 
 export interface WorkFlow {

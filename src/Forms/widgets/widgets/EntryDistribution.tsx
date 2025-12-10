@@ -1,7 +1,7 @@
 import React from "react";
-import type { VoteBookAccountLookup } from "../../../vouchers/VoucherAccountLookup";
+import type { VoteBookAccountLookup } from "../../../Finance/vouchers/VoucherAccountLookup";
 import type { PaymentVoucherDataType } from "../PaymentVoucher";
-import VoucherAccountLookup from "../../../vouchers/VoucherAccountLookup";
+import VoucherAccountLookup from "../../../Finance/vouchers/VoucherAccountLookup";
 
 type Errors = Record<string, string | undefined>;
 

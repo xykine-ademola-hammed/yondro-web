@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { budgetAdjustmentAPI } from "../services/api";
 import {
   TrendingUp,
   TrendingDown,
@@ -17,7 +16,8 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
-import { useAuth } from "../GlobalContexts/AuthContext";
+import { budgetAdjustmentAPI } from "../../services/api";
+import { useAuth } from "../../GlobalContexts/AuthContext";
 
 interface BudgetAdjustment {
   id: number;

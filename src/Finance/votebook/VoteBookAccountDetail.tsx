@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { voteBookAPI } from "../services/api";
+import { voteBookAPI } from "../../services/api";
 import {
   ArrowLeft,
   BookOpen,
@@ -18,7 +18,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import MoneyDisplay from "../components/ui/MoneyDisplay";
+import MoneyDisplay from "../../components/ui/MoneyDisplay";
 
 interface VoteBookAccountDetail {
   id: number;
@@ -79,8 +79,8 @@ interface VoteBookAccountDetail {
       name: string;
     };
     requestor: {
-      first_name: string;
-      last_name: string;
+      firstName: string;
+      lastName: string;
     };
     approver?: {
       first_name: string;
@@ -198,32 +198,32 @@ const VoteBookAccountDetail: React.FC = () => {
     return colors[type as keyof typeof colors] || "text-gray-600 bg-gray-100";
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      DRAFT: { bg: "bg-gray-100", text: "text-gray-800", icon: FileText },
-      PENDING: { bg: "bg-yellow-100", text: "text-yellow-800", icon: Clock },
-      APPROVED: {
-        bg: "bg-green-100",
-        text: "text-green-800",
-        icon: CheckCircle,
-      },
-      REJECTED: { bg: "bg-red-100", text: "text-red-800", icon: XCircle },
-      POSTED: { bg: "bg-blue-100", text: "text-blue-800", icon: CheckCircle },
-    };
+  // const getStatusBadge = (status: string) => {
+  //   const statusConfig = {
+  //     DRAFT: { bg: "bg-gray-100", text: "text-gray-800", icon: FileText },
+  //     PENDING: { bg: "bg-yellow-100", text: "text-yellow-800", icon: Clock },
+  //     APPROVED: {
+  //       bg: "bg-green-100",
+  //       text: "text-green-800",
+  //       icon: CheckCircle,
+  //     },
+  //     REJECTED: { bg: "bg-red-100", text: "text-red-800", icon: XCircle },
+  //     POSTED: { bg: "bg-blue-100", text: "text-blue-800", icon: CheckCircle },
+  //   };
 
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
-    const Icon = config.icon;
+  //   const config =
+  //     statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
+  //   const Icon = config.icon;
 
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        <Icon className="h-3 w-3 mr-1" />
-        {status}
-      </span>
-    );
-  };
+  //   return (
+  //     <span
+  //       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+  //     >
+  //       <Icon className="h-3 w-3 mr-1" />
+  //       {status}
+  //     </span>
+  //   );
+  // };
 
   const getCommitmentStatusBadge = (status: string) => {
     const statusConfig = {
@@ -248,35 +248,35 @@ const VoteBookAccountDetail: React.FC = () => {
     );
   };
 
-  const calculateRunningBalance = (
-    adjustments: any[],
-    currentIndex: number
-  ) => {
-    let balance = account?.balances.allocation_base || 0;
+  // const calculateRunningBalance = (
+  //   adjustments: any[],
+  //   currentIndex: number
+  // ) => {
+  //   let balance = account?.balances.allocation_base || 0;
 
-    for (let i = 0; i <= currentIndex; i++) {
-      const adj = adjustments[i];
-      switch (adj.adjustment_type) {
-        case "SUPPLEMENT":
-        case "TRANSFER_IN":
-          balance += adj.amount;
-          break;
-        case "REDUCTION":
-        case "TRANSFER_OUT":
-          balance -= adj.amount;
-          break;
-      }
-    }
+  //   for (let i = 0; i <= currentIndex; i++) {
+  //     const adj = adjustments[i];
+  //     switch (adj.adjustment_type) {
+  //       case "SUPPLEMENT":
+  //       case "TRANSFER_IN":
+  //         balance += adj.amount;
+  //         break;
+  //       case "REDUCTION":
+  //       case "TRANSFER_OUT":
+  //         balance -= adj.amount;
+  //         break;
+  //     }
+  //   }
 
-    return balance;
-  };
+  //   return balance;
+  // };
 
   const tabs = [
     { id: "overview", name: "Overview", icon: Eye },
     { id: "adjustments", name: "Budget Adjustments", icon: TrendingUp },
     { id: "allocations", name: "Allocations", icon: Plus },
-    { id: "commitments", name: "Commitments", icon: Clock },
-    { id: "expenditures", name: "Expenditures", icon: DollarSign },
+    // { id: "commitments", name: "Commitments", icon: Clock },
+    // { id: "expenditures", name: "Expenditures", icon: DollarSign },
   ];
 
   if (loading) {
@@ -307,7 +307,7 @@ const VoteBookAccountDetail: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center mb-4">
           <button
-            onClick={() => navigate("/votebook")}
+            onClick={() => navigate("/finance")}
             className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -610,17 +610,17 @@ const VoteBookAccountDetail: React.FC = () => {
             {account.budgetAdjustments &&
             account.budgetAdjustments.length > 0 ? (
               <div className="space-y-4">
-                {account.budgetAdjustments.map((adjustment, index) => {
+                {account.budgetAdjustments.map((adjustment, _index) => {
                   const Icon = getAdjustmentTypeIcon(
                     adjustment.adjustment_type
                   );
                   const typeColor = getAdjustmentTypeColor(
                     adjustment.adjustment_type
                   );
-                  const runningBalance = calculateRunningBalance(
-                    account.budgetAdjustments,
-                    index
-                  );
+                  // const runningBalance = calculateRunningBalance(
+                  //   account.budgetAdjustments,
+                  //   index
+                  // );
                   const isIncrease = ["SUPPLEMENT", "TRANSFER_IN"].includes(
                     adjustment.adjustment_type
                   );
@@ -628,107 +628,92 @@ const VoteBookAccountDetail: React.FC = () => {
                   return (
                     <div
                       key={adjustment.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                      className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden hover:shadow-md transition-shadow duration-200"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {formatDate(adjustment.effective_date)}
+                      {/* Header: Type, Date, Reference */}
+                      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-center space-x-3">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${typeColor} shadow-sm`}
+                            >
+                              <Icon className="h-3 w-3 mr-1 flex-shrink-0" />
+                              {adjustment.adjustment_type.replace(/_/g, " ")}
                             </span>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                              <span className="font-medium text-gray-900">
+                                {formatDate(adjustment.effective_date)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-600">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                            <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded">
                               {adjustment.reference_number}
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeColor}`}
-                          >
-                            <Icon className="h-3 w-3 mr-1" />
-                            {adjustment.adjustment_type.replace("_", " ")}
-                          </span>
-                          {getStatusBadge(adjustment.status)}
-                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">
-                            Amount:
-                          </span>
-                          <div
-                            className={`text-lg font-semibold ${
-                              isIncrease ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {isIncrease ? "+" : "-"}
-                            {formatCurrency(adjustment.amount)}
+                      {/* Body: Key Details */}
+                      <div className="px-6 py-5">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          {/* Amount - Prominent */}
+                          <div className="lg:col-span-1">
+                            <dt className="text-sm font-medium text-gray-500 mb-1">
+                              Amount
+                            </dt>
+                            <dd
+                              className={`text-2xl font-bold ${
+                                isIncrease ? "text-green-600" : "text-red-600"
+                              }`}
+                            >
+                              {isIncrease ? "+" : "-"}
+                              {formatCurrency(adjustment.amount)}
+                            </dd>
                           </div>
-                        </div>
 
-                        {adjustment.fromAccount && (
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">
-                              From Account:
-                            </span>
-                            <div className="text-sm text-gray-900">
-                              {adjustment.fromAccount.code} -{" "}
-                              {adjustment.fromAccount.name}
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">
-                            Running Balance:
-                          </span>
-                          <div className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(runningBalance)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">
-                            Entered by:
-                          </span>
-                          <div className="text-sm text-gray-900">
-                            {adjustment.requestor.first_name}{" "}
-                            {adjustment.requestor.last_name}
-                          </div>
-                        </div>
-
-                        {adjustment.approver && (
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">
-                              Approved by:
-                            </span>
-                            <div className="text-sm text-gray-900">
-                              {adjustment.approver.first_name}{" "}
-                              {adjustment.approver.last_name}
-                              {adjustment.approval_date && (
-                                <span className="text-gray-500 ml-2">
-                                  on {formatDate(adjustment.approval_date)}
+                          {/* From Account */}
+                          {adjustment.fromAccount && (
+                            <div className="lg:col-span-1">
+                              <dt className="text-sm font-medium text-gray-500 mb-1">
+                                From Account
+                              </dt>
+                              <dd className="text-sm text-gray-900">
+                                <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded text-xs mr-2">
+                                  {adjustment.fromAccount.code}
                                 </span>
-                              )}
+                                {adjustment.fromAccount.name}
+                              </dd>
                             </div>
-                          </div>
-                        )}
+                          )}
+
+                          {/* Spacer if no fromAccount */}
+                        </div>
                       </div>
 
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">
-                          Justification:
-                        </span>
-                        <p className="text-sm text-gray-900 mt-1">
-                          {adjustment.justification}
-                        </p>
+                      {/* Footer: Metadata */}
+                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500 mb-1">
+                              Entered By
+                            </dt>
+                            <dd className="text-sm text-gray-900 font-medium">
+                              {adjustment.requestor.firstName}{" "}
+                              {adjustment.requestor.lastName}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500 mb-1">
+                              Justification
+                            </dt>
+                            <dd className="text-sm text-gray-700 leading-relaxed">
+                              {adjustment.justification}
+                            </dd>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

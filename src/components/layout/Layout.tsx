@@ -34,7 +34,8 @@ const adminNavigation: NavigationItem[] = [
   { name: "Requests", href: "/requests", icon: FileText },
   { name: "Forms", href: "/forms", icon: FileText },
   { name: "Organization", href: "/organization", icon: Building2 },
-  { name: "Bursary", href: "/bursary", icon: BookOpen },
+  { name: "Finance", href: "/finance", icon: BookOpen },
+  { name: "Store/Procurement", href: "/store-procurement", icon: BookOpen },
   { name: "Profile", href: "/profile", icon: UserIcon },
 ];
 
