@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Check } from "lucide-react";
 import { type Employee } from "../common/types";
-import EmployeeTypeahead from "../Finance/vouchers/EmployeeTypeahead";
+import EmployeeTypeahead from "../Finance Doc/vouchers/EmployeeTypeahead";
 
 interface Permission {
   id: string;

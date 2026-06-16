@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../common/api-methods";
 import type { Employee } from "../common/types";
+import { X } from "lucide-react";
 
 type EmployeeTypeaheadProps = {
   label?: string;
@@ -152,7 +153,7 @@ export default function EmployeeTypeahead({
             className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
             aria-label="Clear selection"
           >
-            x
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>

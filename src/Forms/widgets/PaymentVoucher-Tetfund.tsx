@@ -4,10 +4,10 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import { cleanEmptyFields, generateVoucherCode } from "../../common/methods";
-import tetFundLogo from "../../assets/tetfundLogo.jpg";
+import tetFundLogo from "../../resources/tetfundLogo.jpg";
 import Signer from "../../components/Signer";
 import FormActions from "./FormActions";
-import { type VoteBookAccountLookup } from "../../Finance/vouchers/VoucherAccountLookup.tsx";
+import { type VoteBookAccountLookup } from "../../Finance Doc/vouchers/VoucherAccountLookup.tsx";
 import type { PaymentVoucherDataType } from "./PaymentVoucher";
 import DocumentAttachmentForm from "./DocumentAttachmentForm.tsx";
 import type { Employee, WorkflowRequest } from "../../common/types.tsx";
@@ -22,7 +22,7 @@ import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods.ts";
 import { useToast } from "../../GlobalContexts/ToastContext.tsx";
 import { authService } from "../../services/authService.ts";
-import AddEditEmployeeModal from "../../Organization/Employee/AddEditEmployeeModal.tsx";
+import AddEditEmployeeModal from "../../Admin/Employee/AddEditEmployeeModal.tsx";
 import { getFinanceCode } from "./FinancialCodeModal.tsx";
 
 export interface PaymentDetail {
@@ -486,8 +486,7 @@ const PaymentVoucherTetfund: React.FC<PaymentVoucherTetfundProps> = ({
   });
 
   const inputClass = (name: string, extra = "") =>
-    `mt-0 w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-      errors[name] ? "border-red-500" : "border-gray-300"
+    `mt-0 w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors[name] ? "border-red-500" : "border-gray-300"
     } ${extra}`;
 
   const onSaveEmployee = (data: Employee) => {

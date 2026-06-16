@@ -9,6 +9,12 @@ import ClaimOutOfPocketExpense from "../../Forms/widgets/ClaimOutOfPocketExpense
 import RequestForPurchaseOrSpecialAdvance from "../../Forms/widgets/RequestForPurchaseOrSpecialAdvance";
 import PaymentVoucherTetfund from "../../Forms/widgets/PaymentVoucher-Tetfund";
 import PaymentVoucherAuto from "../../Forms/widgets/PaymentVoucher-auto";
+import AnnualLeaveResumptionOfDuty from "../../Forms/widgets/AnnualLeaveResumptionOfDuty";
+import RequestForLeave from "../../Forms/widgets/RequestForLeave";
+import StaffIdCardDataForm from "../../Forms/widgets/StaffIdCardDataForm";
+import EmployeeDisengagementForm from "../../Forms/widgets/EmployeeDisengagementForm";
+import PromotionInterestForm from "../../Forms/widgets/PromotionInterestForm";
+import ChangeOfNextOfKinForm from "../../Forms/widgets/ChangeOfNextOfKinForm";
 
 export interface FormProps {
   id: string | number;
@@ -379,9 +385,8 @@ const useForm = () => {
     },
     {
       id: 10,
-      name: "Payment Voucher Tetfund",
-      description:
-        "Employee finance request form with date selection and reason",
+      name: "Payment Voucher (TETFund)",
+      description: "Form for TETFund payment vouchers",
       status: "Active",
       createdBy: "Finance",
       lastUpdated: "2024-01-10",
@@ -464,6 +469,218 @@ const useForm = () => {
         showActionButtons: "Action buttons",
       },
     },
+
+    {
+      id: 11,
+      name: "Annual Leave Resumption of Duty Form",
+      description: "",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2024-01-10",
+      workflows: ["General Request"],
+      component: (props: any) => <AnnualLeaveResumptionOfDuty {...props} />,
+      inputLabels: {
+        leaveType: "Leave Type",
+        leaveTypeOther: "Leave Type Other",
+        officerName: "Officer Name",
+        phoneNo: "Phone Number",
+        department: "Department",
+        rank: "Rank",
+        unit: "Unit",
+        departureDate: "Departure Date",
+        resumptionDate: "Resumption Date",
+        comments: "Comments",
+      },
+      assigneeHolders: {},
+      formSections: {},
+    },
+    {
+      id: 12,
+      name: "Request for Annual/Casual/Maternity Leave",
+      description: "",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2025-02-01",
+      workflows: ["General Request"],
+      component: (props: any) => <RequestForLeave {...props} />,
+      inputLabels: {
+        leaveType: "Leave Type",
+        officerName: "Officer Name",
+        department: "Department",
+        unit: "Unit",
+        rank: "Rank/Position",
+        levelSteps: "CONPCASS/CONTEDISS Level",
+        numberOfDays: "Number of Days Desired",
+        leaveYear: "Leave Year",
+        commencementDate: "Date of Commencement",
+        phoneNumber: "Phone Number",
+        addressOnLeave: "Address while on Leave",
+        hodRelease: "HOD Release",
+        hodComments: "HOD Comments",
+        hodName: "HOD Name",
+        deanName: "Dean Name",
+        deanDesignation: "Dean Designation",
+        registrarApprovalDate: "Registrar Approval Date",
+        approvedDepartureDate: "Approved Departure Date",
+        leaveEntitlement: "Leave Entitlement",
+        deductionFromLeave: "Deduction from Leave",
+        balanceFromLeave: "Balance from Leave",
+        totalDeferredLeave: "Total Deferred Leave",
+        dateReturning: "Date Returning",
+      },
+      assigneeHolders: {
+        departmentHeadById: "Head of Department/Unit",
+        schoolDeanById: "School Dean",
+        personnelOfficerById: "Personnel Affairs Officer",
+        registrarById: "Registrar/Provost"
+      },
+      formSections: {
+        sectionA: "Section A: Applicant",
+        sectionB: "Section B: HOD",
+        sectionC: "Section C: Dean",
+        sectionD: "Section D: Registrar/Provost",
+        sectionE: "Section E: Personnel Affairs",
+      },
+    },
+    {
+      id: 13,
+      name: "Staff Identity Card Data Form",
+      description: "Form for requesting Staff ID Card (New, Promotion, or Loss)",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2025-02-01",
+      workflows: ["General Request"],
+      component: (props: any) => <StaffIdCardDataForm {...props} />,
+      inputLabels: {
+        fileNo: "File No",
+        surnameFirst: "Name (Surname First)",
+        department: "Department",
+        dob: "Date of Birth",
+        sex: "Sex",
+        computerNo: "Computer No",
+        phoneNo: "Phone No",
+        rank: "Present Rank",
+        designation: "Designation",
+        dateOfAppointment: "Date of Appointment",
+        permanentAddress: "Permanent Address",
+        reasonNewStaff: "New Staff",
+        reasonPromotion: "Promotion",
+        reasonLoss: "Loss",
+        nextOfKinNameAddress: "Next of Kin Name & Address",
+        nextOfKinPhone: "Next of Kin Phone",
+        verifiedBy: "Verified By",
+        isInformationCorrect: "Information Correct",
+        recommendation: "Recommendation",
+        officialName: "Official Name",
+        officialDate: "Official Date",
+        registrarDate: "Registrar Approval Date",
+      },
+      assigneeHolders: {
+        personnelOfficerById: "Personnel Affairs Officer",
+        registrarById: "Registrar/Provost"
+      },
+      formSections: {
+        personalDetails: "Personal Details",
+        reason: "Reason for Request",
+        nextOfKin: "Next of Kin",
+        officialUse: "Official Use Only",
+      },
+    },
+    {
+      id: 14,
+      name: "Employee Final Disengagement Clearance Form",
+      description: "Clearance form for staff disengaging from service",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2025-02-01",
+      workflows: ["General Request"],
+      component: (props: any) => <EmployeeDisengagementForm {...props} />,
+      inputLabels: {
+        fileNo: "File No",
+        staffName: "Staff Name",
+        department: "Department",
+        disengagementDate: "Date of Disengagement",
+        registrarAuthName: "Registrar Name (Auth)",
+      },
+      assigneeHolders: {
+        storeOfficer: "Store Officer",
+        headSalariesWages: "Head (Salaries & Wages)",
+        bursar: "Bursar",
+        collegeLibrarian: "College Librarian",
+        dean: "Dean",
+        headDeptUnit: "Head of Department/Unit",
+        worksMaintenance: "Works and Maintenance",
+        loansAdvances: "Loans & Advances",
+        treasurerCoop: "Treasurer (Staff Cooperative Society)",
+        treasurerCoeasu: "Treasurer (COEASU)",
+        treasurerSsucoen: "Treasurer (SSUCOEN)",
+        treasurerNasu: "Treasurer (NASU)",
+        treasurerAonnulah: "Treasurer (AONNULAH)",
+        treasurerAgape: "Treasurer (AGAPE LOVE)",
+        personnelAffairsId: "Personnel Affairs Division",
+        chairmanTetfund: "Chairman (TETFund)",
+        chairmanAcademicWelfare: "Chairman (ASWS)",
+        registrarById: "Registrar"
+      },
+      formSections: {
+        sectionA: "Section A: Details",
+        sectionB: "Section B: Clearance",
+        sectionC: "Section C: Authority",
+      },
+    },
+    {
+      id: 15,
+      name: "Promotion Expression of Interest Form",
+      description: "Form for staff expression of interest in promotion",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2025-02-01",
+      workflows: ["General Request"],
+      component: (props: any) => <PromotionInterestForm {...props} />,
+      inputLabels: {
+        fileNo: "File No",
+        surname: "Surname",
+        schoolDepartment: "School/Department",
+        presentAppointment: "Present Appointment",
+        hodName: "HOD Name",
+        checkedBy: "Checked By (Personnel)",
+      },
+      assigneeHolders: {
+        departmentHeadById: "HOD/HOU/Immediate Supervisor",
+        personnelOfficerById: "Personnel Affairs Officer"
+      },
+      formSections: {
+        personalInfo: "Personal Information",
+        endorsement: "Endorsement",
+        officialUse: "Official Use Only",
+      },
+    },
+    {
+      id: 16,
+      name: "Request Form for Change of Next of Kin",
+      description: "Form for changing next of kin details",
+      status: "Active",
+      createdBy: "System",
+      lastUpdated: "2025-02-01",
+      workflows: ["General Request"],
+      component: (props: any) => <ChangeOfNextOfKinForm {...props} />,
+      inputLabels: {
+        fullName: "Full Name",
+        fileNo: "File No",
+        department: "Department",
+        designation: "Designation",
+        authName: "Authenticated By",
+      },
+      assigneeHolders: {
+        personnelOfficerById: "Personnel Authentication"
+      },
+      formSections: {
+        personalDetails: "Personal Details",
+        nextOfKin: "Particulars of Next of Kin",
+        authentication: "Personnel Authentication",
+      },
+    },
+
   ]);
 
   const addForm = (formData: Omit<FormProps, "id">) => {

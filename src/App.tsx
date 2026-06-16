@@ -17,6 +17,9 @@ import { LayoutNew } from "./components/layout/Layout";
 import SessionExpiryWarning from "./components/SessionExpiryWarning";
 import PageNotFound from "./components/PageNotFound";
 import { PaymentPool } from "./Payments";
+import MyMessagesList from "./NotificationList";
+import FinanceReporting from "./FinanceReporting";
+import JournalFormPage from "./FinanceReporting/pages/Journals/JournalFormPage";
 
 // Lazily load heavier pages to speed up initial paint
 const Home = lazy(() => import("./LandingPage"));
@@ -29,33 +32,39 @@ const Workflow = lazy(() => import("./WorkFlow"));
 const WorkflowDetail = lazy(() => import("./WorkFlow/widgets/WorkflowDetail"));
 const AddEditWorkflow = lazy(() => import("./WorkFlow/AddEditWorkflow"));
 const Forms = lazy(() => import("./Forms"));
-const Finance = lazy(() => import("./Finance"));
+const Finance = lazy(() => import("./Finance Doc"));
 // const FormEditor = lazy(() => import("./Forms/widgets/FormCreatorEditor"));
-const Organization = lazy(() => import("./Organization"));
+const Organization = lazy(() => import("./Admin"));
 const SuperAdmin = lazy(() => import("./SuperAdmin"));
 const ResetPassword = lazy(() => import("./components/ResetPassword"));
 const ForgotPassword = lazy(() => import("./components/ForgotPassword"));
-const VoucherList = lazy(() => import("./Finance/vouchers/VoucherList"));
-const VoucherCreate = lazy(() => import("./Finance/vouchers/VoucherCreate"));
-const VoucherDetail = lazy(() => import("./Finance/vouchers/VoucherDetail"));
+const VoucherList = lazy(() => import("./Finance Doc/vouchers/VoucherList"));
+const VoucherCreate = lazy(
+  () => import("./Finance Doc/vouchers/VoucherCreate")
+);
+const VoucherDetail = lazy(
+  () => import("./Finance Doc/vouchers/VoucherDetail")
+);
 const ApprovalQueue = lazy(() => import("./approvals/ApprovalQueue"));
 const VoteBookManagement = lazy(
-  () => import("./Finance/votebook/VoteBookManagement")
+  () => import("./Finance Doc/votebook/VoteBookManagement")
 );
 const VoteBookAccountDetail = lazy(
-  () => import("./Finance/votebook/VoteBookAccountDetail")
+  () => import("./Finance Doc/votebook/VoteBookAccountDetail")
 );
 const BudgetAdjustmentList = lazy(
-  () => import("./Finance//budget-adjustments/BudgetAdjustmentList")
+  () => import("./Finance Doc/budget-adjustments/BudgetAdjustmentList")
 );
-const NcoaCodesList = lazy(() => import("./Finance/ncoa/NcoaCodesList"));
+const NcoaCodesList = lazy(() => import("./Finance Doc/ncoa/NcoaCodesList"));
 const Reports = lazy(() => import("./reports/Reports"));
 const PermissionManagement = lazy(
   () => import("./Permission/PermissionManagement")
 );
 const FiscalYearManagement = lazy(
-  () => import("./Finance/FiscalYear/FiscalYearManagement")
+  () => import("./Finance Doc/FiscalYear/FiscalYearManagement")
 );
+const AssetDetailPage = lazy(() => import("./AssetRegister/AssetDetailPage"));
+const AssetPage = lazy(() => import("./AssetRegister"));
 
 // Simple, accessible, non-blocking loader for Suspense and auth bootstrap
 function FullScreenLoader() {
@@ -182,6 +191,26 @@ function App() {
 
                     <Route path="admin" element={<SuperAdmin />} />
 
+                    <Route
+                      path="finance-report"
+                      element={<FinanceReporting />}
+                    />
+
+                    <Route
+                      path="finance-report/new-journal"
+                      element={<JournalFormPage mode="create" />}
+                    />
+
+                    <Route
+                      path="/asset-register"
+                      element={<AssetPage />}
+                    />
+
+                    <Route
+                      path="/asset-register/asset/:assetId"
+                      element={<AssetDetailPage unitType="ASSET REGISTER" />}
+                    />
+
                     <Route path="finance" element={<Finance />} />
                     <Route path="requests" element={<RequestList />} />
                     <Route path="workflows" element={<Workflow />} />
@@ -209,6 +238,9 @@ function App() {
                       path="fiscal-years"
                       element={<FiscalYearManagement />}
                     />
+
+                    <Route path="notifications" element={<MyMessagesList />} />
+
                     <Route
                       path="budget-adjustments"
                       element={<BudgetAdjustmentList />}

@@ -10,7 +10,7 @@ import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
-import spedLogo from "../../assets/spedLogo.png";
+import spedLogo from "../../resources/spedLogo.png";
 import FormActions from "./FormActions";
 import { useOrganization } from "../../GlobalContexts/Organization-Context";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
@@ -246,8 +246,7 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
   };
 
   const inputClass = (field: keyof DutyTourExpenseForm, extra = "") =>
-    `w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-      errors[field as string] ? "border-red-500" : "border-gray-300"
+    `w-full p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors[field as string] ? "border-red-500" : "border-gray-300"
     } ${extra}`;
 
   return (
@@ -263,8 +262,8 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
               margin: 10,
               scale: 1,
               hideSelectors: ["[data-export-hide]"],
-              onBeforeCapture: () => {},
-              onAfterCapture: () => {},
+              onBeforeCapture: () => { },
+              onAfterCapture: () => { },
             })
           }
         >
@@ -382,8 +381,8 @@ const DutyTourExpense: React.FC<DutyTourExpenseProps> = ({
                           ? "CONTEDISS"
                           : "CONPCASS"
                         : formData?.requestor?.category === "Teaching Staff"
-                        ? "CONTEDISS"
-                        : "CONPCASS"}
+                          ? "CONTEDISS"
+                          : "CONPCASS"}
                     </span>
                   </div>
                   <div className="w-full">

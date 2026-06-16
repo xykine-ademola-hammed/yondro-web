@@ -4,10 +4,10 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import { cleanEmptyFields, generateVoucherCode } from "../../common/methods";
-import spedLogo from "../../assets/spedLogo.png";
+import spedLogo from "../../resources/spedLogo.png";
 import Signer from "../../components/Signer";
 import FormActions from "./FormActions";
-import { type VoteBookAccountLookup } from "../../Finance/vouchers/VoucherAccountLookup";
+import { type VoteBookAccountLookup } from "../../Finance Doc/vouchers/VoucherAccountLookup";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
 import type { Employee } from "../../common/types";
@@ -19,7 +19,7 @@ import EntriDistribution from "./widgets/EntryDistribution";
 import VoucherPaymentDetail from "./widgets/VoucherPaymentDetail";
 import { calculatePaymentDetail } from "./PaymentVoucher-Tetfund";
 import { isShowOrganizationDetail } from "../../common/constant";
-import AddEditEmployeeModal from "../../Organization/Employee/AddEditEmployeeModal";
+import AddEditEmployeeModal from "../../Admin/Employee/AddEditEmployeeModal";
 import { useMutation } from "@tanstack/react-query";
 import { getMutationMethod } from "../../common/api-methods";
 import { useToast } from "../../GlobalContexts/ToastContext";
@@ -204,6 +204,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     ...formResponses,
   });
 
+  console.log("---enableInputList-------", enableInputList);
+  console.log("---vissibleSections-------", vissibleSections);
+
   // helpers
   const isEnabled = (name: string) => enableInputList.includes(name);
   const isVisible = (section: string) =>
@@ -246,6 +249,12 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
 
   useEffect(() => {
     if (selectedEmployee) {
+      console.log(
+        "========>>>>>>>>>",
+        selectedEmployee,
+        getFinanceCode(selectedEmployee)
+      );
+
       setFormData((prev) => ({
         ...prev,
         financeCode: getFinanceCode(selectedEmployee),

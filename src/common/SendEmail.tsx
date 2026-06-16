@@ -65,7 +65,7 @@ export function SendEmailModal({
   const { mutateAsync: sendMessage } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/messages`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       showToast("Message sent successfully", "success");
     },
     onError: (err) => console.error("Failed to fetch workflow requests:", err),

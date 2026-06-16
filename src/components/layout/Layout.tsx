@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Outlet,
-  NavLink,
-  useLocation,
-  useNavigate,
-  Link,
-} from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
   Home,
@@ -17,6 +11,8 @@ import {
   BookOpen,
   X,
   BellIcon,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { OrganizationProvider } from "../../GlobalContexts/Organization-Context";
@@ -25,7 +21,8 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 export interface NavigationItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  href: string;
+  href?: string;
+  children?: NavigationItem[];
 }
 
 const adminNavigation: NavigationItem[] = [
@@ -34,8 +31,16 @@ const adminNavigation: NavigationItem[] = [
   { name: "Requests", href: "/requests", icon: FileText },
   { name: "Forms", href: "/forms", icon: FileText },
   { name: "Organization", href: "/organization", icon: Building2 },
-  { name: "Finance", href: "/finance", icon: BookOpen },
-  { name: "Store/Procurement", href: "/store-procurement", icon: BookOpen },
+  {
+    name: "Finance",
+    icon: BookOpen,
+    children: [
+      { name: "Documentation", href: "/finance", icon: BookOpen },
+      { name: "Reporting", href: "/finance-report", icon: UserIcon },
+      { name: "Asset Register", href: "/asset-register", icon: BookOpen },
+    ],
+  },
+  // { name: "Procurement", href: "/procurement", icon: BookOpen },
   { name: "Profile", href: "/profile", icon: UserIcon },
 ];
 
@@ -62,24 +67,33 @@ export function LayoutNew() {
     navigate("/login");
   };
 
-  const currentItem = useMemo(
-    () =>
-      navItems.find(
-        (n) =>
-          location.pathname === n.href ||
-          location.pathname.startsWith(n.href + "/")
-      ),
-    [navItems, location.pathname]
-  );
+  const currentItem = useMemo(() => {
+    const findItem = (items: NavigationItem[]): NavigationItem | undefined => {
+      for (const item of items) {
+        if (
+          item.href &&
+          (location.pathname === item.href ||
+            location.pathname.startsWith(item.href + "/"))
+        ) {
+          return item;
+        }
+        if (item.children) {
+          const found = findItem(item.children);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    return findItem(navItems);
+  }, [navItems, location.pathname]);
 
   return (
     <OrganizationProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
         {/* Mobile sidebar */}
         <div
-          className={`lg:hidden ${
-            sidebarOpen ? "fixed inset-0 z-50" : "hidden"
-          }`}
+          className={`lg:hidden ${sidebarOpen ? "fixed inset-0 z-50" : "hidden"
+            }`}
         >
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
@@ -140,9 +154,10 @@ export function LayoutNew() {
               </div>
 
               {/* Right area (quick actions placeholder) */}
-              <div className="hidden items-center gap-3 md:flex">
+              <div className="items-center gap-3 flex">
                 <button
                   type="button"
+                  onClick={() => navigate("/notifications")}
                   className="relative flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors w-full text-sm h-9 px-4"
                 >
                   <BellIcon className="h-5 w-5" />
@@ -196,29 +211,92 @@ function SidebarNav({
 }) {
   return (
     <nav className="flex-1 space-y-1 px-3 py-4">
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            end={item.href === "/"}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              [
-                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
-                isActive
-                  ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-100"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-              ].join(" ")
-            }
-          >
-            <Icon className="h-5 w-5 shrink-0 opacity-80 group-hover:opacity-100" />
-            <span className="truncate">{item.name}</span>
-          </NavLink>
-        );
-      })}
+      {items.map((item) => (
+        <NavItem key={item.name} item={item} onNavigate={onNavigate} />
+      ))}
     </nav>
+  );
+}
+
+function NavItem({
+  item,
+  depth = 0,
+  onNavigate,
+}: {
+  item: NavigationItem;
+  depth?: number;
+  onNavigate?: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const Icon = item.icon;
+  const hasChildren = item.children && item.children.length > 0;
+
+  // Check if any child is active
+  const isChildActive = useMemo(() => {
+    if (!hasChildren) return false;
+    return item.children?.some(
+      (child) =>
+        location.pathname === child.href ||
+        location.pathname.startsWith(child.href + "/"),
+    );
+  }, [item.children, location.pathname, hasChildren]);
+
+  useEffect(() => {
+    if (isChildActive) setIsOpen(true);
+  }, [isChildActive]);
+
+  const toggle = () => setIsOpen(!isOpen);
+
+  const baseStyles =
+    "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition cursor-pointer";
+  const activeStyles =
+    "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-100";
+  const inactiveStyles = "text-slate-600 hover:bg-slate-50 hover:text-slate-900";
+
+  if (hasChildren) {
+    return (
+      <div className="space-y-1">
+        <div
+          onClick={toggle}
+          className={`${baseStyles} ${isChildActive ? activeStyles : inactiveStyles}`}
+        >
+          <Icon className="h-5 w-5 shrink-0 opacity-80 group-hover:opacity-100" />
+          <span className="truncate flex-1">{item.name}</span>
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+          )}
+        </div>
+        {isOpen && (
+          <div className="ml-4 space-y-1 border-l border-slate-100 pl-4">
+            {item.children?.map((child) => (
+              <NavItem
+                key={child.name}
+                item={child}
+                depth={depth + 1}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <NavLink
+      to={item.href || "#"}
+      end={item.href === "/"}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `${baseStyles} ${isActive ? activeStyles : inactiveStyles}`
+      }
+    >
+      <Icon className="h-5 w-5 shrink-0 opacity-80 group-hover:opacity-100" />
+      <span className="truncate">{item.name}</span>
+    </NavLink>
   );
 }
 

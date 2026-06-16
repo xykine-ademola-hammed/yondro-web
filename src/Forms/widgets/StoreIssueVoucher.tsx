@@ -3,7 +3,7 @@ import { useAuth } from "../../GlobalContexts/AuthContext";
 import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
-import spedLogo from "../../assets/spedLogo.png";
+import spedLogo from "../../resources/spedLogo.png";
 import FormActions from "./FormActions";
 import GenericTable from "./StoreItemTable";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
@@ -450,8 +450,8 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
               margin: 24,
               scale: 2,
               hideSelectors: ["[data-export-hide]"],
-              onBeforeCapture: () => {},
-              onAfterCapture: () => {},
+              onBeforeCapture: () => { },
+              onAfterCapture: () => { },
             })
           }
         >

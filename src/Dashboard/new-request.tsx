@@ -10,6 +10,7 @@ import RequestFormWrapper from "../components/RequestFormWrapper";
 import { appendFormData, containsFiles } from "../common/methods";
 
 export interface FormErrors {
+  name?: string;
   requestType?: string;
   employee?: string;
   description?: string;
@@ -132,11 +133,10 @@ const NewRequest: React.FC = () => {
 
                         setSelectedWorkFlow(foundWorkflow);
                       }}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer ${
-                        errors.requestType
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer ${errors.requestType
                           ? "border-red-300"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       <option value="">Select request type</option>
                       {workflows.rows.map((workflow) => (

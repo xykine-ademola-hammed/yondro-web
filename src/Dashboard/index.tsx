@@ -77,6 +77,8 @@ const Dashboard: React.FC = () => {
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [openEmailModal, setOpenEmailModal] = useState(false);
+  const [openChatModal, setOpenChatModal] = useState(false);
 
   const [selectedRequest, setSelectedRequest] =
     useState<PendingInboxRow | null>(null);
@@ -125,8 +127,7 @@ const Dashboard: React.FC = () => {
     setPage(1);
   };
 
-  const [openEmailModal, setOpenEmailModal] = useState(false);
-  const [openChatModal, setOpenChatModal] = useState(false);
+
 
   return (
     <div className="">
@@ -277,15 +278,14 @@ const Dashboard: React.FC = () => {
                       </span>
 
                       <span
-                        className={`text-sm font-medium px-2 py-1 rounded-full ${
-                          request?.stageStatus === "Approved"
+                        className={`text-sm font-medium px-2 py-1 rounded-full ${request?.stageStatus === "Approved"
                             ? "bg-green-100 text-green-800"
                             : request?.stageStatus === "Rejected"
-                            ? "bg-red-100 text-red-800"
-                            : request?.stageStatus === "Pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
+                              ? "bg-red-100 text-red-800"
+                              : request?.stageStatus === "Pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
                       >
                         {request?.stageStatus}
                       </span>
@@ -376,8 +376,17 @@ const Dashboard: React.FC = () => {
           entityId={selectedRequest?.requestId}
           defaultSubject={selectedRequest?.workflowName}
           onClose={() => setOpenEmailModal(false)}
-          onSuccess={() => {}}
-          onError={() => {}}
+          onSuccess={() => {
+            fetchWorkflowInstanceStages({
+              departmentId: selectedDepartment?.id,
+              employeeId: selectedEmployee?.id,
+              status: selectedStatus ? selectedStatus : undefined,
+              formId: selectedType?.formId,
+              limit,
+              offset: page - 1,
+            });
+          }}
+          onError={() => { }}
         />
       )}
 
@@ -403,7 +412,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Floating button only on mobile */}
-      <div className="sm:hidden fixed top-5 right-5 z-50">
+      <div className="sm:hidden fixed top-15 right-5 z-50">
         <button
           onClick={() => navigate("new-request")}
           className="flex items-center bg-blue-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors text-sm"

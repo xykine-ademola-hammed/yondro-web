@@ -1,12 +1,12 @@
 import React from "react";
 import ModalWrapper from "../components/modal-wrapper";
-import type { WorkflowRequest } from "../common/types";
+import type { Committee, WorkflowRequest } from "../common/types";
 interface ConfirmationModalProps {
   submissionStatus: string;
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  request?: WorkflowRequest;
+  request?: WorkflowRequest | Committee | null;
   onChangeComment: React.Dispatch<React.SetStateAction<string>>;
 }
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({

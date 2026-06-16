@@ -15,7 +15,9 @@ const labelMapper = {
   Approve: "Approved by",
   Acknolwedge: "Acknowledged by",
   Request: "Requested by",
+  Applicant: "Applicant",
 };
+
 
 export type LabelKey = keyof typeof labelMapper;
 

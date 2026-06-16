@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import type { PaymentVoucherDataType } from "../PaymentVoucher";
 import NumberInput from "../../../components/ui/NumberInput";
 

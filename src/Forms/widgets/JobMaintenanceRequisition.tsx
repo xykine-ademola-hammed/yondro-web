@@ -10,7 +10,7 @@ import moment from "moment";
 import useDownloadPdf from "../../common/hooks/useDownloadPdf";
 import Signer from "../../components/Signer";
 import { getFinanceCode } from "../../common/methods";
-import spedLogo from "../../assets/spedLogo.png";
+import spedLogo from "../../resources/spedLogo.png";
 import FormActions from "./FormActions";
 import DocumentAttachmentForm from "./DocumentAttachmentForm";
 import type { Approver } from "./ClaimOutOfPocketExpenses";
@@ -164,8 +164,8 @@ const JobMaintenanceRequisition: React.FC<JobMaintenanceRequisitionProps> = ({
               margin: 10,
               scale: 1,
               hideSelectors: ["[data-export-hide]"],
-              onBeforeCapture: () => {},
-              onAfterCapture: () => {},
+              onBeforeCapture: () => { },
+              onAfterCapture: () => { },
             })
           }
         >

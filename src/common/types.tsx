@@ -42,6 +42,62 @@ export interface Department {
   positions: Position[];
 }
 
+export type CommitteeRoleType = "CHAIR" | "SECRETARY" | "MEMBER";
+export type CommitteeType =
+  | "PROCUREMENT_PLANNING"
+  | "MINISTERIAL_TENDERS_BOARD"
+  | "TECHNICAL_COMMITTEE";
+
+export const CommitteeTypeOptions = [
+  {
+    label: "Procurement Planning",
+    value: "PROCUREMENT_PLANNING" as CommitteeType,
+  },
+  {
+    label: "Ministerial Tender Board",
+    value: "MINISTERIAL_TENDERS_BOARD" as CommitteeType,
+  },
+  {
+    label: "Technical Committee",
+    value: "TECHNICAL_COMMITTEE" as CommitteeType,
+  },
+];
+
+export const CommitteeRoleOptions = [
+  {
+    label: "Chair",
+    value: "CHAIR" as CommitteeRoleType,
+  },
+  {
+    label: "Secretary",
+    value: "SECRETARY" as CommitteeRoleType,
+  },
+  {
+    label: "Member",
+    value: "MEMBER" as CommitteeRoleType,
+  },
+];
+
+export interface CommitteeMember {
+  id?: string;
+  committeeId?: string;
+  employeeId?: string;
+  committee: Committee;
+  employee: Employee;
+  role: string;
+  isActived: boolean;
+  endDate: string;
+  startDate: string;
+}
+
+export interface Committee {
+  id?: string;
+  name: string;
+  type: CommitteeType;
+  organizationId?: number;
+  members?: CommitteeMember[];
+}
+
 export interface Position {
   id?: number;
   title: string;

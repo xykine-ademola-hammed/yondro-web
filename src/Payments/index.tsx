@@ -33,7 +33,7 @@ export function PaymentPool() {
   const { mutateAsync: processPayment } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/payments`, body, true),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       setSelectedRequestPaymentPool([]);
       showToast("Payment processed successfully", "success");
     },

@@ -5,4 +5,4 @@ export const genericPositions = [
   },
 ];
 
-export const isShowOrganizationDetail = false;
+export const isShowOrganizationDetail = true;

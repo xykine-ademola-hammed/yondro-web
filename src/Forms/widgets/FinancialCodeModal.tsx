@@ -42,7 +42,7 @@ const FinancialCodeModal: React.FC<FinancialCodeModalProps> = ({
 
   // Derived lists based on selection
   const [departments, setDepartments] = useState<Department[] | undefined>(
-    undefined
+    undefined,
   );
   const [units, setUnits] = useState<Unit[]>([]);
 
@@ -72,7 +72,7 @@ const FinancialCodeModal: React.FC<FinancialCodeModalProps> = ({
     }
 
     const selectedSchool = schoolOffices?.rows?.find(
-      (o: any) => Number(o.id) === Number(schoolOrOfficeId)
+      (o: any) => Number(o.id) === Number(schoolOrOfficeId),
     );
 
     const depts: Department[] | undefined = selectedSchool?.departments;
@@ -101,7 +101,7 @@ const FinancialCodeModal: React.FC<FinancialCodeModalProps> = ({
   const selectedSchoolObj = useMemo(() => {
     return (
       schoolOffices?.rows?.find(
-        (o: any) => Number(o.id) === Number(schoolOrOfficeId)
+        (o: any) => Number(o.id) === Number(schoolOrOfficeId),
       ) || null
     );
   }, [schoolOrOfficeId, schoolOffices?.rows]);
@@ -192,7 +192,7 @@ const FinancialCodeModal: React.FC<FinancialCodeModalProps> = ({
                   value={schoolOrOfficeId}
                   onChange={(e) =>
                     setSchoolOrOfficeId(
-                      e.target.value ? Number(e.target.value) : ""
+                      e.target.value ? Number(e.target.value) : "",
                     )
                   }
                   className={`mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 ${
@@ -230,7 +230,7 @@ const FinancialCodeModal: React.FC<FinancialCodeModalProps> = ({
                   value={departmentId}
                   onChange={(e) =>
                     setDepartmentId(
-                      e.target.value ? Number(e.target.value) : ""
+                      e.target.value ? Number(e.target.value) : "",
                     )
                   }
                   disabled={!departments || departments.length === 0}

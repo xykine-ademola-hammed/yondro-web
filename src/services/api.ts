@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL + "api/";
+export const API_BASE_URL = import.meta.env.VITE_API_URL + "api/";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("accessToken");
@@ -164,7 +164,7 @@ export const budgetAdjustmentAPI = {
       `${API_BASE_URL}budget-adjustments${queryString}`,
       {
         headers: getAuthHeaders(),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -192,7 +192,7 @@ export const budgetAdjustmentAPI = {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data || {}),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -204,7 +204,7 @@ export const budgetAdjustmentAPI = {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data || {}),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -215,7 +215,7 @@ export const budgetAdjustmentAPI = {
       {
         method: "POST",
         headers: getAuthHeaders(),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -226,7 +226,7 @@ export const budgetAdjustmentAPI = {
       {
         method: "POST",
         headers: getAuthHeaders(),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -378,7 +378,7 @@ export const fiscalYearAPI = {
       {
         method: "POST",
         headers: getAuthHeaders(),
-      }
+      },
     );
     return handleResponse(response);
   },
@@ -409,6 +409,370 @@ export const pdfAPI = {
   },
 };
 
+export const assetApi = {
+  getDashboard: async (unitId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/dashboard?unitId=${unitId}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+  listAssets: async (params?: any) => {
+    const queryString = params
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
+    const response = await fetch(`${API_BASE_URL}assets${queryString}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getAsset: async (assetId: string) => {
+    const response = await fetch(`${API_BASE_URL}assets/${assetId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+  getAssetDetail: async (assetId: string) => {
+    const response = await fetch(`${API_BASE_URL}assets/detail/${assetId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+  listCategories: async (unitType: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/categories/all?unitType=${unitType}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+  listAssetTransactions: async (assetId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/${assetId}/transactions`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+  getPeriodsReadiness: async (unitId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/periods-readiness?unitId=${unitId}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+  reportListing: async (unitId: string, params?: any) => {
+    const queryString = params
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
+    const response = await fetch(
+      `${API_BASE_URL}assets/reports/listing?unitId=${unitId}${queryString}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  reportValuation: async (unitId: string, params?: any) => {
+    const queryString = params
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
+    const response = await fetch(
+      `${API_BASE_URL}assets/reports/valuation?unitId=${unitId}${queryString}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  reportDepSummary: async (unitId: string, period: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/reports/dep-summary?unitId=${unitId}&period=${period}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  runDepreciation: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets/depreciation/run`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  createAsset: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateAsset: async (assetId: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets/${assetId}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  capitalizeAsset: async (assetId: string, payload: any) => {
+    const response = await fetch(
+      `${API_BASE_URL}assets/${assetId}/capitalize`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  disposeAsset: async (assetId: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets/${assetId}/dispose`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  createCategory: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets/categories`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateCategory: async (id: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}assets/categories/${id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteCategory: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}assets/categories/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+export const financeApi = {
+  listUnits: async (params?: any) => {
+    const queryString = params
+      ? `?${new URLSearchParams(params).toString()}`
+      : "";
+    const response = await fetch(`${API_BASE_URL}finance/units${queryString}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+  createUnit: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/units`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateUnit: async (id: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/units/${id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  listPeriods: async (unitId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/periods?unitId=${unitId}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  openPeriod: async (unitId: string, period: string) => {
+    const response = await fetch(`${API_BASE_URL}finance/periods/open`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ unitId, period }),
+    });
+    return handleResponse(response);
+  },
+
+  closePeriod: async (unitId: string, period: string) => {
+    const response = await fetch(`${API_BASE_URL}finance/periods/close`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ unitId, period }),
+    });
+    return handleResponse(response);
+  },
+
+  listJournals: async (params: any) => {
+    const queryString = `?${new URLSearchParams(params).toString()}`;
+    const response = await fetch(
+      `${API_BASE_URL}finance/journals${queryString}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  downloadVoucherPdf: async (journalId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/journals/${journalId}/voucher.pdf`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to download voucher PDF");
+    }
+    return response.blob();
+  },
+
+  downloadReportPdf: async (params: {
+    unitId: string;
+    period: string;
+    reportType: string;
+    accountId?: string;
+  }) => {
+    const queryString = `?${new URLSearchParams(params).toString()}`;
+    const response = await fetch(
+      `${API_BASE_URL}finance/reports/${params.reportType}.pdf${queryString}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to download report PDF");
+    }
+    return response.blob();
+  },
+
+  listAccounts: async (unitId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/accounts?unitId=${unitId}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  listAllAccounts: async (accountType: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/accounts/all?accountType=${accountType}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  createAccount: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/accounts`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateAccount: async (id: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/accounts/${id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  saveJournal: async (payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/journals`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateJournal: async (id: string, payload: any) => {
+    const response = await fetch(`${API_BASE_URL}finance/journals/${id}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  submitJournal: async (id: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/journals/${id}/submit`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  approveJournal: async (id: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}finance/journals/${id}/approve`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  postJournal: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}finance/journals/${id}/post`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+  getJournal: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}finance/journals/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
 export default {
   auth: authAPI,
   vouchers: voucherAPI,
@@ -418,4 +782,6 @@ export default {
   users: userAPI,
   fiscalYears: fiscalYearAPI,
   pdf: pdfAPI,
+  finance: financeApi,
+  asset: assetApi,
 };

@@ -50,6 +50,7 @@ const ChatComponentModal: React.FC<ChatComponentModalProps> = ({
   const [receiverList, setReceiverList] = useState<EmailReceiver[]>([]);
   const [error, setError] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
+  console.log(isSending);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -69,7 +70,7 @@ const ChatComponentModal: React.FC<ChatComponentModalProps> = ({
   const { mutateAsync: sendMessage } = useMutation({
     mutationFn: (body: any) =>
       getMutationMethod("POST", `api/messages`, body, true),
-    onSuccess: (data) => {},
+    onSuccess: (_data) => {},
     onError: (err) => console.error("Failed to fetch workflow requests:", err),
   });
 
@@ -199,7 +200,7 @@ const ChatComponentModal: React.FC<ChatComponentModalProps> = ({
           )}
 
           <div className="space-y-3">
-            {messages.map((msg, index) => {
+            {messages.map((msg, _index) => {
               const isMe = String(msg.sender.id) === String(currentUserId);
 
               return (
